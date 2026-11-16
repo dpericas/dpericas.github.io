@@ -1,0 +1,10 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "cat.voleisantpedor.app",
+    "sha256_cert_fingerprints": [
+      "07:13:8E:55:32:22:1A:96:04:23:97:26:47:14:85:B9:74:E6:14:A4:CC:C7:48:8F:B4:D9:79:A7:16:5E:BA:3F"
+    ]
+  }
+}]

@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vòlei Santpedor · En directe</title>
+<meta name="description" content="Marcador en directe d'un partit del Club Vòlei Santpedor">
+<style>
+  :root { --bg:#101214; --card:#1b1f22; --home:#1e7d32; --away:#1565c0; --yellow:#fcdd09; --red:#e53935; --muted:#b0bec5; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:#fff; font-family:system-ui,-apple-system,Roboto,sans-serif; }
+  main { max-width:640px; margin:0 auto; padding:16px; }
+  header { display:flex; align-items:center; gap:12px; }
+  header img { width:56px; height:56px; border-radius:50%; background:#fff; }
+  header h1 { font-size:18px; margin:0; }
+  #status { color:var(--muted); font-size:13px; margin-top:2px; }
+  .dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#777; margin-right:6px; }
+  .dot.live { background:var(--red); animation:p 1.4s infinite; }
+  @keyframes p { 50% { opacity:.35; } }
+  .open { display:block; text-align:center; margin:16px 0; padding:14px; border-radius:12px; background:var(--yellow);
+          color:#000; font-weight:700; text-decoration:none; font-size:17px; }
+  .board { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px; }
+  .team { border-radius:16px; padding:12px; text-align:center; min-height:180px; display:flex; flex-direction:column; }
+  .team.home { background:var(--home); } .team.away { background:var(--away); }
+  .team .name { font-weight:700; font-size:15px; min-height:2.4em; }
+  .team .pts { font-size:min(26vw,150px); font-weight:900; line-height:1; flex:1; display:flex; align-items:center; justify-content:center; }
+  .team .sets { font-size:14px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-top:10px; }
+  .chip { background:#263238; border-radius:6px; padding:3px 8px; font-size:13px; }
+  .note { color:var(--muted); font-size:13px; text-align:center; margin-top:16px; }
+  .final { background:var(--card); border-radius:12px; padding:12px; text-align:center; margin-top:10px; font-weight:700; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <img src="logo.jpg" alt="">
+    <div>
+      <h1 id="title"><span class="dot" id="dot"></span><span id="state">En directe</span></h1>
+      <div id="status">Connectant…</div>
+    </div>
+  </header>
+
+  <a class="open" id="open" href="#">📲 Obrir a l'app Vòlei Santpedor</a>
+
+  <section id="score" hidden>
+    <div id="comp" class="note" style="margin-top:0"></div>
+    <div class="board">
+      <div class="team home"><div class="name" id="hn"></div><div class="pts" id="hp">0</div><div class="sets">Sets: <b id="hs">0</b></div></div>
+      <div class="team away"><div class="name" id="an"></div><div class="pts" id="ap">0</div><div class="sets">Sets: <b id="as">0</b></div></div>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="final" id="final" hidden></div>
+  </section>
+
+  <p class="note" id="wait">Esperant el marcador… Si no arriba res, potser la retransmissió encara no ha començat o ja fa més de 12 hores que va acabar.</p>
+  <p class="note">Amb l'app del Club Vòlei Santpedor el marcador es veu complet (servei, rotacions, temps morts i estadístiques).</p>
+</main>
+<script>
+(function () {
+  var RELAY = 'https://ntfy.sh/';
+  var PKG = 'cat.voleisantpedor.app';
+  var m = /vsp-[a-z0-9]{6,32}/.exec((location.hash + ' ' + location.search + ' ' + location.pathname).toLowerCase());
+  var topic = m && m[0];
+  var $ = function (id) { return document.getElementById(id); };
+
+  if (!topic) {
+    $('status').textContent = 'Enllaç sense codi de partit.';
+    $('open').hidden = true; $('wait').hidden = true;
+    return;
+  }
+  // Android: open the app by its own scheme; without the app, stay on this page.
+  $('open').href = 'intent://live/' + topic + '#Intent;scheme=voleisantpedor;package=' + PKG +
+    ';S.browser_fallback_url=' + encodeURIComponent(location.href) + ';end';
+  if (!/Android/i.test(navigator.userAgent)) $('open').hidden = true;
+
+  // Same rules as the app's ScoreEngine, only what the page shows: points and sets.
+  function replay(d) {
+    var r = d.r.split(',').map(Number), setsToWin = r[0], setPts = r[1], tbPts = r[2], lead = r[3], all = r[6] === 1;
+    var maxSets = setsToWin * 2 - 1, sets = [], h = 0, a = 0, sh = 0, sa = 0, done = false, e = d.e || '';
+    for (var i = 0; i < e.length && !done; i++) {
+      var c = e[i];
+      if (c === '[') { var j = e.indexOf(']', i); if (j < 0) break; i = j; continue; }
+      if (c !== 'h' && c !== 'a') continue;
+      if (c === 'h') h++; else a++;
+      var n = sets.length + 1, target = (maxSets > 1 && n === maxSets) ? tbPts : setPts;
+      if (Math.max(h, a) >= target && Math.abs(h - a) >= lead) {
+        sets.push([h, a]); if (h > a) sh++; else sa++;
+        done = all ? sets.length >= maxSets : (sh === setsToWin || sa === setsToWin);
+        if (!done) { h = 0; a = 0; }
+      }
+    }
+    return { sets: sets, h: done ? sets[sets.length - 1][0] : h, a: done ? sets[sets.length - 1][1] : a, sh: sh, sa: sa, done: done, n: sets.length + (done ? 0 : 1) };
+  }
+
+  var lastT = 0, lastSent = 0;
+  function show(d) {
+    if (d.v !== 1 || (d.t || 0) < lastT) return;
+    lastT = d.t || 0; lastSent = Date.now();
+    var s = replay(d);
+    $('wait').hidden = true; $('score').hidden = false;
+    $('hn').textContent = d.h; $('an').textContent = d.a;
+    $('hp').textContent = s.h; $('ap').textContent = s.a; $('hs').textContent = s.sh; $('as').textContent = s.sa;
+    $('comp').textContent = d.c || '';
+    var chips = $('chips'); chips.innerHTML = '';
+    s.sets.forEach(function (x, i) { var el = document.createElement('span'); el.className = 'chip'; el.textContent = 'S' + (i + 1) + '  ' + x[0] + '-' + x[1]; chips.appendChild(el); });
+    var fin = $('final');
+    if (s.done) { fin.hidden = false; fin.textContent = '🏆 Guanya ' + (s.sh > s.sa ? d.h : d.a) + ' (' + s.sh + '-' + s.sa + ')'; }
+    else if (d.end === 2) { fin.hidden = false; fin.textContent = 'La retransmissió s’ha aturat'; }
+    else fin.hidden = true;
+    var live = !s.done && d.end === 0;
+    $('dot').className = 'dot' + (live ? ' live' : '');
+    $('state').textContent = s.done || d.end === 1 ? 'Partit finalitzat' : d.end === 2 ? 'Retransmissió aturada' : 'En directe · Set ' + s.n;
+    document.title = d.h + ' ' + s.sh + '-' + s.sa + ' ' + d.a + ' · Vòlei Santpedor';
+    $('status').textContent = 'Actualitzat fa un moment';
+  }
+
+  var es = new EventSource(RELAY + topic + '/sse?since=latest');
+  es.onopen = function () { if (!lastSent) $('status').textContent = 'Connectat'; };
+  es.onmessage = function (ev) { try { show(JSON.parse(JSON.parse(ev.data).message)); } catch (e) {} };
+  es.onerror = function () { $('status').textContent = 'Sense connexió amb el directe. Reintentant…'; };
+  setInterval(function () {
+    if (!lastSent) return;
+    var s = Math.round((Date.now() - lastSent) / 1000);
+    if (s >= 60) $('status').textContent = 'Actualitzat fa ' + Math.floor(s / 60) + ' min';
+  }, 10000);
+})();
+</script>
+</body>
+</html>
