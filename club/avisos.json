@@ -1,0 +1,11 @@
+{
+  "avisos": [
+    {
+      "id": "benvinguda-app",
+      "data": "2026-11-16",
+      "titol": "Benvinguts a l'app del club",
+      "text": "Aquí trobareu els avisos del club: canvis d'entrenaments, quotes, sortides i novetats.",
+      "fins": "2026-12-31"
+    }
+  ]
+}
