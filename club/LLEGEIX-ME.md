@@ -61,3 +61,36 @@ Surten a Club > Horaris d'entrenament i a la pestanya Plantilla de cada equip.
 - `portada` (opcional): la foto de la portada; per defecte, la primera.
 
 ⚠️ Fotos de menors: publiqueu-ne només amb el consentiment de les famílies. Aquesta web és pública.
+
+## activitats.json — Activitats del club
+Surten a l'Agenda (amb el dia) i a Club > Activitats del club, amb el botó per afegir-les al calendari.
+```json
+{
+  "activitats": [
+    { "id": "presentacio-2026", "data": "2026-12-13", "hora": "17:00",
+      "titol": "Presentació d'equips", "text": "Tots els equips del club, amb berenar.",
+      "lloc": "Pavelló Rafa Martínez", "adreca": "Ctra. de Navarcles, 60, Santpedor" },
+    { "id": "campus-estiu", "data": "2027-06-28", "fins": "2027-07-02",
+      "titol": "Campus d'estiu", "enllac": "https://…", "equips": [6731, -1] }
+  ]
+}
+```
+- `hora` opcional (sense hora = tot el dia); `fins` per a activitats de diversos dies.
+- `equips` opcional: amb "★ Els meus" a l'Agenda, només surten als equips indicats (sense, a tothom).
+
+## amistosos.json — Partits dels equips no federats (i amistosos)
+Escola (-2), Escola Aleví (-1), Màsters (-3) o qualsevol equip. Surten a l'Agenda com els oficials
+(amb Calendari, Com arribar i Cotxes si són a fora) i a la pantalla de l'equip.
+```json
+{
+  "partits": [
+    { "id": "masters-1", "equip": -3, "data": "2026-11-28", "hora": "18:30",
+      "rival": "CV Manresa Màsters", "local": true, "lloc": "Pavelló Rafa Martínez",
+      "adreca": "Ctra. de Navarcles, 60, Santpedor" },
+    { "id": "escola-1", "equip": -2, "data": "2026-11-21", "hora": "10:00",
+      "rival": "Escola Sant Fruitós", "local": false, "lloc": "Pavelló de Sant Fruitós",
+      "sets_club": 2, "sets_rival": 1, "competicio": "Trobada escolar" }
+  ]
+}
+```
+- `local`: true si es juga a casa. Per posar el resultat, afegiu `sets_club` i `sets_rival`.
