@@ -343,7 +343,9 @@
     return getJson("club/" + file + "?t=" + Date.now()).then(function (r) { return r[key] || []; }).catch(function () { return []; });
   }
   var COLLS = ["avisos", "activitats", "amistosos", "horaris", "resultats", "agenda"];
+  var fsToken = null;
   var fsData = anonToken().then(function (t) {
+    fsToken = t;
     return Promise.all(COLLS.map(function (c) { return fsList(t, c).catch(function () { return []; }); }));
   }).catch(function () { return COLLS.map(function () { return []; }); });
 
@@ -374,8 +376,23 @@
         '<div class="meta">' + esc(fmtDate(o.data)) + (o.autorNom ? " · " + esc(o.autorNom) : "") + "</div>" +
         (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
         (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">Més informació</a></p>' : "") +
+        (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">🖼️ Veure la imatge</button></p>' : "") +
         chips(teamsOf(o)) + "</div>";
     }).join("") : '<div class="empty">Ara mateix no hi ha avisos.</div>';
+    // images attached from the app (fs://fotos/{id}) or plain https ones
+    Array.prototype.forEach.call(document.querySelectorAll("[data-img]"), function (b) {
+      b.onclick = function () {
+        var src = b.getAttribute("data-img");
+        var show = function (url) { var img = document.createElement("img"); img.src = url; img.alt = ""; img.style.cssText = "max-width:100%;border-radius:12px;margin-top:6px"; b.replaceWith(img); };
+        if (/^https:\/\//.test(src)) { show(src); return; }
+        var m = /^fs:\/\/fotos\/([A-Za-z0-9]+)$/.exec(src); if (!m || !fsToken) return;
+        b.textContent = "Carregant…";
+        getJson("https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT + "/databases/(default)/documents/fotos/" + m[1] + "?mask.fieldPaths=jpeg",
+          { headers: { Authorization: "Bearer " + fsToken } })
+          .then(function (d) { show("data:image/jpeg;base64," + d.fields.jpeg.stringValue); })
+          .catch(function () { b.textContent = "No s'ha pogut carregar la imatge"; });
+      };
+    });
   }
 
   function renderActivities(list) {
