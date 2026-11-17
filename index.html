@@ -2,50 +2,55 @@
 <html lang="ca">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Club Vòlei Santpedor</title>
-<meta name="description" content="Club Vòlei Santpedor: avisos, horaris d'entrenament, partits en directe i l'app del club.">
-<link rel="icon" href="live/logo.jpg">
+<meta name="description" content="Club Vòlei Santpedor: agenda i resultats dels equips, avisos, horaris d'entrenament i partits en directe.">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="theme-color" content="#0f5132">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Vòlei Santpedor">
 <meta property="og:title" content="Club Vòlei Santpedor">
-<meta property="og:description" content="Avisos, horaris, partits en directe i l'app del club.">
+<meta property="og:description" content="Agenda, resultats, avisos, horaris i partits en directe del club.">
 <meta property="og:image" content="https://dpericas.github.io/live/logo.jpg">
 <style>
   :root {
     --bg:#f6f7f8; --card:#ffffff; --text:#15191c; --muted:#5f6b73; --line:#e3e7ea;
-    --accent:#fcdd09; --accent-ink:#1a1a1a; --brand:#0f5132; --live:#d32f2f; --chip:#eef1f3;
+    --accent:#fcdd09; --accent-ink:#1a1a1a; --brand:#0f5132; --live:#d32f2f; --chip:#eef1f3; --chip-on:#0f5132; --chip-on-ink:#fff;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035;
-      --brand:#7fd8a6; --chip:#263036;
+      --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12;
     }
   }
   :root[data-theme="dark"] {
     --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035;
-    --brand:#7fd8a6; --chip:#263036;
+    --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12;
   }
-  * { box-sizing:border-box; }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   body { margin:0; background:var(--bg); color:var(--text);
          font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; }
-  main { max-width:760px; margin:0 auto; padding:16px 16px 40px; }
+  main { max-width:760px; margin:0 auto; padding:calc(12px + env(safe-area-inset-top)) 16px calc(90px + env(safe-area-inset-bottom)); }
   a { color:var(--brand); }
-  header.hero { display:flex; align-items:center; gap:16px; padding:8px 44px 16px 0; }
-  header.hero img { width:76px; height:76px; border-radius:50%; background:#fff; flex:none;
-                    box-shadow:0 0 0 3px var(--accent); }
-  header.hero h1 { margin:0; font-size:24px; line-height:1.15; }
-  header.hero p { margin:4px 0 0; color:var(--muted); font-size:14px; }
+  header.hero { display:flex; align-items:center; gap:14px; padding:4px 44px 8px 0; }
+  header.hero img { width:62px; height:62px; border-radius:50%; background:#fff; flex:none; box-shadow:0 0 0 3px var(--accent); }
+  header.hero h1 { margin:0; font-size:21px; line-height:1.15; }
+  header.hero p { margin:3px 0 0; color:var(--muted); font-size:13px; }
   section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; }
   section h2 { margin:0 0 10px; font-size:17px; display:flex; align-items:center; gap:8px; }
   .muted { color:var(--muted); font-size:14px; }
   .empty { color:var(--muted); font-size:14px; font-style:italic; }
   .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px;
-         border-radius:12px; font-weight:700; text-decoration:none; font-size:16px; border:0; cursor:pointer; }
+         border-radius:12px; font-weight:700; text-decoration:none; font-size:16px; border:0; cursor:pointer; font-family:inherit; }
   .btn.primary { background:var(--accent); color:var(--accent-ink); }
   .btn.ghost { background:var(--chip); color:var(--text); }
+  .btn.small { padding:8px 12px; font-size:14px; }
   .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  .app { display:grid; gap:10px; }
-  .app small { color:var(--muted); }
-  details.how { font-size:14px; color:var(--muted); }
+  details.how { font-size:14px; color:var(--muted); margin-top:8px; }
   details.how summary { cursor:pointer; }
   .item { padding:10px 0; border-top:1px solid var(--line); }
   .item:first-of-type { border-top:0; padding-top:0; }
@@ -54,8 +59,9 @@
   .meta { color:var(--muted); font-size:13px; margin-top:2px; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
   .chip { background:var(--chip); border-radius:999px; padding:2px 10px; font-size:12px; }
-  .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--live);
-              animation:pulse 1.4s infinite; }
+  button.chip { border:0; font:inherit; font-size:13px; padding:6px 12px; color:var(--text); cursor:pointer; }
+  button.chip.on { background:var(--chip-on); color:var(--chip-on-ink); font-weight:700; }
+  .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--live); animation:pulse 1.4s infinite; }
   @keyframes pulse { 50% { opacity:.3; } }
   @media (prefers-reduced-motion: reduce) { .live-dot { animation:none; } }
   .live { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px;
@@ -67,6 +73,16 @@
   .res .score { font-size:20px; font-weight:800; background:var(--chip); border-radius:10px; padding:2px 12px; white-space:nowrap; }
   .res .win { color:var(--brand); }
   .res .meta { grid-column:1 / -1; text-align:center; margin-top:0; }
+  .day-head { font-weight:800; font-size:14px; color:var(--brand); margin:16px 0 4px; }
+  .day-head::first-letter { text-transform:uppercase; }
+  .day-head:first-child { margin-top:0; }
+  .match { display:grid; grid-template-columns:3.4em 1fr auto; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line); align-items:center; }
+  .match .t { font-weight:800; font-size:15px; }
+  .match .teams { font-size:15px; } .match .teams b { font-weight:700; }
+  .match .score { font-weight:800; font-size:16px; white-space:nowrap; }
+  .match .score.win { color:var(--brand); } .match .score.loss { color:var(--live); }
+  .match .info { grid-column:2 / -1; color:var(--muted); font-size:12.5px; }
+  .match .info a { color:var(--muted); }
   .team { margin-top:10px; }
   .team summary { cursor:pointer; font-weight:700; font-size:15px; padding:6px 0; }
   table { width:100%; border-collapse:collapse; font-size:14px; }
@@ -74,9 +90,28 @@
   td.day { font-weight:600; width:6.5em; }
   td.time { white-space:nowrap; width:7.5em; }
   footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
-  .theme { position:fixed; top:10px; right:10px; background:var(--card); border:1px solid var(--line);
-           color:var(--text); border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px; }
+  .theme { position:fixed; top:calc(10px + env(safe-area-inset-top)); right:10px; background:var(--card); border:1px solid var(--line);
+           color:var(--text); border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px; z-index:5; }
+  nav.tabs { position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--card); border-top:1px solid var(--line);
+             padding-bottom:env(safe-area-inset-bottom); z-index:10; }
+  nav.tabs button { flex:1; border:0; background:none; color:var(--muted); font:inherit; font-size:12px; padding:8px 0 10px; cursor:pointer;
+                    display:flex; flex-direction:column; align-items:center; gap:2px; }
+  nav.tabs button span { font-size:22px; line-height:1; }
+  nav.tabs button.on { color:var(--brand); font-weight:700; }
+  .install { background:var(--accent); color:var(--accent-ink); border-radius:16px; padding:14px 16px; margin-top:12px; position:relative; font-size:14px; }
+  .install b { display:block; font-size:16px; margin-bottom:4px; }
+  .install button { position:absolute; top:6px; right:8px; border:0; background:none; font-size:20px; cursor:pointer; color:var(--accent-ink); }
+  #print { display:none; }
   [hidden] { display:none !important; }
+  @media print {
+    @page { size:A4 portrait; margin:14mm; }
+    body { background:#fff; color:#000; }
+    main, nav.tabs, .theme { display:none !important; }
+    #print { display:block; font-size:11px; }
+    #print h1 { font-size:18px; margin:0 0 2px; } #print p { margin:0 0 10px; color:#444; }
+    #print table { font-size:11px; } #print th { text-align:left; background:#0f5132; color:#fff; padding:4px; }
+    #print td { padding:4px; border-top:1px solid #ccc; } #print tr.home td { font-weight:700; }
+  }
 </style>
 </head>
 <body>
@@ -90,70 +125,110 @@
     </div>
   </header>
 
-  <section id="live-sec" hidden>
-    <h2><span class="live-dot"></span> En directe ara</h2>
-    <div id="live"></div>
-  </section>
+  <div class="install" id="ios-install" hidden>
+    <button id="ios-close" aria-label="Tancar">×</button>
+    <b>📲 Posa-la a la pantalla d'inici</b>
+    A l'iPhone toca <b style="display:inline">Compartir</b> <span aria-hidden="true">⬆️</span> (a baix, a Safari) i després
+    <b style="display:inline">«Afegeix a la pantalla d'inici»</b>. S'obrirà com una app.
+  </div>
 
-  <section id="res-sec" hidden>
-    <h2>🏆 Últims resultats</h2>
-    <div id="resultats"></div>
-    <p class="muted">Partits retransmesos en directe amb l'app.</p>
-  </section>
+  <!-- ====================== INICI ====================== -->
+  <div data-tab="inici">
+    <section id="live-sec" hidden>
+      <h2><span class="live-dot"></span> En directe ara</h2>
+      <div id="live"></div>
+    </section>
 
-  <section class="app">
-    <h2>📲 L'app del club</h2>
-    <div class="muted">Calendari i resultats de tots els equips, marcador amb retransmissió en directe,
-      avisos, horaris, cotxes compartits per als desplaçaments i molt més.</div>
-    <div class="row">
-      <a class="btn primary" id="apk" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk">⬇️ Descarrega per a Android</a>
-      <small id="ver"></small>
-    </div>
-    <details class="how">
-      <summary>Com s'instal·la?</summary>
-      <ol>
-        <li>Obre aquesta pàgina des del mòbil Android i toca <b>Descarrega</b>.</li>
-        <li>Obre el fitxer <i>VoleiSantpedor.apk</i> descarregat.</li>
-        <li>Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i> al navegador.</li>
-        <li>Un cop instal·lada, l'app avisa sola quan hi ha versions noves.</li>
-      </ol>
-      De moment només hi ha versió per a Android.
-    </details>
-    <div class="muted">📄 <a href="app/cartell.pdf">Cartell amb el codi QR per imprimir (A4)</a> · <a href="app/">Pàgina de descàrrega</a></div>
-  </section>
+    <section id="today-sec" hidden>
+      <h2>📅 Avui juga el club</h2>
+      <div id="today"></div>
+    </section>
 
-  <section>
-    <h2>📢 Avisos</h2>
-    <div id="avisos"><div class="empty">Carregant…</div></div>
-  </section>
+    <section id="res-sec" hidden>
+      <h2>🏆 Últims resultats</h2>
+      <div id="resultats"></div>
+      <p class="muted">Partits retransmesos en directe amb l'app.</p>
+    </section>
 
-  <section id="act-sec" hidden>
-    <h2>🎉 Properes activitats</h2>
-    <div id="activitats"></div>
-  </section>
+    <section>
+      <h2>📢 Avisos</h2>
+      <div id="avisos"><div class="empty">Carregant…</div></div>
+    </section>
 
-  <section id="ami-sec" hidden>
-    <h2>🤝 Partits amistosos</h2>
-    <div id="amistosos"></div>
-  </section>
+    <section id="act-sec" hidden>
+      <h2>🎉 Properes activitats</h2>
+      <div id="activitats"></div>
+    </section>
 
-  <section>
-    <h2>🕒 Horaris d'entrenament</h2>
-    <div id="horaris"><div class="empty">Carregant…</div></div>
-  </section>
+    <section id="android-app">
+      <h2>📲 L'app per a Android</h2>
+      <div class="muted">Amb marcador i retransmissió en directe, avisos al mòbil, cotxes compartits i molt més.</div>
+      <div class="row" style="margin-top:10px">
+        <a class="btn primary" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk">⬇️ Descarrega per a Android</a>
+        <small class="muted" id="ver"></small>
+      </div>
+      <details class="how">
+        <summary>Com s'instal·la?</summary>
+        <ol>
+          <li>Obre aquesta pàgina des del mòbil Android i toca <b>Descarrega</b>.</li>
+          <li>Obre el fitxer <i>VoleiSantpedor.apk</i> descarregat.</li>
+          <li>Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i>.</li>
+          <li>L'app avisa sola quan hi ha versions noves.</li>
+        </ol>
+      </details>
+      <div class="muted" style="margin-top:8px">Tens iPhone? Aquesta mateixa web funciona com una app: posa-la a la pantalla d'inici.</div>
+    </section>
+  </div>
 
-  <section>
-    <h2>📍 Contacte i xarxes</h2>
-    <div class="row">
-      <a class="btn ghost" href="https://www.instagram.com/voleisantpedor/" target="_blank" rel="noopener">📸 Instagram</a>
-      <a class="btn ghost" href="tel:+34649992552">📞 649 99 25 52</a>
-      <a class="btn ghost" href="mailto:voleisantpedor@hotmail.com">✉️ Correu</a>
-      <a class="btn ghost" href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">🏐 FCVB</a>
-    </div>
-  </section>
+  <!-- ====================== AGENDA ====================== -->
+  <div data-tab="agenda" hidden>
+    <section>
+      <div class="row" style="justify-content:space-between">
+        <div class="chips" style="margin-top:0">
+          <button class="chip on" data-mode="next">Propers</button>
+          <button class="chip" data-mode="played">Resultats</button>
+        </div>
+        <button class="btn ghost small" id="print-btn" hidden>🖨️ Calendari</button>
+      </div>
+      <div class="chips" id="team-chips"></div>
+      <div class="muted" id="agenda-note" style="margin-top:8px"></div>
+    </section>
+    <section>
+      <div id="agenda"><div class="empty">Carregant…</div></div>
+    </section>
+    <p class="muted" style="text-align:center">Dades oficials a <a href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">fcvolei.cat</a>.</p>
+  </div>
 
-  <footer>Club Vòlei Santpedor · <span id="year"></span></footer>
+  <!-- ====================== CLUB ====================== -->
+  <div data-tab="club" hidden>
+    <section>
+      <h2>🕒 Horaris d'entrenament</h2>
+      <div id="horaris"><div class="empty">Carregant…</div></div>
+    </section>
+    <section>
+      <h2>📍 Contacte i xarxes</h2>
+      <div class="row">
+        <a class="btn ghost" href="https://www.instagram.com/voleisantpedor/" target="_blank" rel="noopener">📸 Instagram</a>
+        <a class="btn ghost" href="tel:+34649992552">📞 649 99 25 52</a>
+        <a class="btn ghost" href="mailto:voleisantpedor@hotmail.com">✉️ Correu</a>
+        <a class="btn ghost" href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">🏐 FCVB</a>
+      </div>
+    </section>
+    <section>
+      <h2>📄 Per als pavellons i l'escola</h2>
+      <div class="muted">📄 <a href="app/cartell.pdf">Cartell amb el codi QR de l'app (A4)</a> · <a href="app/">Pàgina de descàrrega</a></div>
+    </section>
+    <footer>Club Vòlei Santpedor · <span id="year"></span></footer>
+  </div>
 </main>
+
+<nav class="tabs" aria-label="Seccions">
+  <button data-go="inici" class="on"><span>🏠</span>Inici</button>
+  <button data-go="agenda"><span>📅</span>Agenda</button>
+  <button data-go="club"><span>🏐</span>Club</button>
+</nav>
+
+<div id="print"></div>
 
 <script>
 (function () {
@@ -169,21 +244,24 @@
   var DAYS = ["Dilluns","Dimarts","Dimecres","Dijous","Divendres","Dissabte","Diumenge"];
   var MONTHS = ["gener","febrer","març","abril","maig","juny","juliol","agost","setembre","octubre","novembre","desembre"];
 
-  // ---------- small helpers
+  // ---------- helpers
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
     return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); }
   function safeUrl(u) { return /^https:\/\//i.test(u || "") ? u : null; }
   function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-  function today() { var d = new Date(); return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
   function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function fmtDate(iso) {
+  function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  function today() { return isoDay(new Date()); }
+  function fmtDate(iso, withYear) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return "";
     var d = new Date(+m[1], +m[2] - 1, +m[3]);
     var wd = ["diumenge","dilluns","dimarts","dimecres","dijous","divendres","dissabte"][d.getDay()];
     var mo = MONTHS[d.getMonth()];
-    return wd + " " + d.getDate() + (/^[aeiou]/.test(mo) ? " d'" : " de ") + mo;
+    return wd + " " + d.getDate() + (/^[aeiou]/.test(mo) ? " d'" : " de ") + mo + (withYear ? " de " + m[1] : "");
   }
+  function shortDate(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? (+m[3]) + "/" + (+m[2]) : ""; }
+  function teamName(id) { return TEAMS[id] || "Vòlei Santpedor"; }
   function teamsOf(o) {
     var ids = [];
     if (o.equip != null && o.equip !== "") ids.push(o.equip);
@@ -196,18 +274,40 @@
   function getJson(url, opts) {
     return fetch(url, opts).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
   }
+  function pretty(s) { s = String(s || "").toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
 
-  // ---------- theme toggle (remembered per browser)
+  // ---------- theme
   var saved = store("theme"); if (saved) document.documentElement.setAttribute("data-theme", saved);
   $("theme").onclick = function () {
-    var dark = document.documentElement.getAttribute("data-theme");
-    if (!dark) dark = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    var next = dark === "dark" ? "light" : "dark";
+    var cur = document.documentElement.getAttribute("data-theme");
+    if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    var next = cur === "dark" ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next); store("theme", next);
   };
   $("year").textContent = new Date().getFullYear();
 
-  // ---------- content published from the app (Firebase, anonymous read) + club web JSON
+  // ---------- tabs (remembered; #agenda / #club in the address work too)
+  function show(tab) {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (el) { el.hidden = el.getAttribute("data-tab") !== tab; });
+    Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-go") === tab); });
+    store("tab", tab);
+    window.scrollTo(0, 0);
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
+    b.onclick = function () { show(b.getAttribute("data-go")); };
+  });
+  var first = (location.hash || "").replace("#", "");
+  show(["inici", "agenda", "club"].indexOf(first) >= 0 ? first : (store("tab") || "inici"));
+
+  // ---------- iPhone: install hint; Android-only parts hidden on iOS
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  if (ios) $("android-app").hidden = true;
+  if (ios && !standalone && store("ios-install-closed") !== "1") $("ios-install").hidden = false;
+  $("ios-close").onclick = function () { $("ios-install").hidden = true; store("ios-install-closed", "1"); };
+  if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
+
+  // ---------- Firebase (anonymous read of what the club publishes from the app)
   function fsValue(v) {
     if ("stringValue" in v) return v.stringValue;
     if ("integerValue" in v) return Number(v.integerValue);
@@ -219,7 +319,6 @@
     return null;
   }
   function fsFields(f) { var o = {}; Object.keys(f).forEach(function (k) { o[k] = fsValue(f[k]); }); return o; }
-
   function anonToken() {
     var refresh = store("fb_refresh");
     var p = refresh
@@ -243,12 +342,10 @@
   function web(file, key) {
     return getJson("club/" + file + "?t=" + Date.now()).then(function (r) { return r[key] || []; }).catch(function () { return []; });
   }
-
+  var COLLS = ["avisos", "activitats", "amistosos", "horaris", "resultats", "agenda"];
   var fsData = anonToken().then(function (t) {
-    return Promise.all(["avisos", "activitats", "amistosos", "horaris", "resultats"].map(function (c) {
-      return fsList(t, c).catch(function () { return []; });
-    }));
-  }).catch(function () { return [[], [], [], [], []]; });
+    return Promise.all(COLLS.map(function (c) { return fsList(t, c).catch(function () { return []; }); }));
+  }).catch(function () { return COLLS.map(function () { return []; }); });
 
   Promise.all([web("avisos.json", "avisos"), web("activitats.json", "activitats"),
                web("amistosos.json", "partits"), web("horaris.json", "equips"), fsData])
@@ -256,9 +353,9 @@
       var fs = r[4];
       renderNotices(merge(r[0], fs[0]));
       renderActivities(merge(r[1], fs[1]));
-      renderFriendlies(merge(r[2], fs[2]));
       renderTrainings(r[3], fs[3]);
       renderResults(fs[4]);
+      setupAgenda(fs[5], merge(r[2], fs[2]));
     });
 
   function merge(a, b) {
@@ -297,21 +394,6 @@
     }).join("");
   }
 
-  function renderFriendlies(list) {
-    var t = today();
-    list = list.filter(function (o) { return o.rival && o.data && o.data >= t; })
-               .sort(function (a, b) { return a.data.localeCompare(b.data); });
-    if (!list.length) return;
-    $("ami-sec").hidden = false;
-    $("amistosos").innerHTML = list.map(function (o) {
-      var team = TEAMS[o.equip] || "Vòlei Santpedor";
-      var home = o.local !== false;
-      var title = home ? team + " – " + o.rival : o.rival + " – " + team;
-      return '<div class="item"><h3>' + esc(title) + '</h3><div class="meta">' + esc(fmtDate(o.data)) +
-        (o.hora ? " · " + esc(o.hora) : "") + (o.lloc ? " · " + esc(o.lloc) : "") + "</div></div>";
-    }).join("");
-  }
-
   function renderResults(list) {
     var since = Date.now() - 60 * 24 * 3600 * 1000;
     list = list.filter(function (o) { return o.local && o.visitant && (o.t || 0) > since; })
@@ -328,34 +410,155 @@
     }).join("");
   }
 
-  function renderTrainings(webList, fsList) {
+  function renderTrainings(webList, fsList2) {
     var byTeam = {};
     webList.forEach(function (o) { if (o.equip) byTeam[o.equip] = o.sessions || []; });
-    fsList.forEach(function (o) { var id = o.equip || Number(o.id); if (id) byTeam[id] = o.sessions || []; }); // app edits win
+    fsList2.forEach(function (o) { var id = o.equip || Number(o.id); if (id) byTeam[id] = o.sessions || []; });
     var ids = TEAM_ORDER.filter(function (i) { return byTeam[i] && byTeam[i].length; });
-    Object.keys(byTeam).forEach(function (k) { if (ids.indexOf(Number(k)) < 0 && byTeam[k].length) ids.push(Number(k)); });
     $("horaris").innerHTML = ids.length ? ids.map(function (id) {
       var ses = byTeam[id].slice().sort(function (a, b) {
         return (DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia)) || (a.inici || "").localeCompare(b.inici || "");
       });
-      return '<details class="team"' + (ids.length === 1 ? " open" : "") + "><summary>" + esc(TEAMS[id] || ("Equip " + id)) +
+      return '<details class="team"' + (ids.length === 1 ? " open" : "") + "><summary>" + esc(teamName(id)) +
         "</summary><table>" + ses.map(function (s) {
           return '<tr><td class="day">' + esc(s.dia) + '</td><td class="time">' + esc(s.inici) + "–" + esc(s.fi) +
             "</td><td>" + esc(s.lloc) + "</td></tr>";
         }).join("") + "</table></details>";
-    }).join("") + '<p class="muted">Aviat hi haurà els horaris de la resta d\'equips.</p>'
-      : '<div class="empty">Encara no hi ha horaris publicats.</div>';
+    }).join("") : '<div class="empty">Encara no hi ha horaris publicats.</div>';
   }
 
-  // ---------- latest app version (from the tags of the APK repository)
+  // ---------- agenda (official matches published by the editors' phones + friendlies)
+  var matches = [], mode = "next", chosen = [];
+  try { chosen = JSON.parse(store("teams") || "[]"); } catch (e) { chosen = []; }
+
+  function fromAgenda(p, team) {
+    var f = String(p.f || ""), time = f.slice(11, 16);
+    var lid = Number(p.lid || 0), gl = Number(p.gl || 0), gv = Number(p.gv || 0);
+    var st = String(p.st || "");
+    return { id: "a" + p.id, team: Number(p.t || team), date: f.slice(0, 10), time: time && time !== "00:00" ? time : null,
+      home: p.l, away: p.v, homeIsClub: lid !== 0 && lid === Number(p.t || team),
+      played: /finali[tz]/i.test(st) || gl + gv > 0, hs: gl, as: gv, venue: p.c || "", address: p.d || "",
+      lat: p.la, lon: p.lo, comp: p.co || "", round: Number(p.j || 0) };
+  }
+  function fromFriendly(o) {
+    var club = "Vòlei Santpedor", home = o.local !== false;
+    var sc = o.sets_club, sr = o.sets_rival, has = typeof sc === "number" && typeof sr === "number";
+    return { id: "f" + (o.id || o.data + o.rival), team: Number(o.equip), date: o.data, time: o.hora || null,
+      home: home ? club : o.rival, away: home ? o.rival : club, homeIsClub: home, played: has,
+      hs: has ? (home ? sc : sr) : 0, as: has ? (home ? sr : sc) : 0, venue: o.lloc || "", address: o.adreca || "",
+      comp: o.competicio || "Amistós", round: 0 };
+  }
+
+  function setupAgenda(agendaDocs, friendlies) {
+    var latest = "";
+    agendaDocs.forEach(function (d) {
+      (d.partits || []).forEach(function (p) { matches.push(fromAgenda(p, d.equip)); });
+      if ((d.actualitzat || "") > latest) latest = d.actualitzat;
+    });
+    friendlies.forEach(function (o) { if (o.equip && o.data && o.rival) matches.push(fromFriendly(o)); });
+    var seen = {};
+    matches = matches.filter(function (m) { if (seen[m.id]) return false; seen[m.id] = 1; return true; });
+    $("agenda-note").textContent = latest ? "Actualitzat el " + fmtDate(latest.slice(0, 10)) + " a les " +
+      new Date(latest).toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }) + "." : "";
+    var present = {};
+    matches.forEach(function (m) { present[m.team] = 1; });
+    $("team-chips").innerHTML = '<button class="chip" data-team="all">Tots</button>' + TEAM_ORDER.filter(function (t) { return present[t]; })
+      .map(function (t) { return '<button class="chip" data-team="' + t + '">' + esc(teamName(t)) + "</button>"; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("#team-chips button"), function (b) {
+      b.onclick = function () {
+        var t = b.getAttribute("data-team");
+        if (t === "all") chosen = [];
+        else { t = Number(t); var i = chosen.indexOf(t); if (i >= 0) chosen.splice(i, 1); else chosen.push(t); }
+        store("teams", JSON.stringify(chosen));
+        renderAgenda();
+      };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) {
+      b.onclick = function () { mode = b.getAttribute("data-mode"); renderAgenda(); };
+    });
+    renderAgenda();
+    renderToday();
+  }
+
+  function mapsLink(m) {
+    var q = m.lat && m.lon ? m.lat + "," + m.lon : [m.venue, m.address].filter(Boolean).join(", ");
+    return q ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q) : null;
+  }
+
+  function matchRow(m) {
+    var res = "";
+    if (m.played) {
+      var won = m.homeIsClub ? m.hs > m.as : m.as > m.hs;
+      res = '<span class="score ' + (won ? "win" : "loss") + '">' + m.hs + "-" + m.as + "</span>";
+    }
+    var maps = mapsLink(m);
+    var teams = (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + " – " + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>");
+    return '<div class="match"><span class="t">' + esc(m.time || "--:--") + "</span>" +
+      '<span class="teams">' + teams + "</span>" + (res || "<span></span>") +
+      '<span class="info">' + esc(teamName(m.team)) + " · " + (m.homeIsClub ? "a casa" : "a fora") +
+      (m.venue ? " · " + (maps ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(pretty(m.venue)) + "</a>" : esc(pretty(m.venue))) : "") +
+      (m.round ? " · J" + m.round : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") + "</span></div>";
+  }
+
+  function renderAgenda() {
+    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.classList.toggle("on", b.getAttribute("data-mode") === mode); });
+    Array.prototype.forEach.call(document.querySelectorAll("#team-chips button"), function (b) {
+      var t = b.getAttribute("data-team");
+      b.classList.toggle("on", t === "all" ? chosen.length === 0 : chosen.indexOf(Number(t)) >= 0);
+    });
+    $("print-btn").hidden = chosen.length !== 1;
+    var t = today();
+    var list = matches.filter(function (m) { return !chosen.length || chosen.indexOf(m.team) >= 0; })
+      .filter(function (m) { return mode === "next" ? m.date >= t && !(m.played && m.date < t) : m.played; });
+    list.sort(function (a, b) { var k = (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")); return mode === "next" ? k : -k; });
+    if (mode === "played") list = list.slice(0, 60);
+    if (!list.length) {
+      $("agenda").innerHTML = '<div class="empty">' + (matches.length ? "No hi ha partits per mostrar." :
+        "Encara no hi ha l'agenda publicada. Es publica quan un entrenador o la junta actualitza l'agenda a l'app.") + "</div>";
+      return;
+    }
+    var html = "", day = "";
+    list.forEach(function (m) {
+      if (m.date !== day) { day = m.date; html += '<div class="day-head">' + esc(m.date === t ? "Avui · " + fmtDate(m.date) : fmtDate(m.date)) + "</div>"; }
+      html += matchRow(m);
+    });
+    $("agenda").innerHTML = html;
+  }
+
+  function renderToday() {
+    var t = today();
+    var list = matches.filter(function (m) { return m.date === t; }).sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
+    if (!list.length) return;
+    $("today-sec").hidden = false;
+    $("today").innerHTML = list.map(matchRow).join("");
+  }
+
+  // printable season calendar of one team (#3)
+  $("print-btn").onclick = function () {
+    var team = chosen[0];
+    var list = matches.filter(function (m) { return m.team === team; })
+      .sort(function (a, b) { return (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")); });
+    var y = list.length ? Number(list[0].date.slice(0, 4)) - (Number(list[0].date.slice(5, 7)) >= 8 ? 0 : 1) : new Date().getFullYear();
+    $("print").innerHTML = "<h1>Calendari " + esc(teamName(team)) + " · " + y + "-" + pad((y + 1) % 100) + "</h1>" +
+      "<p>Club Vòlei Santpedor · Generat el " + esc(fmtDate(today(), true)) + " · Comproveu els canvis d'última hora a dpericas.github.io</p>" +
+      "<table><tr><th>J</th><th>Data</th><th>Hora</th><th>Partit</th><th>Pavelló</th><th>Resultat</th></tr>" +
+      list.map(function (m) {
+        return '<tr class="' + (m.homeIsClub ? "home" : "") + '"><td>' + (m.round || "") + "</td><td>" + esc(shortDate(m.date)) + "</td><td>" +
+          esc(m.time || "--:--") + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(pretty(m.venue)) + "</td><td>" +
+          (m.played ? m.hs + "-" + m.as : "") + "</td></tr>";
+      }).join("") + "</table>";
+    window.print();
+  };
+
+  // ---------- latest Android app version
   function code(tag) { var m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag); return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : -1; }
-  getJson("https://api.github.com/repos/dpericas/voleimanagerV/tags?per_page=100").then(function (tags) {
+  if (!ios) getJson("https://api.github.com/repos/dpericas/voleimanagerV/tags?per_page=100").then(function (tags) {
     var best = tags.map(function (t) { return t.name; }).filter(function (n) { return code(n) >= 0; })
       .sort(function (a, b) { return code(b) - code(a); })[0];
     if (best) $("ver").textContent = "Versió " + best.replace(/^v/, "");
   }).catch(function () {});
 
-  // ---------- club matches being broadcast now (club channel on the relay)
+  // ---------- club matches broadcast now
   function loadLive() {
     fetch(NTFY + "/" + CHANNEL + "/json?poll=1&since=12h").then(function (r) { return r.ok ? r.text() : ""; }).then(function (txt) {
       var last = {};

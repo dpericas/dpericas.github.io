@@ -41,6 +41,12 @@
   <div class="muted" id="ver">Sempre l'última versió</div>
   <div class="muted" id="auto" hidden>La descàrrega comença sola…</div>
 
+  <div class="card" id="ios" hidden>
+    <h2>Tens iPhone?</h2>
+    L'app d'Android no s'hi pot instal·lar, però el web del club funciona com una app: agenda, resultats, avisos,
+    horaris i directes. <a href="../">Obre'l</a>, toca <b>Compartir</b> ⬆️ i <b>«Afegeix a la pantalla d'inici»</b>.
+  </div>
+
   <div id="qr"><div class="muted">Des de l'ordinador? Escaneja-ho amb el mòbil:</div><div id="qrbox"></div></div>
 
   <div class="card">
@@ -66,6 +72,9 @@
     if (best) document.getElementById("ver").textContent = "Última versió: " + best.replace(/^v/, "");
   }).catch(function () {});
   try { new QRCode(document.getElementById("qrbox"), { text: "https://dpericas.github.io/app/", width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M }); } catch (e) {}
+  // iPhone: the APK is useless; offer the web version instead
+  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (ios) { document.getElementById("ios").hidden = false; document.getElementById("dl").href = "../"; document.getElementById("dl").textContent = "📱 Obre la versió per a iPhone"; }
   // Android phone (e.g. arrived from the poster QR): start the download directly
   if (/Android/i.test(navigator.userAgent) && location.hash !== "#no") {
     document.getElementById("auto").hidden = false;
