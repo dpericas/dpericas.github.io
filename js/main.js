@@ -5,12 +5,24 @@
 
   // theme
   var saved = VSP.store("theme"); if (saved) document.documentElement.setAttribute("data-theme", saved);
-  $("theme").onclick = function () {
+  // the button shows what it switches to: 🌙 (go dark) in the light theme, ☀️ (go light) in the dark one
+  function isDark() {
     var cur = document.documentElement.getAttribute("data-theme");
-    if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    var next = cur === "dark" ? "light" : "dark";
+    return cur ? cur === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+  }
+  function paintTheme() {
+    var b = $("theme"), dark = isDark();
+    b.textContent = dark ? "☀️" : "🌙";
+    b.title = dark ? "Passa al tema clar" : "Passa al tema fosc";
+    b.setAttribute("aria-label", b.title);
+  }
+  $("theme").onclick = function () {
+    var next = isDark() ? "light" : "dark";
     document.documentElement.setAttribute("data-theme", next); VSP.store("theme", next);
+    paintTheme();
   };
+  paintTheme();
+  if (window.matchMedia) { var mq = matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", paintTheme); }
   $("year").textContent = new Date().getFullYear();
 
   // tabs

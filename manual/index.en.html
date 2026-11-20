@@ -34,6 +34,7 @@
   .bar h1 small { overflow: hidden; text-overflow: ellipsis; }
   .bar h1 small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
   .iconbtn { flex: none; background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 10px; padding: 7px 9px; font-size: 15px; cursor: pointer; text-decoration: none; }
+  #theme { font-size: 20px; padding: 4px 8px; background: rgba(255,255,255,.28); }
   .tools { max-width: 1100px; margin: 8px auto 0; display: grid; gap: 8px; }
   .tools input { width: 100%; border: 0; border-radius: 12px; padding: 10px 12px; font-size: 16px; background: #fff; color: #111; }
   .roles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
@@ -102,7 +103,7 @@
     <h1>App manual<small>Club Vòlei Santpedor · <span id="ver">version 01.30</span></small></h1>
     <button class="iconbtn" id="tocbtn" type="button" aria-expanded="false" aria-controls="toc" aria-label="Contents">☰</button>
     <a class="iconbtn noprint" id="pdf" href="https://dpericas.github.io/manual/manual-en.pdf">PDF</a>
-    <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark theme">◐</button>
+    <button class="iconbtn" id="theme" type="button" aria-label="Switch between light and dark theme">🌙</button>
   </div>
   <nav class="langs noprint" aria-label="Idioma · Language"><a href="index.html" hreflang="ca" lang="ca">Català</a><a href="index.es.html" hreflang="es" lang="es">Castellano</a><a href="index.en.html" hreflang="en" lang="en" aria-current="page">English</a></nav>
   <div class="tools">
@@ -454,11 +455,16 @@
   // theme toggle (remembered)
   var root = document.documentElement;
   try { var t = localStorage.getItem("manual_theme"); if (t) root.setAttribute("data-theme", t); } catch (e) {}
-  document.getElementById("theme").addEventListener("click", function () {
-    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
-    var next = dark ? "light" : "dark"; root.setAttribute("data-theme", next);
+  // the button shows what it switches to: moon (go dark) or sun (go light)
+  function isDark() { return root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches; }
+  var themeBtn = document.getElementById("theme");
+  function paintTheme() { var d = isDark(); themeBtn.textContent = d ? "☀️" : "🌙"; themeBtn.title = d ? "Switch to the light theme" : "Switch to the dark theme"; themeBtn.setAttribute("aria-label", themeBtn.title); }
+  themeBtn.addEventListener("click", function () {
+    var next = isDark() ? "light" : "dark"; root.setAttribute("data-theme", next);
     try { localStorage.setItem("manual_theme", next); } catch (e) {}
+    paintTheme();
   });
+  paintTheme();
 
   // printing (PDF): everything open, every role, no search
   window.addEventListener("beforeprint", function () { q.value = ""; role = "tots"; apply(); main.querySelectorAll("details").forEach(function (d) { d.open = true; }); });

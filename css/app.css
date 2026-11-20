@@ -96,8 +96,10 @@ td { padding:5px 4px; border-top:1px solid var(--line); vertical-align:top; }
 td.day { font-weight:600; width:6.5em; }
 td.time { white-space:nowrap; width:7.5em; }
 footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
-.theme { position:fixed; top:calc(10px + env(safe-area-inset-top)); right:10px; background:var(--card); border:1px solid var(--line);
-         color:var(--text); border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px; z-index:5; }
+.theme { position:fixed; top:calc(10px + env(safe-area-inset-top)); right:10px; background:var(--card); border:2px solid var(--brand);
+         color:var(--text); border-radius:999px; width:44px; height:44px; cursor:pointer; font-size:22px; line-height:1; z-index:5;
+         display:flex; align-items:center; justify-content:center; padding:0; box-shadow:0 2px 8px rgba(0,0,0,.25); }
+.theme:active { transform:scale(.92); }
 nav.tabs { position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--card); border-top:1px solid var(--line);
            padding-bottom:env(safe-area-inset-bottom); z-index:10; }
 nav.tabs button { flex:1; border:0; background:none; color:var(--muted); font:inherit; font-size:12px; padding:8px 0 10px; cursor:pointer;
