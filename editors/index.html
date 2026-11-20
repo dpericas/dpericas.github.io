@@ -6,7 +6,7 @@
 <title>Zona d'editors · Vòlei Santpedor</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ntfy.sh; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ntfy.sh; form-action 'none'; base-uri 'none'; object-src 'none'">
 <link rel="icon" href="../icons/icon-192.png">
 <meta name="theme-color" content="#0f5132">
 <style>
@@ -92,6 +92,24 @@
            background:var(--text); color:var(--bg); padding:10px 16px; border-radius:12px; font-size:14px; z-index:20; box-shadow:0 4px 16px rgba(0,0,0,.25); }
   .toast.err { background:var(--danger); color:#fff; }
   footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
+  .sr { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+  label.btn:focus-within { outline:3px solid var(--focus); outline-offset:2px; }
+  .thumb { width:96px; height:72px; object-fit:cover; border-radius:8px; background:var(--chip); flex:none; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(92px,1fr)); gap:6px; margin-top:6px; }
+  .grid button { position:relative; padding:0; border:2px solid transparent; border-radius:10px; background:var(--chip); cursor:pointer; aspect-ratio:4/3; overflow:hidden; }
+  .grid button img { width:100%; height:100%; object-fit:cover; display:block; }
+  .grid button[aria-pressed="true"] { border-color:var(--danger); }
+  .grid button[aria-pressed="true"]::after { content:"✕"; position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    background:rgba(198,40,40,.55); color:#fff; font-size:28px; font-weight:700; }
+  .pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--bg); border:1px solid var(--line); border-radius:10px; padding:10px 12px; font-size:14px; margin-top:8px; }
+  .box { border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin-top:8px; }
+  .stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .stat { background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px; text-align:center; }
+  .stat b { display:block; font-size:24px; }
+  .bar { height:6px; background:var(--chip); border-radius:3px; overflow:hidden; margin-top:2px; }
+  .bar span { display:block; height:100%; background:var(--brand); }
+  .subnav { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 0; }
+  details summary { cursor:pointer; font-weight:600; }
   [hidden] { display:none !important; }
 </style>
 </head>
@@ -145,7 +163,11 @@
       </div>
       <nav class="tabs" role="tablist" aria-label="Seccions">
         <button type="button" role="tab" data-go="avisos" aria-selected="true">📢 Avisos</button>
+        <button type="button" role="tab" data-go="contingut" aria-selected="false">🗓️ Activitats i horaris</button>
+        <button type="button" role="tab" data-go="partits" aria-selected="false">🏐 Partits i convocatòries</button>
+        <button type="button" role="tab" data-go="galeria" aria-selected="false">📷 Galeria <span id="prop-total"></span></button>
         <button type="button" role="tab" data-go="membres" aria-selected="false">👪 Jugadors/es i famílies <span id="pend-total"></span></button>
+        <button type="button" role="tab" data-go="junta" aria-selected="false" id="tab-junta" hidden>🏛️ Junta</button>
         <button type="button" role="tab" data-go="admin" aria-selected="false" id="tab-admin" hidden>🛠️ Administració</button>
       </nav>
     </section>
@@ -169,7 +191,19 @@
           <label class="f" for="n-enllac">Enllaç <span class="hint">(opcional, ha de començar per https://)</span></label>
           <input id="n-enllac" type="url" placeholder="https://…" inputmode="url">
           <label class="check"><input id="n-urgent" type="checkbox"><span>⚠️ Urgent<br><span class="hint">Es destaca a dalt de tot a l'app.</span></span></label>
-          <p class="muted small" id="n-extra" hidden>Aquest avís té una imatge o un PDF adjunt: es mantindrà tal com és (des del web no es poden canviar).</p>
+          <div id="n-files">
+            <div class="f">Imatge <span class="hint">(opcional)</span></div>
+            <div class="row" id="n-img-row" hidden><img id="n-img-prev" class="thumb" alt="Imatge de l'avís"><span id="n-img-info" class="muted small"></span>
+              <button type="button" class="btn danger small" id="n-img-del">Treu</button></div>
+            <label class="btn ghost small" style="margin-top:6px"><input type="file" id="n-img" accept="image/*" class="sr"><span id="n-img-btn">Afegeix imatge</span></label>
+            <p class="hint">Es redueix automàticament. Al tauler d'avisos es veurà que porta imatge i s'obrirà en tocar l'avís.</p>
+            <div class="f">Document <span class="hint">(PDF, opcional)</span></div>
+            <div class="row" id="n-pdf-row" hidden><b id="n-pdf-name" style="overflow-wrap:anywhere"></b>
+              <button type="button" class="btn danger small" id="n-pdf-del">Treu</button></div>
+            <label class="btn ghost small" style="margin-top:6px"><input type="file" id="n-pdf" accept="application/pdf,.pdf" class="sr"><span id="n-pdf-btn">Adjunta document (PDF)</span></label>
+            <p class="hint">Màxim 700 KB. A l'avís es veurà amb 📎 i s'obrirà en tocar-lo.</p>
+          </div>
+          <p class="muted small" id="n-nofiles" hidden>Els avisos només per a l'equip no poden portar imatge ni PDF.</p>
           <div class="row" style="margin-top:14px">
             <button class="btn primary" type="submit" id="n-save">Publica</button>
             <button class="btn ghost" type="button" id="n-cancel">Cancel·la</button>
@@ -177,10 +211,194 @@
           <p class="msg" id="n-msg" role="status" aria-live="polite"></p>
         </form>
       </section>
+      <section id="q-sec" hidden>
+        <h2>⚡ Missatge ràpid a l'equip</h2>
+        <form id="q-form" novalidate>
+          <div class="f" id="q-team-l">Equip</div>
+          <div class="chips" id="q-teams" role="group" aria-labelledby="q-team-l"></div>
+          <div class="f" id="q-tpl-l">Plantilla</div>
+          <div class="chips" id="q-tpls" role="group" aria-labelledby="q-tpl-l"></div>
+          <label class="f" for="q-titol">Títol</label>
+          <input id="q-titol" type="text" maxlength="120">
+          <label class="f" for="q-text">Text <span class="hint">Revisa-ho i completa el que falti (…).</span></label>
+          <textarea id="q-text" maxlength="1000" style="min-height:80px"></textarea>
+          <label class="check"><input id="q-privat" type="checkbox" checked><span>🔒 Només per a l'equip</span></label>
+          <label class="check"><input id="q-urgent" type="checkbox"><span>⚠️ Avís urgent</span></label>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="q-send">Envia</button>
+            <button class="btn ghost" type="button" id="q-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="q-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
       <section>
-        <h2>📢 Avisos <span class="spacer"></span><button class="btn primary small" type="button" id="n-new">＋ Nou avís</button></h2>
+        <h2>📢 Avisos <span class="spacer"></span><button class="btn ghost small" type="button" id="q-open">⚡ Missatge ràpid</button><button class="btn primary small" type="button" id="n-new">＋ Nou avís</button></h2>
         <p class="muted small">Els avisos nous arriben als mòbils en pocs minuts. Els marcats amb 🔒 són només per a l'equip.</p>
         <div id="n-list"><div class="empty">Carregant…</div></div>
+      </section>
+    </div>
+
+    <!-- ---------- ACTIVITATS, AMISTOSOS, HORARIS, RESULTATS ---------- -->
+    <div data-tab="contingut" hidden>
+      <section>
+        <div class="subnav" role="group" aria-label="Què vols editar">
+          <button type="button" class="chip" data-ck="activitats" aria-pressed="true">🎉 Activitats</button>
+          <button type="button" class="chip" data-ck="amistosos" aria-pressed="false">🏐 Partits amistosos</button>
+          <button type="button" class="chip" data-ck="horaris" aria-pressed="false">🕒 Horaris d'entrenament</button>
+          <button type="button" class="chip" data-ck="resultats" aria-pressed="false" id="ck-resultats" hidden>🏆 Resultats al web</button>
+        </div>
+      </section>
+      <section id="i-form-sec" hidden>
+        <h2 id="i-form-title">Nou</h2>
+        <form id="i-form" novalidate><div id="i-fields"></div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="i-save">Publica</button>
+            <button class="btn ghost" type="button" id="i-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="i-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section id="h-form-sec" hidden>
+        <h2 id="h-form-title">Horari</h2>
+        <form id="h-form" novalidate>
+          <div id="h-rows"></div>
+          <button class="btn ghost small" type="button" id="h-add" style="margin-top:8px">＋ Afegeix sessió</button>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="h-save">Publica</button>
+            <button class="btn ghost" type="button" id="h-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="h-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section>
+        <h2 id="i-list-title">Activitats <span class="spacer"></span><button class="btn primary small" type="button" id="i-new">＋ Nou</button></h2>
+        <p class="muted small" id="i-list-sub"></p>
+        <div id="i-list"><div class="empty">Carregant…</div></div>
+      </section>
+    </div>
+
+    <!-- ---------- PARTITS: CONVOCATÒRIES, NOTES, PROPERS PARTITS ---------- -->
+    <div data-tab="partits" hidden>
+      <section id="c-form-sec" hidden>
+        <h2 id="cv-title">Convocatòria</h2>
+        <p class="meta" id="cv-match"></p>
+        <form id="cv-form" novalidate>
+          <p class="muted small">Es publica a l'app (la veuran tothom a l'Agenda i les famílies de l'equip rebran un avís). Després pots copiar el text per enviar-lo per WhatsApp.</p>
+          <div class="two">
+            <div><label class="f" for="cv-meet">Hora de quedada</label><input id="cv-meet" type="text" maxlength="40" placeholder="17:15"></div>
+            <div><label class="f" for="cv-place">Lloc de quedada</label><input id="cv-place" type="text" maxlength="120"></div>
+          </div>
+          <label class="f" for="cv-kit">Equipació <span class="hint">(opcional)</span></label>
+          <input id="cv-kit" type="text" maxlength="120">
+          <label class="f" for="cv-notes">Notes <span class="hint">(opcional)</span></label>
+          <textarea id="cv-notes" maxlength="1000" style="min-height:70px"></textarea>
+          <div class="f" id="cv-pl-l">Convocades</div>
+          <div id="cv-players" role="group" aria-labelledby="cv-pl-l"></div>
+          <div class="row" style="margin-top:6px">
+            <label class="sr" for="cv-add">Afegeix un jugador/a</label>
+            <input id="cv-add" type="text" maxlength="60" placeholder="Nom i inicial del cognom (p. ex. Arya G.)" style="flex:1;min-width:180px">
+            <button class="btn ghost small" type="button" id="cv-add-btn">＋ Afegeix</button>
+          </div>
+          <p class="hint" id="cv-roster-hint"></p>
+          <details style="margin-top:10px"><summary>Vista prèvia del missatge</summary><div class="pre" id="cv-preview"></div></details>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="cv-save">Publica</button>
+            <button class="btn ghost" type="button" id="cv-save-copy">Publica i copia per WhatsApp</button>
+            <button class="btn ghost" type="button" id="cv-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="cv-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section id="cview-sec" hidden>
+        <h2>📋 Convocatòria</h2>
+        <div class="pre" id="cview-text"></div>
+        <p class="meta" id="cview-by"></p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost small" type="button" id="cview-copy">📋 Copia el text</button>
+          <a class="btn ghost small" id="cview-wa" target="_blank" rel="noopener noreferrer">Obre a WhatsApp</a>
+          <button class="btn ghost small" type="button" id="cview-edit">✏️ Edita</button>
+          <button class="btn danger small" type="button" id="cview-del">Esborra</button>
+          <button class="btn ghost small" type="button" id="cview-close">Tanca</button>
+        </div>
+        <h3>Respostes <button class="linkbtn" type="button" id="cview-reload">Actualitza</button></h3>
+        <div id="cview-rsvp"><div class="empty">Carregant…</div></div>
+      </section>
+      <section id="nt-sec" hidden>
+        <h2 id="nt-title">📝 Notes</h2>
+        <p class="meta" id="nt-match"></p>
+        <p class="muted small">Només les veuen els entrenadors d'aquest equip i la junta.</p>
+        <label class="sr" for="nt-text">Notes privades del partit</label>
+        <textarea id="nt-text" maxlength="4000" style="min-height:160px" placeholder="Alineació, què cal treballar, com ha anat…"></textarea>
+        <p class="meta" id="nt-info"></p>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary" type="button" id="nt-save">Desa</button>
+          <button class="btn ghost" type="button" id="nt-cancel">Tanca</button>
+        </div>
+        <p class="msg" id="nt-msg" role="status" aria-live="polite"></p>
+      </section>
+      <section>
+        <h2>🏐 Partits dels teus equips <span class="spacer"></span><button class="btn ghost small" type="button" id="p-reload">Actualitza</button></h2>
+        <p class="muted small">Els partits oficials els publica l'app d'un entrenador o de la junta en actualitzar l'Agenda; els amistosos, des de «Activitats i horaris». <span id="p-age"></span></p>
+        <div class="chips" role="group" aria-label="Quins partits">
+          <button type="button" class="chip" data-pm="next" aria-pressed="true">Propers</button>
+          <button type="button" class="chip" data-pm="past" aria-pressed="false">Jugats (30 dies)</button>
+        </div>
+        <div class="chips" id="p-teams" role="group" aria-label="Equip" style="margin-top:6px"></div>
+        <div id="p-list" style="margin-top:10px"><div class="empty">Carregant…</div></div>
+      </section>
+      <section id="w-sec" hidden>
+        <h2>📣 Missatge de propers partits</h2>
+        <p class="muted small">Es fa amb els partits de l'Agenda (federats i amistosos). Pots retocar el text abans d'enviar-lo.</p>
+        <div class="chips" role="group" aria-label="Quants caps de setmana">
+          <button type="button" class="chip" data-wk="1" aria-pressed="true">Aquest cap de setmana</button>
+          <button type="button" class="chip" data-wk="2" aria-pressed="false">Dos caps de setmana</button>
+        </div>
+        <label class="check"><input id="w-links" type="checkbox" checked><span>Enllaç al pavelló (Google Maps)</span></label>
+        <label class="f" for="w-text">Missatge</label>
+        <textarea id="w-text" style="min-height:260px"></textarea>
+        <div class="row" style="margin-top:10px">
+          <button class="btn primary small" type="button" id="w-copy">📋 Copia</button>
+          <a class="btn ghost small" id="w-wa" target="_blank" rel="noopener noreferrer">Obre a WhatsApp</a>
+          <button class="btn ghost small" type="button" id="w-regen">Torna a generar</button>
+        </div>
+      </section>
+    </div>
+
+    <!-- ---------- GALERIA ---------- -->
+    <div data-tab="galeria" hidden>
+      <section id="pp-sec">
+        <h2>📷 Fotos proposades <span class="spacer"></span><button class="btn ghost small" type="button" id="pp-reload">Actualitza</button></h2>
+        <p class="muted small">Fotos que han enviat les famílies. Aprova-les per afegir-les a un àlbum o rebutja-les.</p>
+        <div id="pp-list"><div class="empty">Carregant…</div></div>
+      </section>
+      <section id="al-form-sec" hidden>
+        <h2 id="al-form-title">Nou àlbum</h2>
+        <form id="al-form" novalidate>
+          <label class="f" for="al-titol">Títol *</label>
+          <input id="al-titol" type="text" maxlength="80">
+          <label class="f" for="al-data">Data</label>
+          <input id="al-data" type="date">
+          <div class="f" id="al-teams-l">Equips</div>
+          <div class="chips" id="al-teams" role="group" aria-labelledby="al-teams-l"></div>
+          <div id="al-existing-box" hidden>
+            <div class="f">Fotos de l'àlbum <span class="hint">(toca'n una per treure-la)</span></div>
+            <div class="grid" id="al-existing"></div>
+          </div>
+          <label class="btn ghost small" style="margin-top:12px"><input type="file" id="al-files" accept="image/*" multiple class="sr"><span>📷 Afegeix fotos</span></label>
+          <p class="muted small" id="al-new-count"></p>
+          <div class="grid" id="al-new"></div>
+          <p class="hint">Les fotos es redueixen (màx. 1600 px). Puja només fotos que les famílies hagin autoritzat: les podrà veure qualsevol persona amb l'app.</p>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="al-save">Publica</button>
+            <button class="btn ghost" type="button" id="al-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="al-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section>
+        <h2>🖼️ Àlbums <span class="spacer"></span><button class="btn primary small" type="button" id="al-newbtn">＋ Nou àlbum</button></h2>
+        <p class="muted small">Surten a Club › Galeria de tots els mòbils. Toca «Edita» per afegir-hi o treure'n fotos.</p>
+        <div id="al-list"><div class="empty">Carregant…</div></div>
       </section>
     </div>
 
@@ -192,10 +410,23 @@
         <div class="chips" id="m-teams" role="group" aria-label="Equip"></div>
         <div id="m-list" style="margin-top:12px"><div class="empty">Carregant…</div></div>
       </section>
+      <section id="sq-sec" hidden>
+        <h2>📋 Plantilles <span class="hint">(equips no federats)</span></h2>
+        <p class="muted small">Plantilla de l'equip tal com surt a l'app, a les convocatòries, la ruleta i «El meu equip».</p>
+        <div class="chips" id="sq-teams" role="group" aria-label="Equip"></div>
+        <div id="sq-rows" style="margin-top:8px"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn ghost small" type="button" id="sq-add">＋ Afegeix</button>
+          <span class="spacer"></span>
+          <button class="btn primary" type="button" id="sq-save">Desa</button>
+        </div>
+        <p class="hint">Els entrenadors es reconeixen pel rol («Entrenador/a»). Els equips federats agafen la plantilla de la federació.</p>
+        <p class="msg" id="sq-msg" role="status" aria-live="polite"></p>
+      </section>
     </div>
 
-    <!-- ---------- ADMIN ---------- -->
-    <div data-tab="admin" hidden>
+    <!-- ---------- JUNTA ---------- -->
+    <div data-tab="junta" hidden>
       <section>
         <h2>📝 Sol·licituds d'accés</h2>
         <div id="a-req"><div class="empty">Carregant…</div></div>
@@ -203,6 +434,79 @@
       <section>
         <h2>👥 Editors</h2>
         <div id="a-ed"><div class="empty">Carregant…</div></div>
+        <p class="muted small">Per afegir algú: crea-li el compte a la consola de Firebase (Authentication &gt; Afegeix usuari) i digues-li que entri a la Zona d'editors de l'app i en sol·liciti l'accés.</p>
+      </section>
+      <section id="o-form-sec" hidden>
+        <h2 id="o-form-title">Nova comanda</h2>
+        <form id="o-form" novalidate>
+          <label class="f" for="o-titol">Títol</label>
+          <input id="o-titol" type="text" maxlength="80" placeholder="Samarretes i xandalls 2026-27">
+          <label class="f" for="o-text">Descripció</label>
+          <textarea id="o-text" maxlength="1000" style="min-height:70px"></textarea>
+          <label class="f" for="o-fins">Data de tancament</label>
+          <input id="o-fins" type="date">
+          <label class="check"><input id="o-oberta" type="checkbox" checked><span>Oberta (les famílies hi poden demanar)</span></label>
+          <div class="f">Productes</div>
+          <div id="o-products"></div>
+          <button class="btn ghost small" type="button" id="o-addp" style="margin-top:8px">＋ Afegeix un producte</button>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="o-save">Desa</button>
+            <button class="btn ghost" type="button" id="o-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="o-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section id="o-sum-sec" hidden>
+        <h2 id="o-sum-title">Resum</h2>
+        <div class="row">
+          <button class="btn ghost small" type="button" id="o-sum-copy">📋 Copia el resum</button>
+          <button class="btn ghost small" type="button" id="o-sum-csv">⬇️ Exporta CSV</button>
+          <button class="btn ghost small" type="button" id="o-sum-close">Tanca</button>
+        </div>
+        <div class="pre" id="o-sum-text"></div>
+        <h3>Comandes</h3>
+        <div id="o-sum-list"></div>
+      </section>
+      <section>
+        <h2>🛍️ Comandes d'equipació <span class="spacer"></span><button class="btn primary small" type="button" id="o-new">＋ Nova comanda</button></h2>
+        <p class="muted small">Obre una comanda (samarretes, xandalls…) i les famílies la veuran a la pestanya Club fins al dia de tancament.</p>
+        <div id="o-list"><div class="empty">Carregant…</div></div>
+      </section>
+      <section>
+        <h2>📊 Estadístiques d'ús <span class="spacer"></span><button class="btn ghost small" type="button" id="u-reload">Actualitza</button></h2>
+        <div id="u-box"><div class="empty">Carregant…</div></div>
+        <p class="muted small">Dades anònimes: cada mòbil envia, com a molt una vegada al dia en obrir l'app, la versió, l'Android, els equips ★ i les opcions activades. Es poden desactivar a Club &gt; Preferències.</p>
+      </section>
+    </div>
+
+    <!-- ---------- ADMIN ---------- -->
+    <div data-tab="admin" hidden>
+      <section>
+        <h2>🧪 Avís de prova real</h2>
+        <p class="muted small">Fa el mateix camí que un avís del club (ntfy + comprovació), però només arriba als teus mòbils o als dels editors. Les famílies no el reben mai.</p>
+        <label class="f" for="t-text">Text <span class="hint">(opcional)</span></label>
+        <input id="t-text" type="text" maxlength="300">
+        <div class="row" style="margin-top:10px">
+          <button class="btn ghost small" type="button" data-test="jo">Al meu mòbil</button>
+          <button class="btn ghost small" type="button" data-test="editors">A tots els editors</button>
+        </div>
+        <p class="msg" id="t-msg" role="status" aria-live="polite"></p>
+      </section>
+      <section>
+        <h2>💥 Errors de l'app <span class="spacer"></span><button class="btn ghost small" type="button" id="e-reload">Actualitza</button></h2>
+        <p class="muted small">Errors que han tancat l'app, agrupats. Només arriben dels mòbils amb les estadístiques anònimes activades.</p>
+        <div id="e-list"><div class="empty">Carregant…</div></div>
+      </section>
+      <section>
+        <h2>🗄️ Dades (Firestore)</h2>
+        <p class="muted small">Quants documents hi ha a cada col·lecció. Obre'n una per veure-la i esborrar el que calgui.</p>
+        <button class="btn ghost small" type="button" id="d-count">Compta els documents</button>
+        <div id="d-colls" style="margin-top:8px"></div>
+        <div id="d-docs-box" hidden>
+          <h3 id="d-docs-title"></h3>
+          <div class="row"><button class="btn ghost small" type="button" id="d-docs-reload">Actualitza</button><button class="btn ghost small" type="button" id="d-docs-close">Tanca</button></div>
+          <div id="d-docs" style="margin-top:6px"></div>
+        </div>
       </section>
       <section>
         <h2>🎛️ Interruptors de l'app</h2>
@@ -271,6 +575,7 @@
       if (typeof v === "string") return { stringValue: v };
       if (typeof v === "boolean") return { booleanValue: v };
       if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+      if (typeof v === "object" && !Array.isArray(v) && "__dbl" in v) return { doubleValue: Number(v.__dbl) };
       if (Array.isArray(v)) return { arrayValue: v.length ? { values: v.map(enc) } : {} };
       if (typeof v === "object") return { mapValue: { fields: encFields(v) } };
       return { stringValue: String(v) };
@@ -355,7 +660,7 @@
                cami: String(path).slice(0, 200), titol: titleOf(data), created: nowIso };
     }
     // ---- members
-    function normName(s) { return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " "); }
+    function normName(s) { return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " "); }
     function duplicates(list) {
       var seen = {}, dup = {};
       list.forEach(function (m) { var k = normName(m.nom); if (!k) return; if (seen[k]) dup[k] = true; seen[k] = true; });
@@ -382,10 +687,588 @@
       if (/API_KEY|API key/i.test(code)) return "La clau del servei no és vàlida per al web. Avisa l'administrador.";
       return "Hi ha hagut un error (" + code + ")";
     }
+    // ---- small text / date helpers (Catalan, same output as the app)
+    function cap(s) { s = String(s == null ? "" : s); return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+    function lowerCap(s) { return cap(String(s || "").toLowerCase()); }
+    function uniqInts(a) {
+      var out = [];
+      (Array.isArray(a) ? a : []).map(Number).forEach(function (n) { if (Number.isInteger(n) && out.indexOf(n) < 0) out.push(n); });
+      return out;
+    }
+    function parseDay(s) { if (!validDay(s)) return null; var m = s.split("-"); return new Date(+m[0], +m[1] - 1, +m[2]); }
+    function addDays(iso, n) { var d = parseDay(iso); if (!d) return iso; d.setDate(d.getDate() + n); return isoDay(d); }
+    var CA_DOW = ["diumenge", "dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte"];
+    var CA_MON = ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
+    /** "dissabte, 22 de novembre" / "Avui · …" / "Demà · …" / "… de 2027" (the app's localDay in Catalan) */
+    function localDay(iso, todayIso) {
+      var d = parseDay(iso); if (!d) return String(iso || "");
+      var mon = CA_MON[d.getMonth()], de = "aeiouà".indexOf(mon.charAt(0)) >= 0 ? "d'" : "de ";
+      var base = CA_DOW[d.getDay()] + ", " + d.getDate() + " " + de + mon;
+      if (iso === todayIso) return "Avui · " + base;
+      if (iso === addDays(todayIso, 1)) return "Demà · " + base;
+      var t = parseDay(todayIso);
+      if (t && d.getFullYear() !== t.getFullYear()) return base + " de " + d.getFullYear();
+      return base;
+    }
+    /** "17:00" (also "9:30" -> "09:30"); "" when empty; null when not a valid time */
+    function normTime(s) {
+      s = String(s == null ? "" : s).trim(); if (!s) return "";
+      var m = /^(\d{1,2}):(\d{2})(?::\d{2})?$/.exec(s);
+      if (!m || +m[1] > 23 || +m[2] > 59) return null;
+      return pad(+m[1]) + ":" + m[2];
+    }
+    function sizeText(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1048576) return Math.ceil(bytes / 1024) + " KB";
+      return (bytes / 1048576).toFixed(1) + " MB";
+    }
+    function b64Bytes(b64) { var s = String(b64 || ""), p = /==$/.test(s) ? 2 : /=$/.test(s) ? 1 : 0; return Math.floor(s.length * 3 / 4) - p; }
+    /** Kotlin's Bitmap scaling: longest side at most [max] */
+    function scaleDims(w, h, max) {
+      var side = Math.max(w, h); if (side <= max) return [w, h];
+      var f = max / side; return [Math.max(1, Math.floor(w * f)), Math.max(1, Math.floor(h * f))];
+    }
+    var PHOTO = { MAX_SIDE: 1600, THUMB_SIDE: 360, MAX_BYTES: 550000 };
+    var MAX_PDF_BYTES = 700 * 1024;
+    var PHOTO_SCHEME = "fs://fotos/", FILE_SCHEME = "fs://fitxers/";
+    function teamsOf(o) { return uniqInts(o && o.equips); }
+    /** Like the app's EditorProfile.canPublishFor (board: anything; coach: own teams, at least one) */
+    function canPublishFor(me, teams) { return teamsOk(me, teams); }
+
+    // ---- content forms (same fields, limits and messages as the app's EditorForms)
+    var FORMS = {
+      activitats: [["titol", "Títol", "text", 1], ["data", "Data", "date", 1], ["hora", "Hora (opcional; sense hora = tot el dia)", "time"],
+        ["fins", "Fins al (si dura diversos dies)", "date"], ["text", "Descripció", "multi"], ["lloc", "Lloc", "text"],
+        ["adreca", "Adreça (per a Com arribar)", "text"], ["enllac", "Enllaç (opcional)", "url"], ["equips", "Per a (sense cap equip: tot el club)", "teams"]],
+      amistosos: [["equip", "Equip", "team", 1], ["data", "Data", "date", 1], ["hora", "Hora", "time"], ["rival", "Rival", "text", 1],
+        ["local", "Es juga a casa", "bool"], ["lloc", "Pavelló / lloc", "text"], ["adreca", "Adreça (per a Com arribar)", "text"],
+        ["competicio", "Competició (opcional)", "text"], ["sets_club", "Resultat: sets del club (en acabar)", "number"],
+        ["sets_rival", "Resultat: sets del rival", "number"]]
+    };
+    function buildItem(kind, v, me) {
+      var o = {}, f = FORMS[kind];
+      for (var i = 0; i < f.length; i++) {
+        var key = f[i][0], label = f[i][1], type = f[i][2], req = f[i][3], val = v[key];
+        var text = typeof val === "string" ? val.trim() : (typeof val === "number" && type === "number" ? String(val) : "");
+        if (req && type !== "teams" && type !== "bool" && !text && typeof val !== "number") return { error: "Cal omplir «" + label + "»." };
+        if (type === "text" || type === "multi") { if (text) o[key] = text.slice(0, type === "multi" ? 1000 : 120); }
+        else if (type === "url") {
+          if (text) { if (text.indexOf("https://") !== 0) return { error: "L'enllaç ha de començar per https://" }; o[key] = text; }
+        } else if (type === "date") {
+          if (text) { if (!validDay(text)) return { error: "Data no vàlida a «" + label + "» (format AAAA-MM-DD)." }; o[key] = text; }
+        } else if (type === "time") {
+          if (text) { var t = normTime(text); if (t === null) return { error: "Hora no vàlida a «" + label + "» (format HH:MM)." }; o[key] = t; }
+        } else if (type === "number") {
+          if (text) { if (!/^\d{1,2}$/.test(text) || +text > 5) return { error: "«" + label + "» ha de ser un número de 0 a 5." }; o[key] = +text; }
+        } else if (type === "bool") o[key] = typeof val === "boolean" ? val : true;
+        else if (type === "teams") o[key] = uniqInts(val);
+        else if (type === "team") { if (typeof val !== "number" || !Number.isInteger(val)) return { error: "Tria l'equip." }; o[key] = val; }
+      }
+      if (kind === "amistosos" && (("sets_club" in o) !== ("sets_rival" in o))) return { error: "Per al resultat cal posar els sets dels dos equips." };
+      if (o.fins && o.data && o.fins < o.data) return { error: "La data «fins al» no pot ser anterior a la data." };
+      var teams = kind === "amistosos" ? [o.equip] : o.equips;
+      if (!canPublishFor(me, teams)) return { error: teams.length ? "Només pots publicar per als teus equips." : "Només la junta pot publicar per a tot el club: tria els teus equips." };
+      return { doc: o, teams: teams };
+    }
+    /** Short title of an item for lists (the app's EditorForms.title) */
+    function itemTitle(kind, o) {
+      if (kind === "amistosos") return (o.local !== false ? "vs " : "a ") + (o.rival || "");
+      if (kind === "resultats") return (o.local || "") + " " + (Number(o.sets_local) || 0) + "-" + (Number(o.sets_visitant) || 0) + " " + (o.visitant || "");
+      return String(o.titol || "");
+    }
+    var DAYS = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte", "Diumenge"];
+    var DAY_SHORT = ["Dl", "Dt", "Dc", "Dj", "Dv", "Ds", "Dg"];
+    function dayShort(d) {
+      var i = DAYS.map(function (x) { return x.toLowerCase(); }).indexOf(String(d || "").trim().toLowerCase());
+      return i >= 0 ? DAY_SHORT[i] : String(d || "").slice(0, 3);
+    }
+    /** Training sessions of a team: [{dia, inici, fi, lloc}] or the app's error */
+    function buildSessions(rows) {
+      var out = [];
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i], a = String(r.inici || "").trim(), b = String(r.fi || "").trim();
+        if (!/^\d{1,2}:\d{2}$/.test(a) || !/^\d{1,2}:\d{2}$/.test(b)) return { error: "Les hores han de tenir el format HH:MM." };
+        out.push({ dia: DAYS.indexOf(r.dia) >= 0 ? r.dia : "Dilluns", inici: a, fi: b, lloc: String(r.lloc || "").trim() });
+      }
+      return { sessions: out };
+    }
+
+    // ---- ⚡ quick messages (QuickMessage.kt)
+    var QM = [["cancel", "❌ Entreno anul·lat", "Avui no hi ha entrenament.", 0], ["time", "🕒 Canvi d'hora", "Avui l'entrenament serà de … a ….", 0],
+      ["place", "📍 Canvi de lloc", "Avui entrenem a ….", 0], ["kit", "👕 Equipació", "Per al proper partit porteu l'equipació ….", 7],
+      ["bring", "🎒 Recordeu portar", "Recordeu portar ….", 3],
+      ["postponed", "📅 Partit ajornat", "El partit d'aquest cap de setmana s'ha ajornat. Us direm la nova data.", 7],
+      ["meet", "🚌 Quedada", "Quedem a … a les ….", 3], ["free", "✏️ Missatge lliure", "", 7]];
+    function quickNotice(team, title, text, urgent, priv, todayIso, days) {
+      return { titol: String(title || "").trim().slice(0, 120), text: String(text || "").trim().slice(0, 1000), data: todayIso,
+               equips: [team], fins: addDays(todayIso, Math.max(0, days || 0)), urgent: !!urgent, privat: !!priv };
+    }
+
+    // ---- matches (agenda/{team} published by editors' phones + friendlies), as the app's Fixture
+    function javaHash(s) { s = String(s); var h = 0; for (var i = 0; i < s.length; i++) h = (Math.imul(31, h) + s.charCodeAt(i)) | 0; return h; }
+    /** Fixture id of a friendly (negative, never clashes with official ids): same formula as ClubContent.parseFriendlies */
+    function friendlyId(key) { return -(javaHash(key) & 0x7fffffff) - 1; }
+    var APP_NAME = { 3629: "Sènior Femení", 4578: "Sènior Masculí", 3630: "Juvenil Femení V", 3631: "Juvenil Femení N", 3632: "Cadet Femení V",
+      3633: "Cadet Femení N", 3634: "Infantil Femení V", 4916: "Infantil Femení N", 6731: "Aleví Femení", "-1": "Escola Aleví Femení",
+      "-2": "Escola Femení", "-3": "Màsters Mixt" };
+    function playedOf(st, a, b) { return /^(finalizado|finalitzat)$/i.test(String(st || "").trim()) || (a + b) > 0; }
+    function fixtureFromAgenda(p, team) {
+      var f = String(p.f || ""), t = Number(p.t || team), time = f.slice(11, 16);
+      var gl = Number(p.gl) || 0, gv = Number(p.gv) || 0, la = parseFloat(p.la), lo = parseFloat(p.lo);
+      return { id: Number(p.id), teamId: t, round: Number(p.j) || 0, date: f.slice(0, 10), time: time && time !== "00:00" ? time : null,
+        home: String(p.l || "").trim(), away: String(p.v || "").trim(), homeIsClub: Number(p.lid || 0) === t, status: String(p.st || ""),
+        homeSets: gl, awaySets: gv, played: playedOf(p.st, gl, gv), venue: String(p.c || "").trim(), address: String(p.d || "").trim(),
+        lat: isNaN(la) ? null : la, lon: isNaN(lo) ? null : lo, competition: String(p.co || "").trim(), friendly: false };
+    }
+    function fixtureFromFriendly(o, docId) {
+      var team = Number(o.equip) || 0, d = String(o.data || ""), rival = String(o.rival || "").trim();
+      if (!team || !validDay(d) || !rival) return null;
+      var home = o.local !== false, played = typeof o.sets_club === "number" && typeof o.sets_rival === "number";
+      var sc = Number(o.sets_club) || 0, sr = Number(o.sets_rival) || 0;
+      var club = APP_NAME[team] ? "VOLEI SANTPEDOR " + APP_NAME[team].toUpperCase() : "VOLEI SANTPEDOR";
+      var key = docId || (team + "-" + d + "-" + rival), t = normTime(o.hora);
+      return { id: friendlyId(key), teamId: team, round: Number(o.jornada) || 0, date: d, time: t || null,
+        home: home ? club : rival, away: home ? rival : club, homeIsClub: home, status: played ? "Finalitzat" : "Pendent",
+        homeSets: !played ? 0 : home ? sc : sr, awaySets: !played ? 0 : home ? sr : sc, played: played,
+        venue: String(o.lloc || "").trim(), address: String(o.adreca || "").trim(), lat: null, lon: null,
+        competition: String(o.competicio || "").trim() || "Amistós", friendly: true };
+    }
+    function rivalOf(f) { return f.homeIsClub ? f.away : f.home; }
+    function mapsQuery(f) {
+      if (f.lat != null && f.lon != null) return String(f.lat) + "," + String(f.lon);
+      return f.address || f.venue || null;
+    }
+    function venueKey(s) {
+      var k = String(s || "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]+/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+      return k || "sense-nom";
+    }
+    function isClubHall(name, address) { var k = venueKey(name + " " + address); return k.indexOf("santpedor") >= 0 || k.indexOf("rafa-martinez") >= 0; }
+
+    // ---- call-ups (Convocation.kt)
+    var CLUB_VENUE = "Pavelló Rafa Martínez";
+    function defaultMeeting(f) {
+      if (!f.time) return "";
+      var p = f.time.split(":"), m = ((+p[0]) * 60 + (+p[1]) - (f.homeIsClub ? 45 : 60) + 1440) % 1440;
+      return pad(Math.floor(m / 60)) + ":" + pad(m % 60);
+    }
+    function defaultPlace(f) { return f.homeIsClub ? lowerCap(f.venue || CLUB_VENUE) : CLUB_VENUE + " (per anar-hi plegats)"; }
+    /** java.net.URLEncoder + "%20" for spaces (as the app's route link) */
+    function javaUrlEncode(s) { return encodeURIComponent(s).replace(/[!'()~]/g, function (c) { return "%" + c.charCodeAt(0).toString(16).toUpperCase(); }); }
+    function shortPerson(name) {
+      var t = String(name || "").trim(), p = t.split(/\s+/);
+      return p.length < 2 ? t : p[0] + " " + p[1].charAt(0).toUpperCase() + ".";
+    }
+    function convocationDoc(f, meeting, place, kit, players, notes) {
+      return { partit: String(f.id), equip: f.teamId, quedada: String(meeting || "").trim(), lloc: String(place || "").trim(),
+               equipacio: String(kit || "").trim(), convocades: players.slice(), notes: String(notes || "").trim() };
+    }
+    function convocationText(f, teamName, meeting, place, kit, players, notes, todayIso) {
+      var s = "🏐 CONVOCATÒRIA · " + teamName + "\n";
+      s += cap(localDay(f.date, todayIso)) + " · " + (f.time || "hora per confirmar") + "\n";
+      s += (f.homeIsClub ? "A casa vs " : "A fora: ") + rivalOf(f) + "\n";
+      if (String(f.venue || "").trim()) {
+        s += "📍 " + lowerCap(f.venue);
+        if (String(f.address || "").trim()) s += " (" + lowerCap(f.address) + ")";
+        s += "\n";
+      }
+      meeting = String(meeting || ""); place = String(place || "");
+      if (meeting.trim()) s += "⏰ Quedada: " + meeting.trim() + (place.trim() ? " · " + place.trim() : "") + "\n";
+      if (String(kit || "").trim()) s += "👕 Equipació: " + String(kit).trim() + "\n";
+      if (players.length) s += "✅ Convocades (" + players.length + "): " + players.join(", ") + "\n";
+      if (String(notes || "").trim()) s += "📝 " + String(notes).trim() + "\n";
+      var q = mapsQuery(f);
+      if (q && !f.homeIsClub) s += "🚗 Ruta: https://www.google.com/maps/dir/?api=1&destination=" + javaUrlEncode(q) + "\n";
+      return s + "Confirmeu l'assistència, si us plau 🙏\n#VoleiSantpedor";
+    }
+    // ---- "vinc / no vinc" (Rsvp.kt)
+    function sameName(a, b) { return String(a || "").trim().replace(/\s+/g, " ").toLowerCase() === String(b || "").trim().replace(/\s+/g, " ").toLowerCase(); }
+    function rsvpOfFixture(docs, fid) {
+      fid = String(fid);
+      return docs.filter(function (d) { return String(d.id || "").indexOf(fid + "_") === 0 || String(d.partit || "") === fid; })
+        .map(function (d) { return { name: String(d.nom || ""), yes: (d.vinc || []).map(String), no: (d.novinc || []).map(String), note: String(d.nota || ""), created: String(d.created || "") }; });
+    }
+    function rsvpSummary(called, answers) {
+      var sorted = answers.slice().sort(function (a, b) { return a.created < b.created ? 1 : a.created > b.created ? -1 : 0; });
+      var yes = [], no = [], unknown = [];
+      called.forEach(function (p) {
+        var a = sorted.filter(function (r) { return r.yes.concat(r.no).some(function (n) { return sameName(n, p); }); })[0];
+        if (!a) unknown.push(p);
+        else if (a.yes.some(function (n) { return sameName(n, p); })) yes.push(p);
+        else no.push([p, a.note]);
+      });
+      return { yes: yes, no: no, unknown: unknown };
+    }
+
+    // ---- weekly "Propers partits" message (WeeklyMessage.kt)
+    var WEEK_LABEL = { 3629: "senior F", 4578: "senior M", 3630: "juvenil V", 3631: "juvenil N", 3632: "cadet V", 3633: "cadet N",
+      3634: "infantil V", 4916: "infantil N", 6731: "aleví", "-1": "escola aleví", "-2": "escola", "-3": "màsters" };
+    var WL = { header: "Propers partits:", home: "A Santpedor", away: "A fora", tbc: "hora per confirmar", separator: "🏐🖤💚🏐🖤💚🏐",
+      none: "No hi ha partits programats.", restOne: "😴 Descansa aquest cap de setmana: ", restMany: "😴 Descansen aquest cap de setmana: " };
+    function weekendDays(todayIso, weekends) {
+      var dow = parseDay(todayIso).getDay();
+      var sat = dow === 6 ? todayIso : dow === 0 ? addDays(todayIso, -1) : addDays(todayIso, 6 - dow);
+      var n = Math.min(Math.max(weekends || 1, 1), 4), out = [];
+      for (var w = 0; w < n; w++) { var s = addDays(sat, 7 * w); out.push(s, addDays(s, 1)); }
+      return out.filter(function (d) { return d >= todayIso; });
+    }
+    var COUNTRIES = ["españa", "espanya", "spain", "catalunya", "cataluña", "catalonia"];
+    var PROVINCES = ["barcelona", "girona", "gerona", "lleida", "lérida", "tarragona"];
+    var STREET = /^(?:s\/?n|n[ºo°]?\s*\d+.*|\d+.*|(c\/|c\.|carrer|calle|avda?\.?|avinguda|avenida|pl\.?|pla[çc]a|plaza|passeig|paseo|ctra\.?|carretera|ronda|rambla|cami|camí|polígon|poligono).*)$/i;
+    function cleanTown(s) { return s.replace(/\s*\(.*\)$/, "").trim(); }
+    function town(f) {
+      var parts = String(f.address || "").split(",").map(function (x) { return x.trim(); }).filter(Boolean);
+      for (var i = 0; i < parts.length; i++) { var m = /^\d{5}\s+(.+)$/.exec(parts[i]); if (m) return cleanTown(m[1].trim()); }
+      var cands = parts.slice(1).reverse().map(cleanTown).filter(function (c) {
+        return /\p{L}/u.test(c) && c.length <= 40 && COUNTRIES.indexOf(c.toLowerCase()) < 0 && !STREET.test(c);
+      });
+      var name = cands.filter(function (c) { return PROVINCES.indexOf(c.toLowerCase()) < 0; })[0] || cands[0];
+      return name || lowerCap(f.venue).trim();
+    }
+    var SMALL_WORDS = ["de", "del", "la", "les", "el", "els", "i", "d'", "l'"];
+    function hallName(f) {
+      return cap(String(f.venue || "").trim().toLowerCase().split(" ").map(function (w) { return SMALL_WORDS.indexOf(w) >= 0 ? w : cap(w); }).join(" "));
+    }
+    function mapLink(f) {
+      if (f.lat != null && f.lon != null && !(f.lat === 0 && f.lon === 0)) return "https://maps.google.com/?q=" + f.lat.toFixed(5) + "," + f.lon.toFixed(5);
+      var q = [String(f.venue || "").trim(), town(f)].filter(function (x, i, a) { return x && a.indexOf(x) === i; }).join(", ");
+      if (!q) return null;
+      return "https://maps.google.com/?q=" + q.replace(/%/g, "%25").replace(/&/g, "%26").replace(/#/g, "%23").replace(/\?/g, "%3F").replace(/ /g, "+");
+    }
+    function hallLine(f, links) {
+      if (!links) return null;
+      var name = hallName(f) || null, link = mapLink(f);
+      if (!link) return name ? "📍 " + name : null;
+      return name ? "📍 " + name + " · " + link : "📍 " + link;
+    }
+    function weekendOf(iso) { return parseDay(iso).getDay() === 0 ? addDays(iso, -1) : iso; }
+    function resting(fixtures, days, order) {
+      var known = {}, playing = {};
+      fixtures.forEach(function (f) { known[f.teamId] = 1; if (days.indexOf(f.date) >= 0) playing[f.teamId] = 1; });
+      return order.filter(function (t) { return t > 0 && known[t] && !playing[t]; });
+    }
+    function weeklyMessage(fixtures, days, links, order) {
+      var byDay = {}, seen = {};
+      fixtures.forEach(function (f) {
+        if (f.played || days.indexOf(f.date) < 0 || seen[f.id]) return;
+        seen[f.id] = 1; (byDay[f.date] = byDay[f.date] || []).push(f);
+      });
+      var weekends = [], wmap = {};
+      days.slice().sort().forEach(function (d) { var w = weekendOf(d); if (!wmap[w]) { wmap[w] = []; weekends.push(w); } wmap[w].push(d); });
+      var rest = {};
+      weekends.forEach(function (w) { rest[w] = resting(fixtures, wmap[w], order).map(function (t) { return WEEK_LABEL[t]; }); });
+      if (!Object.keys(byDay).length && weekends.every(function (w) { return !rest[w].length; })) return WL.header + "\n" + WL.none;
+      var sb = WL.header + "\n";
+      function tkey(t) { return t || "99:99"; }
+      weekends.forEach(function (w, wi) {
+        if (wi > 0) sb += WL.separator + "\n";
+        var firstDay = true;
+        wmap[w].forEach(function (d) {
+          var list = byDay[d]; if (!list) return;
+          if (!firstDay) sb += "\n";
+          firstDay = false;
+          sb += " *" + CA_DOW[parseDay(d).getDay()] + " " + parseDay(d).getDate() + "*\n";
+          var home = list.filter(function (f) { return isClubHall(f.venue, f.address); }), away = list.filter(function (f) { return !isClubHall(f.venue, f.address); });
+          var groups = [[WL.home, home], [WL.away, away]].filter(function (g) { return g[1].length; });
+          function minT(g) { return g[1].map(function (f) { return tkey(f.time); }).sort()[0]; }
+          if (groups.length === 2 && minT(groups[1]) < minT(groups[0])) groups.reverse();
+          groups.forEach(function (g, gi) {
+            if (gi > 0) sb += "\n";
+            sb += g[0] + "\n";
+            var homeGroup = g[0] === WL.home;
+            if (homeGroup) { var hl = g[1].map(function (f) { return hallLine(f, links); }).filter(Boolean)[0]; if (hl) sb += hl + "\n"; }
+            g[1].slice().sort(function (a, b) { var x = (a.time ? "0" : "1") + tkey(a.time), y = (b.time ? "0" : "1") + tkey(b.time); return x < y ? -1 : x > y ? 1 : 0; })
+              .forEach(function (f) {
+                sb += (f.time || WL.tbc) + " " + (WEEK_LABEL[f.teamId] || f.home);
+                if (!homeGroup) { sb += " a " + town(f); var l = hallLine(f, links); if (l) sb += "\n" + l; }
+                sb += "\n";
+              });
+          });
+        });
+        if (firstDay) sb += WL.none + "\n";
+        if (rest[w].length) sb += "\n" + (rest[w].length === 1 ? WL.restOne : WL.restMany) + rest[w].join(", ") + "\n";
+      });
+      return sb.replace(/\s+$/, "");
+    }
+
+    // ---- squads of non-federated teams (ClubSquads.kt)
+    var SQUAD = { MAX_MEMBERS: 40, MAX_NAME: 50, MAX_ROLE: 40, ROLES: ["Jugador/a", "1r Entrenador/a", "2n Entrenador/a"] };
+    function cleanSquad(list) {
+      var seen = {};
+      return list.map(function (m) {
+        return { nom: String(m.nom || "").trim().slice(0, SQUAD.MAX_NAME), rol: String(m.rol || "").trim().slice(0, SQUAD.MAX_ROLE),
+                 dorsal: String(m.dorsal || "").replace(/\D/g, "").slice(0, 3) };
+      }).filter(function (m) { var k = m.nom.toLowerCase(); if (!m.nom || seen[k]) return false; seen[k] = 1; return true; }).slice(0, SQUAD.MAX_MEMBERS);
+    }
+    function isStaff(m) { return /ntrenador/i.test(m.rol || "") && !String(m.dorsal || "").trim(); }
+
+    // ---- kit orders (OrdersLogic.kt)
+    var ORD = { MAX_TITLE: 80, MAX_PRODUCTS: 20, KIDS: ["6 anys", "8 anys", "10 anys", "12 anys", "14 anys"], ADULTS: ["XS", "S", "M", "L", "XL", "XXL"] };
+    function parseSizes(s) {
+      var seen = {};
+      return String(s || "").split(/[,;\n]/).map(function (x) { return x.trim(); }).filter(function (x) { var k = x.toLowerCase(); if (!x || seen[k]) return false; seen[k] = 1; return true; });
+    }
+    /** blank -> null; "12,5" / "12 €" -> 12.5; invalid or negative -> NaN */
+    function parsePrice(s) {
+      var t = String(s == null ? "" : s).replace(/€/g, "").trim().replace(",", ".");
+      if (!t) return null;
+      if (!/^[+-]?(\d+\.?\d*|\.\d+)$/.test(t)) return NaN;
+      var v = Number(t); return v < 0 || v > 10000 ? NaN : v;
+    }
+    function priceText(p) { return p == null ? "" : p.toFixed(2).replace(".", ","); }
+    function euro(v) { return v.toFixed(2).replace(".", ",") + " €"; }
+    function round2(v) { return Math.round(v * 100) / 100; }
+    function campaignOf(d) {
+      return { id: d.id || "", titol: String(d.titol || ""), text: String(d.text || ""), fins: String(d.fins || ""), oberta: !!d.oberta,
+        productes: (d.productes || []).filter(function (p) { return p && typeof p === "object"; }).map(function (p) {
+          return { nom: String(p.nom || ""), talles: (p.talles || []).map(String).filter(function (x) { return x.trim(); }),
+                   preu: typeof p.preu === "number" && !isNaN(p.preu) ? p.preu : null, personalitzable: !!p.personalitzable };
+        }), autorNom: String(d.autorNom || ""), created: String(d.created || "") };
+    }
+    function requestOf(d) {
+      return { uid: String(d.owner || d.id || ""), nom: String(d.nom || ""), comentari: String(d.comentari || ""), created: String(d.created || ""),
+        linies: (d.linies || []).filter(function (l) { return l && typeof l === "object"; }).map(function (l) {
+          return { producte: String(l.producte || ""), talla: String(l.talla || ""), quantitat: l.quantitat == null ? 1 : Number(l.quantitat) || 0, text: String(l.text || "") };
+        }) };
+    }
+    function product(c, name) { return c.productes.filter(function (p) { return p.nom === name; })[0] || null; }
+    function hasPrices(c) { return c.productes.some(function (p) { return p.preu != null; }); }
+    function lineTotal(l, c) { var p = product(c, l.producte); return (p && p.preu != null ? p.preu : 0) * l.quantitat; }
+    function ordTotal(lines, c) { return round2(lines.reduce(function (s, l) { return s + lineTotal(l, c); }, 0)); }
+    function grandTotal(reqs, c) { return round2(reqs.reduce(function (s, r) { return s + ordTotal(r.linies, c); }, 0)); }
+    function pIdx(c, p) { var i = c.productes.map(function (x) { return x.nom; }).indexOf(p); return i < 0 ? 1e9 : i; }
+    function sIdx(c, p, s) { var x = product(c, p), i = x ? x.talles.indexOf(s) : -1; return i < 0 ? 1e9 : i; }
+    function cmpStr(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
+    function tally(reqs, c) {
+      var sums = {}, keys = [];
+      reqs.forEach(function (r) { r.linies.forEach(function (l) { var k = l.producte + "\u0000" + l.talla; if (!(k in sums)) { sums[k] = 0; keys.push(k); } sums[k] += l.quantitat; }); });
+      return keys.filter(function (k) { return sums[k] > 0; }).map(function (k) { var p = k.split("\u0000"); return { product: p[0], size: p[1], qty: sums[k] }; })
+        .sort(function (a, b) { return (pIdx(c, a.product) - pIdx(c, b.product)) || cmpStr(a.product, b.product) || (sIdx(c, a.product, a.size) - sIdx(c, b.product, b.size)) || cmpStr(a.size, b.size); });
+    }
+    function customs(reqs, c) {
+      var out = [];
+      reqs.forEach(function (r) { r.linies.forEach(function (l) { if (l.text.trim()) out.push({ person: r.nom, product: l.producte, size: l.talla, qty: l.quantitat, text: l.text.trim() }); }); });
+      return out.sort(function (a, b) { return (pIdx(c, a.product) - pIdx(c, b.product)) || cmpStr(a.person.toLowerCase(), b.person.toLowerCase()); });
+    }
+    function lineText(l) { return l.producte + (l.talla.trim() ? " " + l.talla : "") + " ×" + l.quantitat + (l.text.trim() ? " «" + l.text.trim() + "»" : ""); }
+    function byName(a, b) { return cmpStr(a.nom.toLowerCase(), b.nom.toLowerCase()); }
+    function ordSummary(c, reqs) {
+      var s = "🛍️ *" + c.titol + "*\nComandes: " + reqs.length;
+      if (hasPrices(c)) s += " · Total: " + euro(grandTotal(reqs, c));
+      s += "\n";
+      var t = tally(reqs, c), cs = customs(reqs, c), prods = [];
+      t.forEach(function (x) { if (prods.indexOf(x.product) < 0) prods.push(x.product); });
+      prods.forEach(function (p) {
+        var rows = t.filter(function (x) { return x.product === p; });
+        s += "\n*" + p + "* (" + rows.reduce(function (a, x) { return a + x.qty; }, 0) + ")\n";
+        rows.forEach(function (x) { s += "  " + (x.size || "-") + ": " + x.qty + "\n"; });
+        var cc = cs.filter(function (x) { return x.product === p; });
+        if (cc.length) {
+          s += "  Personalitzacions:\n";
+          cc.forEach(function (x) { s += "   · " + x.person + " (" + (x.size || "-") + (x.qty > 1 ? " ×" + x.qty : "") + "): " + x.text + "\n"; });
+        }
+      });
+      if (reqs.length) {
+        s += "\n*Per persona*\n";
+        reqs.slice().sort(byName).forEach(function (r) {
+          s += "• " + r.nom + ": " + r.linies.map(lineText).join("; ");
+          if (hasPrices(c)) s += " — " + euro(ordTotal(r.linies, c));
+          s += "\n";
+          if (r.comentari.trim()) s += "   Comentari: " + r.comentari.trim() + "\n";
+        });
+      }
+      return s.replace(/\s+$/, "");
+    }
+    function csvField(v) {
+      v = String(v == null ? "" : v);
+      if (v && "=+-@\t\r".indexOf(v.charAt(0)) >= 0 && !(v.charAt(0) === "-" && v.length > 1 && !isNaN(Number(v.slice(1))))) v = "'" + v;
+      return /[;"\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }
+    var CSV_HEAD = ["Nom", "Producte", "Talla", "Quantitat", "Personalització", "Preu", "Import", "Comentari"];
+    function ordCsv(c, reqs) {
+      var s = "﻿" + CSV_HEAD.map(csvField).join(";") + "\r\n";
+      reqs.slice().sort(byName).forEach(function (r) {
+        r.linies.forEach(function (l) {
+          var p = product(c, l.producte), price = p ? p.preu : null;
+          s += [r.nom, l.producte, l.talla, String(l.quantitat), l.text, priceText(price), price == null ? "" : priceText(lineTotal(l, c)), r.comentari].map(csvField).join(";") + "\r\n";
+        });
+      });
+      return s;
+    }
+    function csvFileName(title) {
+      var slug = String(title || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]+/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50);
+      return "comanda-" + (slug || "club") + ".csv";
+    }
+    function checkCampaign(title, until, products) {
+      var names = products.map(function (p) { return String(p.nom || "").trim().toLowerCase(); });
+      if (!String(title || "").trim() || String(title).trim().length > ORD.MAX_TITLE) return "Escriu el títol (màx. 80).";
+      if (!validDay(String(until || "").trim())) return "La data de tancament ha de ser AAAA-MM-DD.";
+      if (!products.length || products.length > ORD.MAX_PRODUCTS) return "Afegeix d'1 a 20 productes.";
+      if (products.some(function (p) { return !String(p.nom || "").trim(); })) return "Cada producte necessita un nom.";
+      if (names.some(function (n, i) { return names.indexOf(n) !== i; })) return "Hi ha dos productes amb el mateix nom.";
+      if (products.some(function (p) { return p.preu != null && isNaN(p.preu); })) return "Hi ha un preu que no és vàlid.";
+      return null;
+    }
+    function campaignState(c, todayIso) { return !c.oberta ? "closed" : (validDay(c.fins) && c.fins >= todayIso ? "open" : "expired"); }
+
+    // ---- usage statistics (UsageStats.summarize)
+    function androidName(sdk) {
+      var m = { 26: 8, 27: 8, 28: 9, 29: 10, 30: 11, 31: 12, 32: 12, 33: 13, 34: 14, 35: 15, 36: 16 };
+      return m[sdk] ? "Android " + m[sdk] : sdk > 36 ? "Android 16+" : "Android (" + sdk + ")";
+    }
+    function countBy(list, key) {
+      var c = {}, order = [];
+      list.forEach(function (o) { var k = key(o); if (k == null || k === "") return; if (!(k in c)) { c[k] = 0; order.push(k); } c[k]++; });
+      return order.map(function (k) { return [k, c[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+    }
+    function usageSummary(records, todayIso) {
+      function since(o, k, n) { return validDay(o[k]) && o[k] >= addDays(todayIso, -n); }
+      var a30 = records.filter(function (o) { return since(o, "last", 30); });
+      var favs = [];
+      a30.forEach(function (o) { (o.favs || []).forEach(function (t) { t = Number(t); if (t) favs.push(t); }); });
+      return { installs: records.length, active7: records.filter(function (o) { return since(o, "last", 7); }).length, active30: a30.length,
+        newLast30: records.filter(function (o) { return since(o, "first", 30); }).length,
+        byVersion: countBy(a30, function (o) { return o.v ? String(o.v) : null; }),
+        byAndroid: countBy(a30, function (o) { var s = Number(o.sdk) || 0; return s > 0 ? androidName(s) : null; }),
+        favourites: countBy(favs, function (t) { return t; }).map(function (x) { return [Number(x[0]), x[1]]; }),
+        notifications: a30.filter(function (o) { return o.notif === true; }).length, liveAlerts: a30.filter(function (o) { return o.live === true; }).length,
+        calendar: a30.filter(function (o) { return o.cal === true; }).length, widget: a30.filter(function (o) { return o.widget === true; }).length };
+    }
+
+    // ---- crash reports (ErrorReports.kt) and data browser (AdminLogic)
+    function errSignature(type, stack) {
+      var lines = String(stack || "").split("\n").map(function (l) { return l.trim(); });
+      var own = lines.filter(function (l) { return l.indexOf("at cat.voleisantpedor") === 0; })[0];
+      var any = lines.filter(function (l) { return l.indexOf("at ") === 0; })[0];
+      var frame = own ? own.slice(3) : any ? any.slice(3) : "";
+      return frame ? type + " @ " + frame : String(type || "");
+    }
+    function groupErrors(docs) {
+      var g = {}, order = [];
+      docs.forEach(function (d) { var k = errSignature(d.tipus, d.pila); if (!g[k]) { g[k] = []; order.push(k); } g[k].push(d); });
+      return order.map(function (k) {
+        var list = g[k], last = list.reduce(function (m, d) { return String(d.quan || "") > m ? String(d.quan || "") : m; }, "");
+        var vers = []; list.forEach(function (d) { var v = String(d.v || ""); if (vers.indexOf(v) < 0) vers.push(v); });
+        vers.sort().reverse();
+        var sample = list.filter(function (d) { return String(d.quan || "") === last; })[0] || list[0];
+        return { signature: k, docs: list, count: list.length, versions: vers, last: last, sample: sample };
+      }).sort(function (a, b) { return cmpStr(b.last, a.last); });
+    }
+    var BLOB_SAFE = ["nom", "text", "titol", "equip", "equips", "autor", "owner", "created", "album", "data", "mida"];
+    var COLLECTIONS = [["avisos"], ["activitats"], ["amistosos"], ["horaris"], ["convocatories"], ["notes"], ["agenda"], ["albums"],
+      ["fotos", BLOB_SAFE], ["fitxers", BLOB_SAFE], ["resultats"], ["fotos_proposades", BLOB_SAFE], ["comandes"], ["jocs"], ["agrada"],
+      ["editors"], ["requests"], ["installs"]];
+    var FIRST_KEYS = ["titol", "nom", "text", "equip", "equips", "role", "data", "created"];
+    function docSummary(doc, maxValue, maxTotal) {
+      maxValue = maxValue || 60; maxTotal = maxTotal || 220;
+      var keys = Object.keys(doc).filter(function (k) { return k !== "id"; }).sort(function (a, b) {
+        var ia = FIRST_KEYS.indexOf(a), ib = FIRST_KEYS.indexOf(b);
+        if ((ia < 0) !== (ib < 0)) return ia < 0 ? 1 : -1;
+        return (ia - ib) || cmpStr(a, b);
+      });
+      var parts = [];
+      keys.forEach(function (k) {
+        var v = doc[k], text;
+        if (v == null) return;
+        if (Array.isArray(v)) text = "[" + v.map(function (x) { return x !== null && typeof x === "object" ? "{…}" : String(x); }).join(",") + "]";
+        else if (typeof v === "object") text = "{…}";
+        else text = String(v);
+        var shown = text.length > 200 ? "…(" + text.length + ")" : text.length > maxValue ? text.slice(0, maxValue - 1) + "…" : text;
+        parts.push(k + ": " + shown.replace(/\n/g, " "));
+      });
+      var line = parts.join(" · ");
+      return line.length > maxTotal ? line.slice(0, maxTotal - 1) + "…" : line;
+    }
+    function countQuery(coll) {
+      return { structuredAggregationQuery: { structuredQuery: { from: [{ collectionId: coll }] }, aggregations: [{ alias: "n", count: {} }] } };
+    }
+    /** fotos_proposades query (ProposalsData.queryBody): board = all; coach = equip IN their teams */
+    var PROP_FIELDS = ["thumb", "w", "h", "owner", "nom", "text", "equip", "created"];
+    function proposalsQuery(teams) {
+      var q = { from: [{ collectionId: "fotos_proposades" }], select: { fields: PROP_FIELDS.map(function (f) { return { fieldPath: f }; }) } };
+      if (teams) q.where = { fieldFilter: { field: { fieldPath: "equip" }, op: "IN", value: enc(teams.slice(0, 30)) } };
+      q.limit = 300;
+      return { structuredQuery: q };
+    }
+    function proposalVisible(me, equip) { return isJunta(me) || (equip !== 0 && myTeams(me).indexOf(equip) >= 0); }
+    function albumsFor(me, equip, albums) {
+      return albums.filter(function (a) { return canPublishFor(me, teamsOf(a)); }).sort(function (a, b) {
+        var x = equip !== 0 && teamsOf(a).indexOf(equip) >= 0 ? 1 : 0, y = equip !== 0 && teamsOf(b).indexOf(equip) >= 0 ? 1 : 0;
+        return (y - x) || cmpStr(String(b.data || ""), String(a.data || ""));
+      });
+    }
+    function defaultAlbumTitle(todayIso) { var d = parseDay(todayIso); return ("Fotos de les famílies · " + CA_MON[d.getMonth()] + " " + d.getFullYear()).slice(0, 80); }
+    function albumDoc(meta, photos) {
+      return { titol: String(meta.titol || "").trim().slice(0, 80), data: String(meta.data || "").trim(), equips: uniqInts(meta.equips),
+               fotos: photos.slice(), portada: photos[0] || "" };
+    }
+    function checkAlbum(meta, me, photoCount) {
+      if (!String(meta.titol || "").trim()) return "Posa un títol.";
+      if (!validDay(String(meta.data || "").trim())) return "La data ha de ser AAAA-MM-DD.";
+      if (!canPublishFor(me, uniqInts(meta.equips))) return "Tria com a mínim un dels teus equips.";
+      if (photoCount < 1) return "Afegeix com a mínim una foto.";
+      if (photoCount > 300) return "Un àlbum pot tenir com a molt 300 fotos.";
+      return null;
+    }
+
+    // ---- WhatsApp post text (WhatsAppPost.text), for the board
+    function waPost(kind, o, todayIso) {
+      var lines = [];
+      function add(s) { if (s && String(s).trim()) lines.push(s); }
+      function day(iso) { return validDay(iso) ? cap(localDay(iso, todayIso)) : String(iso || ""); }
+      if (kind === "avisos") {
+        add(o.urgent ? "⚠️ *URGENT · " + (o.titol || "") + "*" : "📣 *" + (o.titol || "") + "*");
+        if (String(o.text || "").trim()) add("\n" + o.text);
+        if (String(o.enllac || "").trim()) add("🔗 " + o.enllac);
+        if (String(o.adjuntNom || "").trim()) add("📎 Document: " + o.adjuntNom + " (a l'app del club)");
+      } else if (kind === "activitats") {
+        add("🎉 *" + (o.titol || "") + "*");
+        var fins = o.fins && o.fins !== o.data ? o.fins : null;
+        add("📅 " + day(o.data) + (o.hora ? " · " + o.hora : "") + (fins ? " – " + day(fins) : ""));
+        var where = [o.lloc, o.adreca].filter(function (x) { return x && String(x).trim(); }).join(", ");
+        if (where) add("📍 " + where);
+        if (String(o.text || "").trim()) add("\n" + o.text);
+        if (String(o.enllac || "").trim()) add("🔗 " + o.enllac);
+      } else if (kind === "amistosos") {
+        var tn = APP_NAME[o.equip] || "Club Vòlei Santpedor", home = o.local !== false;
+        add("🏐 *Partit amistós · " + tn + "*");
+        add(home ? "Club Vòlei Santpedor – " + (o.rival || "") : (o.rival || "") + " – Club Vòlei Santpedor");
+        add("📅 " + day(o.data) + (o.hora ? " · " + o.hora : ""));
+        if (String(o.lloc || "").trim()) add("📍 " + o.lloc + (String(o.adreca || "").trim() ? ", " + o.adreca : ""));
+        if (typeof o.sets_club === "number" && typeof o.sets_rival === "number") add("🏆 Resultat: " + (home ? o.sets_club + "-" + o.sets_rival : o.sets_rival + "-" + o.sets_club));
+      } else if (kind === "horaris") {
+        add("🕒 *Horaris d'entrenament · " + (APP_NAME[o.equip] || "Club Vòlei Santpedor") + "*");
+        (o.sessions || []).forEach(function (s) { add(s.dia + " " + s.inici + "–" + s.fi + (String(s.lloc || "").trim() ? " · " + s.lloc : "")); });
+      } else if (kind === "albums") {
+        add("📷 *" + (o.titol || "") + "*");
+        add((o.fotos || []).length + " fotos a la galeria de l'app del club");
+      } else if (kind === "resultats") {
+        add("🏐 *" + itemTitle("resultats", o) + "*");
+        if (String(o.parcials || "").trim()) add("(" + o.parcials + ")");
+        add(o.competicio);
+      }
+      add("\n🏐 Club Vòlei Santpedor");
+      return lines.join("\n");
+    }
+
     return { esc: esc, isoDay: isoDay, validDay: validDay, enc: enc, encFields: encFields, dec: dec, decFields: decFields, doc: doc,
              isJunta: isJunta, isAdmin: isAdmin, allowedTeams: allowedTeams, teamsOk: teamsOk, roleOptions: roleOptions,
              buildNotice: buildNotice, stamp: stamp, editorName: editorName, titleOf: titleOf, registreEntry: registreEntry,
-             normName: normName, duplicates: duplicates, sortMembers: sortMembers, errText: errText };
+             normName: normName, duplicates: duplicates, sortMembers: sortMembers, errText: errText,
+             cap: cap, lowerCap: lowerCap, uniqInts: uniqInts, addDays: addDays, localDay: localDay, normTime: normTime, sizeText: sizeText,
+             b64Bytes: b64Bytes, scaleDims: scaleDims, PHOTO: PHOTO, MAX_PDF_BYTES: MAX_PDF_BYTES, PHOTO_SCHEME: PHOTO_SCHEME, FILE_SCHEME: FILE_SCHEME,
+             teamsOf: teamsOf, canPublishFor: canPublishFor, FORMS: FORMS, buildItem: buildItem, itemTitle: itemTitle, DAYS: DAYS, dayShort: dayShort,
+             buildSessions: buildSessions, QM: QM, quickNotice: quickNotice, javaHash: javaHash, friendlyId: friendlyId, APP_NAME: APP_NAME,
+             fixtureFromAgenda: fixtureFromAgenda, fixtureFromFriendly: fixtureFromFriendly, rivalOf: rivalOf, mapsQuery: mapsQuery,
+             isClubHall: isClubHall, defaultMeeting: defaultMeeting, defaultPlace: defaultPlace, shortPerson: shortPerson,
+             convocationDoc: convocationDoc, convocationText: convocationText, sameName: sameName, rsvpOfFixture: rsvpOfFixture,
+             rsvpSummary: rsvpSummary, weekendDays: weekendDays, town: town, hallName: hallName, mapLink: mapLink, weeklyMessage: weeklyMessage,
+             SQUAD: SQUAD, cleanSquad: cleanSquad, isStaff: isStaff, ORD: ORD, parseSizes: parseSizes, parsePrice: parsePrice, priceText: priceText,
+             euro: euro, campaignOf: campaignOf, requestOf: requestOf, ordTotal: ordTotal, grandTotal: grandTotal, tally: tally, hasPrices: hasPrices,
+             ordSummary: ordSummary, csvField: csvField, ordCsv: ordCsv, csvFileName: csvFileName, checkCampaign: checkCampaign,
+             campaignState: campaignState, lineText: lineText, androidName: androidName, usageSummary: usageSummary, errSignature: errSignature,
+             groupErrors: groupErrors, COLLECTIONS: COLLECTIONS, docSummary: docSummary, countQuery: countQuery, proposalsQuery: proposalsQuery,
+             proposalVisible: proposalVisible, albumsFor: albumsFor, defaultAlbumTitle: defaultAlbumTitle, albumDoc: albumDoc, checkAlbum: checkAlbum,
+             waPost: waPost };
   })();
   /*PURE-END*/
   if (typeof document === "undefined") { if (typeof module !== "undefined") module.exports = H; return; }
@@ -477,7 +1360,7 @@
   // ---------- Firestore REST
   function api(method, path, body, query, retried) {
     return token().then(function (t) {
-      var url = FS + "/" + path + (query ? "?" + query : "");
+      var url = (path.charAt(0) === ":" ? FS + path : FS + "/" + path) + (query ? "?" + query : "");
       var opts = { method: method, headers: { Authorization: "Bearer " + t } };
       if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
       return fetch(url, opts).catch(function () { throw failure("NETWORK"); });
@@ -548,10 +1431,12 @@
   var loaded = {};
   function showTab(tab) {
     if (tab === "admin" && !H.isAdmin(S.me)) tab = "avisos";
+    if (tab === "junta" && !H.isJunta(S.me)) tab = "avisos";
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (el) { el.hidden = el.getAttribute("data-tab") !== tab; });
     Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
       b.setAttribute("aria-selected", b.getAttribute("data-go") === tab ? "true" : "false"); });
-    if (!loaded[tab]) { loaded[tab] = true; ({ avisos: loadNotices, membres: loadMembers, admin: loadAdmin })[tab](); }
+    if (!loaded[tab]) { loaded[tab] = true; ({ avisos: loadNotices, membres: function () { loadMembers(); loadSquad(); }, admin: loadAdmin, contingut: loadContent,
+      partits: loadMatches, galeria: loadGallery, junta: loadJunta })[tab](); }
   }
   Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
     b.onclick = function () { showTab(b.getAttribute("data-go")); };
@@ -564,12 +1449,16 @@
       var me = p.d; me.uid = S.uid;
       if (["admin", "junta", "entrenador"].indexOf(me.role) < 0) throw failure("NOT_FOUND");
       S.me = me; loaded = {}; members = {}; pending = {}; curTeam = null; notices = []; editing = null;
-      $("n-form-sec").hidden = true; $("pend-total").innerHTML = "";
+      $("n-form-sec").hidden = true; $("pend-total").innerHTML = ""; $("prop-total").innerHTML = "";
+      resetExtras();
       $("u-name").textContent = H.editorName(me) || "Editor/a";
       $("u-role").textContent = (ROLES[me.role] || me.role) + (me.role === "entrenador" ? " · " + H.allowedTeams(me, TEAM_ORDER).map(teamName).join(", ") : "");
       $("tab-admin").hidden = !H.isAdmin(me);
+      $("tab-junta").hidden = !H.isJunta(me);
+      $("ck-resultats").hidden = !H.isJunta(me);
+      $("w-sec").hidden = !H.isJunta(me);
       screen("app"); showTab("avisos");
-      countPending();
+      countPending(); countProposals();
     }).catch(function (e) {
       if (e.code === "NOT_FOUND" || e.code === "PERMISSION_DENIED") { screen("noaccess"); return; }
       if (e.code === "NETWORK") { screen("login"); setMsg($("l-msg"), "Sense connexió", "err"); return; }
@@ -622,8 +1511,8 @@
       var d = n.d, teams = noticeTeams(n), can = H.teamsOk(S.me, teams);
       var old = d.fins ? d.fins < today : false;
       var tags = (n.team != null ? '<span class="tag">🔒 ' + esc(teamName(n.team)) + "</span> " : "") +
-        (d.urgent ? '<span class="tag warn">⚠️ Urgent</span> ' : "") + (d.imatge ? '<span class="tag">🖼️</span> ' : "") +
-        (d.pdf || d.fitxer ? '<span class="tag">📄</span> ' : "") + (old ? '<span class="tag">Caducat</span> ' : "");
+        (d.urgent ? '<span class="tag warn">⚠️ Urgent</span> ' : "") + (d.imatge ? '<span class="tag" title="Amb imatge">🖼️</span> ' : "") +
+        (d.adjunt ? '<span class="tag" title="Amb document">📎 ' + esc(d.adjuntNom || "") + "</span> " : "") + (old ? '<span class="tag">Caducat</span> ' : "");
       var who = n.team == null ? (teams.length ? teams.map(teamName).join(", ") : "Tot el club") : "Només l'equip";
       var link = d.enllac && /^https:\/\//.test(d.enllac) ? ' · <a href="' + esc(d.enllac) + '" target="_blank" rel="noopener noreferrer">Enllaç</a>' : "";
       return '<div class="item' + (old ? " old" : "") + '">' + (tags ? '<div>' + tags + "</div>" : "") +
@@ -631,19 +1520,23 @@
         '<div class="meta">' + esc(fmtDay(d.data)) + (d.fins ? " → " + esc(fmtDay(d.fins)) : "") + " · " + esc(who) +
         (d.autorNom ? " · " + esc(d.autorNom) : "") + link + "</div>" +
         (d.text ? "<p>" + esc(d.text) + "</p>" : "") +
-        (can ? '<div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" data-edit="' + i + '">✏️ Edita</button>' +
-               '<button class="btn danger small" type="button" data-del="' + i + '">Esborra</button></div>' : "") + "</div>";
+        (can || H.isJunta(S.me) ? '<div class="row" style="margin-top:8px">' +
+          (can ? '<button class="btn ghost small" type="button" data-edit="' + i + '">✏️ Edita</button>' : "") +
+          (H.isJunta(S.me) ? '<button class="btn ghost small" type="button" data-wa="' + i + '">📋 Text per WhatsApp</button>' : "") +
+          (can ? '<button class="btn danger small" type="button" data-del="' + i + '">Esborra</button>' : "") + "</div>" : "") + "</div>";
     }).join("");
   }
   $("n-list").onclick = function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
     if (b.hasAttribute("data-edit")) openForm(notices[+b.getAttribute("data-edit")]);
     else if (b.hasAttribute("data-del")) deleteNotice(notices[+b.getAttribute("data-del")], b);
+    else if (b.hasAttribute("data-wa")) copyText(H.waPost("avisos", notices[+b.getAttribute("data-wa")].d, H.isoDay(new Date())), "Text copiat: enganxa'l a WhatsApp");
   };
   function deleteNotice(n, btn) {
     if (!n || !confirm("Vols esborrar l'avís «" + (n.d.titol || "") + "»? No es pot desfer.")) return;
     btn.disabled = true;
-    fsDelete(n.path, n.d.titol).then(function () { toast("Avís esborrat"); loadNotices(); })
+    fsDelete(n.path, n.d.titol).then(function () { return deleteBlobs(n.d.imatge, n.d.adjunt); })
+      .then(function () { toast("Avís esborrat"); loadNotices(); })
       .catch(function (e) { btn.disabled = false; toast(errOf(e), true); });
   }
   function renderFormTeams() {
@@ -660,8 +1553,45 @@
     renderFormTeams();
     var again = $("n-teams").querySelector('[data-t="' + t + '"]'); if (again) again.focus();
   };
-  // fields this page edits; any other field of an edited notice (image, PDF…) is kept as it is
-  var NOTICE_KEYS = ["titol", "text", "data", "equips", "enllac", "fins", "urgent", "privat", "autor", "autorNom", "created"];
+  // fields this page edits; any other field of an edited notice is kept as it is
+  var NOTICE_KEYS = ["titol", "text", "data", "equips", "enllac", "fins", "urgent", "privat", "autor", "autorNom", "created", "imatge", "adjunt", "adjuntNom"];
+  var nImg = { keep: null, pick: null }, nPdf = { keep: null, keepName: null, pick: null };
+  function renderNoticeFiles() {
+    var priv = $("n-privat").checked;
+    $("n-files").hidden = priv; $("n-nofiles").hidden = !priv;
+    var hasImg = !!(nImg.pick || nImg.keep), prev = $("n-img-prev");
+    $("n-img-row").hidden = !hasImg;
+    $("n-img-btn").textContent = hasImg ? "Canvia la imatge" : "Afegeix imatge";
+    if (nImg.pick) {
+      prev.src = "data:image/jpeg;base64," + nImg.pick.thumb;
+      $("n-img-info").textContent = "Nova · " + nImg.pick.w + "×" + nImg.pick.h + " · " + H.sizeText(H.b64Bytes(nImg.pick.jpeg));
+    } else if (nImg.keep) { prev.removeAttribute("src"); $("n-img-info").textContent = "Imatge actual"; showImage(nImg.keep, prev); }
+    var pdfName = nPdf.pick ? nPdf.pick.name : (nPdf.keepName || (nPdf.keep ? nPdf.keep.split("/").pop() : null));
+    $("n-pdf-row").hidden = !pdfName;
+    $("n-pdf-name").textContent = pdfName ? "📎 " + pdfName + (nPdf.pick ? " · " + H.sizeText(nPdf.pick.size) : "") : "";
+    $("n-pdf-btn").textContent = pdfName ? "Canvia el document" : "Adjunta document (PDF)";
+  }
+  $("n-privat").onchange = renderNoticeFiles;
+  $("n-img-del").onclick = function () { nImg.pick = null; nImg.keep = null; renderNoticeFiles(); $("n-img").focus(); };
+  $("n-pdf-del").onclick = function () { nPdf.pick = null; nPdf.keep = null; nPdf.keepName = null; renderNoticeFiles(); $("n-pdf").focus(); };
+  $("n-img").onchange = function () {
+    var f = this.files && this.files[0], msg = $("n-msg"); this.value = ""; if (!f) return;
+    setMsg(msg, "Preparant la imatge…");
+    photoFrom(f).then(function (ph) {
+      if (!ph) { setMsg(msg, "No s'ha pogut llegir la imatge triada.", "err"); return; }
+      nImg.pick = ph; nImg.keep = null; setMsg(msg, ""); renderNoticeFiles();
+    });
+  };
+  $("n-pdf").onchange = function () {
+    var f = this.files && this.files[0], msg = $("n-msg"); this.value = ""; if (!f) return;
+    if (!/pdf$/i.test(f.type || "") && !/\.pdf$/i.test(f.name || "")) { setMsg(msg, "Tria un document PDF.", "err"); return; }
+    if (f.size > H.MAX_PDF_BYTES) { setMsg(msg, "El PDF és massa gran (" + H.sizeText(f.size) + "; màx. 700 KB). Redueix-lo (per exemple, amb un compressor de PDF) o divideix-lo i torna-ho a provar.", "err"); return; }
+    readBase64(f).then(function (b64) {
+      if (H.b64Bytes(b64) > H.MAX_PDF_BYTES) throw failure("TOO_BIG");
+      nPdf.pick = { name: String(f.name || "document.pdf").slice(0, 120), size: f.size, b64: b64 }; nPdf.keep = null; nPdf.keepName = null;
+      setMsg(msg, ""); renderNoticeFiles();
+    }).catch(function () { setMsg(msg, "No s'ha pogut llegir el PDF triat.", "err"); });
+  };
   function openForm(n) {
     editing = n || null;
     var d = n ? n.d : {};
@@ -672,9 +1602,10 @@
     $("n-enllac").value = d.enllac || ""; $("n-urgent").checked = !!d.urgent;
     $("n-privat").checked = !!(n && n.team != null);
     formTeams = n ? noticeTeams(n).slice() : (H.isJunta(S.me) ? [] : H.allowedTeams(S.me, TEAM_ORDER).slice(0, 1));
-    $("n-extra").hidden = !(n && Object.keys(n.raw).some(function (k) { return NOTICE_KEYS.indexOf(k) < 0; }));
+    nImg = { keep: d.imatge || null, pick: null };
+    nPdf = { keep: d.adjunt || null, keepName: d.adjuntNom || null, pick: null };
     setMsg($("n-msg"), "");
-    renderFormTeams();
+    renderFormTeams(); renderNoticeFiles();
     $("n-form-sec").hidden = false; $("n-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("n-titol").focus();
   }
   $("n-new").onclick = function () { openForm(null); };
@@ -689,13 +1620,43 @@
     var old = editing, keep = {};
     if (old) Object.keys(old.raw).forEach(function (k) { if (NOTICE_KEYS.indexOf(k) < 0) keep[k] = old.raw[k]; });
     $("n-save").disabled = true; setMsg(msg, "Desant…");
-    saveNotice(old, data, built, keep).then(function (isNew) {
+    publishNotice(old, data, built, keep, built.privat ? null : nImg, built.privat ? null : nPdf).then(function (isNew) {
       if (isNew) pingNotice();
       $("n-form-sec").hidden = true; editing = null;
       toast(old ? "Avís desat" : "Avís publicat"); loadNotices();
     }).catch(function (e) { setMsg(msg, errOf(e), "err"); })
       .then(function () { $("n-save").disabled = false; });
   };
+  /**
+   * Like the app's EditorViewModel.save: a new PDF goes to fitxers/{id} and a new image to fotos/{id} (album "avisos"),
+   * then the notice is saved; a replaced or removed image / PDF is deleted afterwards. Team-only notices carry neither.
+   */
+  function publishNotice(old, data, built, keep, img, pdf) {
+    var file = pdf ? pdf.keep : null, fileName = pdf ? pdf.keepName : null, image = img ? img.keep : null;
+    var p = Promise.resolve();
+    if (pdf && pdf.pick) p = p.then(function () {
+      return fsCreate("fitxers", { nom: pdf.pick.name, mida: pdf.pick.size, equips: built.teams, dades: pdf.pick.b64, autor: S.uid })
+        .then(function (path) { file = H.FILE_SCHEME + path.split("/").pop(); fileName = pdf.pick.name; });
+    });
+    if (img && img.pick) p = p.then(function () {
+      return uploadPhoto("avisos", img.pick, built.teams).then(function (id) { image = H.PHOTO_SCHEME + id; });
+    });
+    return p.then(function () {
+      if (file) { data.adjunt = file; data.adjuntNom = fileName || file.split("/").pop(); }
+      if (image) data.imatge = image;
+      return saveNotice(old, data, built, keep);
+    }).then(function (isNew) {
+      var oi = old && old.d.imatge, oa = old && old.d.adjunt;
+      return deleteBlobs(oi && oi !== image ? oi : null, oa && oa !== file ? oa : null).then(function () { return isNew; });
+    });
+  }
+  /** Deletes a notice's image / PDF uploaded from the app or this page (fs:// links only); errors ignored. */
+  function deleteBlobs(image, file) {
+    var ps = [];
+    if (image && String(image).indexOf(H.PHOTO_SCHEME) === 0) ps.push(fsDelete("fotos/" + image.slice(H.PHOTO_SCHEME.length)).catch(function () {}));
+    if (file && String(file).indexOf(H.FILE_SCHEME) === 0) ps.push(fsDelete("fitxers/" + file.slice(H.FILE_SCHEME.length)).catch(function () {}));
+    return Promise.all(ps);
+  }
   /** Same logic as the app (EditorRepository.save / savePrivate). Resolves true when phones should be pinged. */
   function saveNotice(old, data, built, keep) {
     var wasPrivate = !!(old && old.team != null);
@@ -716,6 +1677,45 @@
       : fsCreate("avisos", data);
     return creates.then(function () { return old ? fsDelete(old.path, old.d.titol) : null; }).then(function () { return true; });
   }
+
+  // ---- ⚡ quick message (QuickMessage.kt): a ready-made notice, team-only by default
+  var qTeam = null, qTpl = H.QM[0];
+  function renderQuick() {
+    $("q-teams").innerHTML = H.allowedTeams(S.me, TEAM_ORDER).map(function (t) {
+      return '<button type="button" class="chip" data-qt="' + t + '" aria-pressed="' + (t === qTeam) + '">' + esc(teamName(t)) + "</button>"; }).join("");
+    $("q-tpls").innerHTML = H.QM.map(function (q, i) {
+      return '<button type="button" class="chip" data-qp="' + i + '" aria-pressed="' + (q === qTpl) + '">' + esc(q[1]) + "</button>"; }).join("");
+  }
+  function pickTemplate(q) { qTpl = q; $("q-titol").value = q[0] === "free" ? "" : q[1]; $("q-text").value = q[2]; }
+  $("q-open").onclick = function () {
+    var allowed = H.allowedTeams(S.me, TEAM_ORDER), mine = (S.me.teams || []).map(Number);
+    qTeam = allowed.filter(function (t) { return mine.indexOf(t) >= 0; })[0]; if (qTeam == null) qTeam = allowed[0];
+    pickTemplate(H.QM[0]); $("q-privat").checked = true; $("q-urgent").checked = false; setMsg($("q-msg"), "");
+    renderQuick(); $("q-sec").hidden = false; $("q-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("q-titol").focus();
+  };
+  $("q-cancel").onclick = function () { $("q-sec").hidden = true; $("q-open").focus(); };
+  $("q-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-qt]"); if (!b) return;
+    qTeam = +b.getAttribute("data-qt"); renderQuick(); $("q-teams").querySelector('[data-qt="' + qTeam + '"]').focus();
+  };
+  $("q-tpls").onclick = function (ev) {
+    var b = ev.target.closest("button[data-qp]"); if (!b) return;
+    var i = +b.getAttribute("data-qp"); pickTemplate(H.QM[i]); renderQuick(); $("q-tpls").querySelector('[data-qp="' + i + '"]').focus();
+  };
+  $("q-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var msg = $("q-msg");
+    if (qTeam == null) { setMsg(msg, "Tria l'equip.", "err"); return; }
+    if (!$("q-titol").value.trim()) { setMsg(msg, "Escriu el títol.", "err"); return; }
+    if (!H.teamsOk(S.me, [qTeam])) { setMsg(msg, "Només pots publicar per als teus equips.", "err"); return; }
+    var n = H.quickNotice(qTeam, $("q-titol").value, $("q-text").value, $("q-urgent").checked, $("q-privat").checked, H.isoDay(new Date()), qTpl[3]);
+    var priv = n.privat; delete n.privat;
+    var data = H.stamp(n, S.me, S.uid, nowIso());
+    $("q-send").disabled = true; setMsg(msg, "Enviant…");
+    saveNotice(null, data, { doc: n, teams: [qTeam], privat: priv }, {}).then(function () {
+      pingNotice(); $("q-sec").hidden = true; toast("Avís publicat"); loadNotices();
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("q-send").disabled = false; });
+  };
 
   // =====================================================================
   // 2. JUGADORS/ES I FAMÍLIES
@@ -797,7 +1797,8 @@
   // =====================================================================
   // 4. ADMINISTRACIÓ (admin only)
   var requests = [], editorsList = [], edState = {};
-  function loadAdmin() { loadPeople(); loadConfig(); loadLog(); }
+  function loadAdmin() { loadConfig(); loadLog(); loadErrors(); }
+  function loadJunta() { loadPeople(); loadOrders(); loadUsage(); }
   function loadPeople() {
     $("a-req").innerHTML = $("a-ed").innerHTML = '<div class="empty">Carregant…</div>';
     Promise.all([fsList("requests"), fsList("editors")]).then(function (r) {
@@ -830,10 +1831,10 @@
         '<button class="btn danger small" type="button" data-rno="' + esc(q.id) + '">Rebutja</button></div></div>';
     }).join("") : '<div class="empty">No hi ha cap sol·licitud pendent.</div>';
     $("a-ed").innerHTML = editorsList.length ? editorsList.map(function (e) {
-      var key = "e:" + e.id, self = e.id === S.uid;
+      var key = "e:" + e.id, self = e.id === S.uid, locked = self || (e.d.role === "admin" && !H.isAdmin(S.me));
       return '<div class="item"><h4>' + esc(e.d.nom || "(sense nom)") + (self ? ' <span class="tag">Tu</span>' : "") + '</h4><div class="meta">' + esc(e.d.email || "") + "</div>" +
-        roleTeamsEditor(key, self) +
-        (self ? '<p class="muted small">No pots canviar el teu propi accés.</p>' :
+        roleTeamsEditor(key, locked) +
+        (self ? '<p class="muted small">No pots canviar el teu propi accés.</p>' : locked ? '<p class="muted small">Només un administrador pot canviar un altre administrador.</p>' :
           '<div class="row" style="margin-top:10px"><button class="btn primary small" type="button" data-esave="' + esc(e.id) + '">Desa</button>' +
           '<button class="btn danger small" type="button" data-edel="' + esc(e.id) + '">Treu l\'accés</button></div>') + "</div>";
     }).join("") : '<div class="empty">Cap editor.</div>';
@@ -867,13 +1868,13 @@
         p = fsDelete("requests/" + id, r.d.nom).then(function () { toast("Sol·licitud rebutjada"); });
       } else if (b.hasAttribute("data-esave")) {
         id = b.getAttribute("data-esave"); if (id === S.uid) return;
-        var e = editorsList.filter(function (x) { return x.id === id; })[0]; if (!e) return;
+        var e = editorsList.filter(function (x) { return x.id === id; })[0]; if (!e || (e.d.role === "admin" && !H.isAdmin(S.me))) return;
         profile = profileFor("e:" + id, e.d.nom, e.d.email); if (!profile) return;
         p = fsReplace(e.path, profile, null, true).then(function () { toast("Canvis desats"); });
       } else if (b.hasAttribute("data-edel")) {
         id = b.getAttribute("data-edel"); if (id === S.uid) return;
         var x = editorsList.filter(function (y) { return y.id === id; })[0];
-        if (!x || !confirm("Vols treure l'accés d'editor a «" + (x.d.nom || "") + "»?")) return;
+        if (!x || (x.d.role === "admin" && !H.isAdmin(S.me)) || !confirm("Vols treure l'accés d'editor a «" + (x.d.nom || "") + "»?")) return;
         p = fsDelete(x.path, x.d.nom).then(function () { toast("Accés tret"); });
       } else return;
     } catch (err) { toast(errOf(err), true); return; }
@@ -944,6 +1945,1097 @@
   }
   $("r-filter").oninput = renderLog;
   $("r-reload").onclick = loadLog;
+
+  // =====================================================================
+  // Shared browser helpers (photos, files, clipboard, downloads)
+  function noop() {}
+  function todayIso() { return H.isoDay(new Date()); }
+  function readBase64(file) {
+    return new Promise(function (ok, ko) {
+      var r = new FileReader();
+      r.onload = function () { var s = String(r.result || ""), i = s.indexOf(","); if (i < 0) ko(failure("READ")); else ok(s.slice(i + 1)); };
+      r.onerror = function () { ko(failure("READ")); };
+      r.readAsDataURL(file);
+    });
+  }
+  function decodeImage(file) {
+    if (window.createImageBitmap) {
+      return createImageBitmap(file, { imageOrientation: "from-image" }).catch(function () { return createImageBitmap(file); })
+        .catch(function () { return viaImg(); });
+    }
+    return viaImg();
+    function viaImg() {
+      return readBase64(file).then(function (b64) {
+        return new Promise(function (ok, ko) {
+          var img = new Image(); img.onload = function () { ok(img); }; img.onerror = function () { ko(failure("READ")); };
+          img.src = "data:" + (file.type || "image/jpeg") + ";base64," + b64;
+        });
+      });
+    }
+  }
+  function jpegOf(src, w, h, q) {
+    var c = document.createElement("canvas"); c.width = w; c.height = h;
+    var g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, w, h); g.drawImage(src, 0, 0, w, h);
+    return c.toDataURL("image/jpeg", q).split(",")[1] || "";
+  }
+  /** Like the app's PhotoData.from: ≤ 1600 px, ≤ ~550 KB (quality 82 → 42), thumbnail 360 px at 70. null if unreadable. */
+  function photoFrom(file) {
+    return decodeImage(file).then(function (bmp) {
+      var w0 = bmp.width || bmp.naturalWidth, h0 = bmp.height || bmp.naturalHeight;
+      if (!w0 || !h0) return null;
+      var dims = H.scaleDims(w0, h0, H.PHOTO.MAX_SIDE), q = 82, jpeg = jpegOf(bmp, dims[0], dims[1], q / 100);
+      while (H.b64Bytes(jpeg) > H.PHOTO.MAX_BYTES && q > 40) { q -= 10; jpeg = jpegOf(bmp, dims[0], dims[1], q / 100); }
+      if (H.b64Bytes(jpeg) > H.PHOTO.MAX_BYTES || !jpeg) return null;
+      var td = H.scaleDims(dims[0], dims[1], H.PHOTO.THUMB_SIDE);
+      var thumb = jpegOf(bmp, td[0], td[1], 0.7);
+      if (bmp.close) bmp.close();
+      return { jpeg: jpeg, thumb: thumb, w: dims[0], h: dims[1] };
+    }).catch(function () { return null; });
+  }
+  /** fotos/{id}: same fields as the app (rules: album, equips, jpeg, thumb, w, h, autor). Resolves the new id. */
+  function uploadPhoto(album, ph, teams) {
+    return fsCreate("fotos", { album: album, equips: teams.slice(), jpeg: ph.jpeg, thumb: ph.thumb, w: ph.w, h: ph.h, autor: S.uid })
+      .then(function (path) { return path.split("/").pop(); });
+  }
+  var thumbs = {};
+  /** Thumbnail of a photo uploaded from the app (only the "thumb" field is downloaded). */
+  function thumbOf(id) {
+    if (!thumbs[id]) thumbs[id] = api("GET", "fotos/" + encodeURIComponent(id), null, "mask.fieldPaths=thumb")
+      .then(function (r) { var t = H.doc(r).d.thumb; return t ? "data:image/jpeg;base64," + t : null; })
+      .catch(function () { delete thumbs[id]; return null; });
+    return thumbs[id];
+  }
+  function showImage(url, img) {
+    url = String(url || "");
+    if (url.indexOf(H.PHOTO_SCHEME) === 0) thumbOf(url.slice(H.PHOTO_SCHEME.length)).then(function (src) { if (src) img.src = src; });
+    else if (url && !/^[a-z]+:/i.test(url)) img.src = "../club/" + url.replace(/^\/+/, "");
+  }
+  function copyText(text, okMsg) {
+    function fallback() {
+      var t = document.createElement("textarea"); t.value = text; t.setAttribute("readonly", ""); t.style.position = "fixed"; t.style.opacity = "0";
+      document.body.appendChild(t); t.select(); var ok = false; try { ok = document.execCommand("copy"); } catch (e) {}
+      document.body.removeChild(t); toast(ok ? okMsg || "Copiat" : "No s'ha pogut copiar: selecciona el text i copia'l a mà.", !ok);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast(okMsg || "Copiat"); }, fallback);
+    else fallback();
+  }
+  function waHref(text) { return "https://wa.me/?text=" + encodeURIComponent(text); }
+  function download(name, text, mime) {
+    var a = document.createElement("a"), url = URL.createObjectURL(new Blob([text], { type: mime || "text/plain;charset=utf-8" }));
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); document.body.removeChild(a); }, 1000);
+  }
+  function chipsHtml(teams, selected, attr) {
+    return teams.map(function (t) {
+      return '<button type="button" class="chip" ' + attr + '="' + t + '" aria-pressed="' + (selected.indexOf(t) >= 0) + '">' + esc(teamName(t)) + "</button>";
+    }).join("");
+  }
+  /** Runs [fn] on each item one after the other. */
+  function series(items, fn) { return items.reduce(function (p, x, i) { return p.then(function () { return fn(x, i); }); }, Promise.resolve()); }
+  function loadingHtml() { return '<div class="empty">Carregant…</div>'; }
+  function errHtml(e) { return '<div class="msg err">' + esc(errOf(e)) + "</div>"; }
+  function teamsText(teams) { return teams.length ? teams.map(teamName).join(", ") : "Tot el club"; }
+  function sortByDataDesc(list) {
+    return list.sort(function (a, b) { var x = String(a.d.data || ""), y = String(b.d.data || ""); return x < y ? 1 : x > y ? -1 : String(a.d.created || "") < String(b.d.created || "") ? 1 : -1; });
+  }
+  function resetExtras() {
+    ["q-sec", "i-form-sec", "h-form-sec", "c-form-sec", "cview-sec", "nt-sec", "al-form-sec", "o-form-sec", "o-sum-sec", "d-docs-box"].forEach(function (id) { $(id).hidden = true; });
+    content = {}; ckind = "activitats"; matches = null; pTeam = null; albums = []; proposals = []; sqTeam = null; campaigns = [];
+  }
+
+  // =====================================================================
+  // 3. ACTIVITATS, PARTITS AMISTOSOS, HORARIS, RESULTATS (EditorForms)
+  var content = {}, ckind = "activitats", iEditing = null, iVals = {}, hTeam = null, hRows = [], webTrainings = null;
+  var KIND_INFO = {
+    activitats: ["🎉 Activitats", "Surten a l'Agenda i a Club."],
+    amistosos: ["🏐 Partits amistosos", "Partits dels equips no federats o amistosos, a l'Agenda."],
+    horaris: ["🕒 Horaris d'entrenament", "Surten a Club i a la Plantilla de l'equip. Toca un equip per canviar-ne l'horari."],
+    resultats: ["🏆 Resultats al web", "Resultats dels partits retransmesos que surten al web; esborra'n un si és erroni."]
+  };
+  function loadContent() { showKind(ckind); }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-ck]"), function (b) {
+    b.onclick = function () { showKind(b.getAttribute("data-ck")); };
+  });
+  function showKind(kind) {
+    if (kind === "resultats" && !H.isJunta(S.me)) kind = "activitats";
+    ckind = kind;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-ck]"), function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-ck") === kind)); });
+    $("i-form-sec").hidden = true; $("h-form-sec").hidden = true;
+    $("i-list-title").firstChild.nodeValue = KIND_INFO[kind][0] + " ";
+    $("i-list-sub").textContent = KIND_INFO[kind][1];
+    $("i-new").hidden = kind === "horaris" || kind === "resultats";
+    $("i-list").innerHTML = loadingHtml();
+    var p = fsList(kind);
+    if (kind === "horaris" && !webTrainings) {
+      p = Promise.all([p, fetch("../club/horaris.json", { cache: "no-cache" }).then(function (r) { return r.ok ? r.json() : {}; }).catch(function () { return {}; })])
+        .then(function (r) { webTrainings = {}; ((r[1] && r[1].equips) || []).forEach(function (e) { webTrainings[e.equip] = e.sessions || []; }); return r[0]; });
+    }
+    p.then(function (l) { if (ckind !== kind) return; content[kind] = l; renderContent(); })
+      .catch(function (e) { if (ckind === kind) $("i-list").innerHTML = errHtml(e); });
+  }
+  function itemTeams(kind, d) { return kind === "amistosos" ? [Number(d.equip)] : H.teamsOf(d); }
+  function renderContent() {
+    var kind = ckind, list = content[kind] || [], box = $("i-list");
+    if (kind === "horaris") return renderTrainings();
+    if (!list.length) { box.innerHTML = '<div class="empty">Encara no n\'hi ha cap publicat des de l\'app.</div>'; return; }
+    sortByDataDesc(list);
+    box.innerHTML = list.map(function (it, i) {
+      var d = it.d, teams = itemTeams(kind, d), mine = H.canPublishFor(S.me, teams);
+      var meta = kind === "resultats" ? [d.data, d.parcials, d.competicio].filter(Boolean).join(" · ")
+        : [d.data ? fmtDay(d.data) + (d.fins && d.fins !== d.data ? " → " + fmtDay(d.fins) : "") : "", d.hora, kind === "amistosos" ? teamName(d.equip) : teamsText(teams),
+           d.autorNom ? "per " + d.autorNom : ""].filter(Boolean).join(" · ");
+      var extra = kind === "amistosos" ? [d.lloc, typeof d.sets_club === "number" ? "Resultat " + d.sets_club + "-" + d.sets_rival : ""].filter(Boolean).join(" · ")
+        : kind === "activitats" ? [d.lloc, d.text].filter(Boolean).join("\n") : "";
+      return '<div class="item"><h4>' + esc(H.itemTitle(kind, d) || "(sense títol)") + '</h4><div class="meta">' + esc(meta) + "</div>" +
+        (extra ? "<p>" + esc(extra) + "</p>" : "") +
+        '<div class="row" style="margin-top:8px">' +
+        (mine && kind !== "resultats" ? '<button class="btn ghost small" type="button" data-iedit="' + i + '">✏️ Edita</button>' : "") +
+        (H.isJunta(S.me) ? '<button class="btn ghost small" type="button" data-iwa="' + i + '">📋 Text per WhatsApp</button>' : "") +
+        ((kind === "resultats" ? H.isJunta(S.me) : mine) ? '<button class="btn danger small" type="button" data-idel="' + i + '">Esborra</button>' : "") +
+        "</div></div>";
+    }).join("");
+  }
+  $("i-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var list = content[ckind] || [], it;
+    if (b.hasAttribute("data-iedit")) openItem(list[+b.getAttribute("data-iedit")]);
+    else if (b.hasAttribute("data-iwa")) { it = list[+b.getAttribute("data-iwa")]; copyText(H.waPost(ckind, it.d, todayIso()), "Text copiat: enganxa'l a WhatsApp"); }
+    else if (b.hasAttribute("data-idel")) {
+      it = list[+b.getAttribute("data-idel")]; if (!it) return;
+      var title = H.itemTitle(ckind, it.d);
+      if (!confirm("«" + title + "» deixarà de sortir a tots els mòbils. Vols esborrar-ho?")) return;
+      b.disabled = true;
+      fsDelete(it.path, title).then(function () { toast("Esborrat."); showKind(ckind); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+    } else if (b.hasAttribute("data-hteam")) openTrainings(+b.getAttribute("data-hteam"));
+    else if (b.hasAttribute("data-hwa")) {
+      var t = +b.getAttribute("data-hwa");
+      copyText(H.waPost("horaris", { equip: t, sessions: sessionsOf(t).list }, todayIso()), "Text copiat: enganxa'l a WhatsApp");
+    }
+  };
+  $("i-new").onclick = function () { openItem(null); };
+  $("i-cancel").onclick = function () { $("i-form-sec").hidden = true; iEditing = null; $("i-new").focus(); };
+  /** Initial values (the app's EditorForms.values) */
+  function itemValues(kind, d) {
+    var v = {};
+    H.FORMS[kind].forEach(function (f) {
+      var key = f[0], type = f[2];
+      if (type === "teams") v[key] = d ? H.teamsOf(d) : (H.isJunta(S.me) ? [] : H.allowedTeams(S.me, TEAM_ORDER).slice(0, 1));
+      else if (type === "team") v[key] = d && Number(d[key]) ? Number(d[key]) : H.allowedTeams(S.me, TEAM_ORDER)[0];
+      else if (type === "bool") v[key] = d && typeof d[key] === "boolean" ? d[key] : true;
+      else if (type === "date") v[key] = d && d[key] ? String(d[key]) : (key === "data" ? todayIso() : "");
+      else v[key] = d && d[key] != null ? String(d[key]) : "";
+    });
+    return v;
+  }
+  function openItem(it) {
+    var kind = ckind;
+    iEditing = it || null; iVals = itemValues(kind, it ? it.d : null);
+    $("i-form-title").textContent = it ? "Edita" : "Nou: " + KIND_INFO[kind][0].replace(/^\S+\s/, "").toLowerCase();
+    $("i-save").textContent = it ? "Desa els canvis" : "Publica";
+    renderItemForm(); setMsg($("i-msg"), "");
+    $("i-form-sec").hidden = false; $("i-form-sec").scrollIntoView({ behavior: "smooth", block: "start" });
+    var first = $("i-fields").querySelector("input,textarea,button"); if (first) first.focus();
+  }
+  function renderItemForm() {
+    var kind = ckind, allowed = H.allowedTeams(S.me, TEAM_ORDER);
+    $("i-fields").innerHTML = H.FORMS[kind].map(function (f) {
+      var key = f[0], label = f[1], type = f[2], req = f[3], id = "if-" + key, v = iVals[key];
+      if (type === "teams" || type === "team") {
+        var sel = type === "team" ? [v] : v;
+        return '<div class="f" id="' + id + '-l">' + esc(label) + (req ? " *" : "") + '</div><div class="chips" role="group" aria-labelledby="' + id + '-l">' +
+          chipsHtml(allowed, sel, 'data-if="' + key + '" data-t') + "</div>";
+      }
+      if (type === "bool") return '<label class="check"><input type="checkbox" id="' + id + '"' + (v ? " checked" : "") + "><span>" + esc(label) + "</span></label>";
+      var input = type === "multi" ? '<textarea id="' + id + '" maxlength="1000">' + esc(v) + "</textarea>"
+        : '<input id="' + id + '" type="' + ({ date: "date", time: "time", url: "url", number: "number" }[type] || "text") + '"' +
+          (type === "number" ? ' min="0" max="5" step="1" inputmode="numeric"' : "") + (type === "text" ? ' maxlength="120"' : "") +
+          (type === "url" ? ' placeholder="https://…" inputmode="url"' : "") + (key === "competicio" ? ' placeholder="Amistós"' : "") + ' value="' + esc(v) + '">';
+      return '<label class="f" for="' + id + '">' + esc(label) + (req ? " *" : "") + "</label>" + input;
+    }).join("");
+  }
+  function readItemForm() {
+    H.FORMS[ckind].forEach(function (f) {
+      var key = f[0], type = f[2], el = $("if-" + key);
+      if (type === "bool") iVals[key] = el.checked;
+      else if (type !== "teams" && type !== "team") iVals[key] = el.value;
+    });
+  }
+  $("i-fields").onclick = function (ev) {
+    var b = ev.target.closest("button[data-if]"); if (!b) return;
+    readItemForm();
+    var key = b.getAttribute("data-if"), t = +b.getAttribute("data-t"), type = H.FORMS[ckind].filter(function (f) { return f[0] === key; })[0][2];
+    if (type === "team") iVals[key] = t;
+    else { var cur = iVals[key].slice(), i = cur.indexOf(t); if (i >= 0) cur.splice(i, 1); else cur.push(t); iVals[key] = cur; }
+    renderItemForm();
+    var again = $("i-fields").querySelector('[data-if="' + key + '"][data-t="' + t + '"]'); if (again) again.focus();
+  };
+  $("i-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    readItemForm();
+    var kind = ckind, msg = $("i-msg"), built = H.buildItem(kind, iVals, S.me);
+    if (built.error) { setMsg(msg, built.error, "err"); return; }
+    var data = H.stamp(built.doc, S.me, S.uid, nowIso()), old = iEditing, keep = {};
+    var managed = H.FORMS[kind].map(function (f) { return f[0]; }).concat(["autor", "autorNom", "created"]);
+    if (old) Object.keys(old.raw).forEach(function (k) { if (managed.indexOf(k) < 0) keep[k] = old.raw[k]; });
+    $("i-save").disabled = true; setMsg(msg, "Desant…");
+    (old ? fsReplace(old.path, data, keep, true) : fsCreate(kind, data)).then(function () {
+      $("i-form-sec").hidden = true; iEditing = null; toast("Desat i publicat."); showKind(kind);
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("i-save").disabled = false; });
+  };
+
+  // ---- training times: one document per team, horaris/{team} = {equip, sessions[], autor, autorNom, created}
+  function sessionsOf(t) {
+    var doc = (content.horaris || []).filter(function (x) { return Number(x.d.equip) === t || x.id === String(t); })[0];
+    if (doc) return { list: doc.d.sessions || [], fromWeb: false, exists: true, path: doc.path };
+    var w = (webTrainings && webTrainings[t]) || [];
+    return { list: w, fromWeb: w.length > 0, exists: false, path: "horaris/" + t };
+  }
+  function renderTrainings() {
+    var teams = H.allowedTeams(S.me, TEAM_ORDER);
+    $("i-list").innerHTML = teams.map(function (t) {
+      var s = sessionsOf(t), sum = s.list.map(function (x) { return H.dayShort(x.dia) + " " + x.inici + "–" + x.fi; }).join(" · ");
+      return '<div class="item"><h4>' + esc(teamName(t)) + '</h4><div class="meta">' + esc(s.list.length ? sum : "Sense horari") + "</div>" +
+        (s.fromWeb ? '<p class="hint">(del web del club; en desar-lo es publica des de l\'app)</p>' : "") +
+        '<div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" data-hteam="' + t + '">✏️ Edita l\'horari</button>' +
+        (H.isJunta(S.me) && s.list.length ? '<button class="btn ghost small" type="button" data-hwa="' + t + '">📋 Text per WhatsApp</button>' : "") + "</div></div>";
+    }).join("") || '<div class="empty">No tens cap equip assignat.</div>';
+  }
+  function openTrainings(t) {
+    hTeam = t;
+    hRows = sessionsOf(t).list.map(function (x) { return { dia: x.dia, inici: x.inici, fi: x.fi, lloc: x.lloc || "" }; });
+    $("h-form-title").textContent = "Horari: " + teamName(t);
+    renderTrainingRows(); setMsg($("h-msg"), "");
+    $("h-form-sec").hidden = false; $("h-form-sec").scrollIntoView({ behavior: "smooth", block: "start" });
+    ($("h-rows").querySelector("select") || $("h-add")).focus();
+  }
+  function readTrainingRows() {
+    hRows = hRows.map(function (r, i) {
+      return { dia: $("hd-" + i).value, inici: $("hi-" + i).value, fi: $("hf-" + i).value, lloc: $("hl-" + i).value };
+    });
+  }
+  function renderTrainingRows() {
+    $("h-rows").innerHTML = hRows.length ? hRows.map(function (r, i) {
+      return '<div class="box"><div class="two"><div><label class="f" for="hd-' + i + '">Dia</label><select id="hd-' + i + '">' +
+        H.DAYS.map(function (d) { return '<option value="' + d + '"' + (d === r.dia ? " selected" : "") + ">" + d + "</option>"; }).join("") + "</select></div>" +
+        '<div><label class="f" for="hl-' + i + '">Lloc</label><input id="hl-' + i + '" type="text" maxlength="120" value="' + esc(r.lloc) + '"></div>' +
+        '<div><label class="f" for="hi-' + i + '">Inici</label><input id="hi-' + i + '" type="time" value="' + esc(r.inici) + '"></div>' +
+        '<div><label class="f" for="hf-' + i + '">Fi</label><input id="hf-' + i + '" type="time" value="' + esc(r.fi) + '"></div></div>' +
+        '<button class="linkbtn" type="button" data-hrem="' + i + '" style="margin-top:8px">Treu aquesta sessió</button></div>';
+    }).join("") : '<div class="empty">Sense horari.</div>';
+  }
+  $("h-rows").onclick = function (ev) {
+    var b = ev.target.closest("button[data-hrem]"); if (!b) return;
+    readTrainingRows(); hRows.splice(+b.getAttribute("data-hrem"), 1); renderTrainingRows(); $("h-add").focus();
+  };
+  $("h-add").onclick = function () {
+    readTrainingRows();
+    hRows.push({ dia: "Dilluns", inici: "", fi: "", lloc: hRows.length ? hRows[hRows.length - 1].lloc : "Pavelló Rafa Martínez" });
+    renderTrainingRows(); $("hd-" + (hRows.length - 1)).focus();
+  };
+  $("h-cancel").onclick = function () { $("h-form-sec").hidden = true; };
+  $("h-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    readTrainingRows();
+    var msg = $("h-msg"), r = H.buildSessions(hRows), t = hTeam;
+    if (r.error) { setMsg(msg, r.error, "err"); return; }
+    if (!H.teamsOk(S.me, [t])) { setMsg(msg, "Només pots publicar per als teus equips.", "err"); return; }
+    var s = sessionsOf(t), data = { equip: t, sessions: r.sessions, autor: S.uid, autorNom: H.editorName(S.me), created: nowIso() };
+    $("h-save").disabled = true; setMsg(msg, "Desant…");
+    fsReplace("horaris/" + t, data, null, s.exists).then(function () {
+      $("h-form-sec").hidden = true; toast("Horari desat."); showKind("horaris");
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("h-save").disabled = false; });
+  };
+
+  // =====================================================================
+  // 4. PARTITS: convocatòries (convocatories/{fixture}), «vinc / no vinc», notes privades (notes/{fixture}), propers partits
+  var matches = null, convs = {}, agendaAt = "", pMode = "next", pTeam = null, cvFix = null, cvExisting = null, cvRoster = [], cvChosen = [];
+  var ntFix = null, ntExists = false, wWeekends = 1, wEdited = false;
+  function fixKey(f) { return String(f.id); }
+  function loadMatches() {
+    $("p-list").innerHTML = loadingHtml();
+    return Promise.all([fsList("agenda"), fsList("amistosos"), fsList("convocatories")]).then(function (r) {
+      var all = [], seen = {};
+      agendaAt = "";
+      r[0].forEach(function (doc) {
+        (doc.d.partits || []).forEach(function (p) { if (p && typeof p === "object" && p.f) all.push(H.fixtureFromAgenda(p, doc.d.equip)); });
+        if (String(doc.d.actualitzat || "") > agendaAt) agendaAt = String(doc.d.actualitzat);
+      });
+      r[1].forEach(function (doc) { var f = H.fixtureFromFriendly(doc.d, doc.id); if (f) all.push(f); });
+      matches = all.filter(function (f) { if (seen[f.id] || !f.date) return false; seen[f.id] = 1; return true; })
+        .sort(function (a, b) { return (a.date + (a.time || "99")).localeCompare(b.date + (b.time || "99")); });
+      convs = {};
+      r[2].forEach(function (c) { convs[String(c.d.partit || c.id)] = c; });
+      if (agendaAt) {
+        var min = Math.max(0, Math.round((Date.now() - new Date(agendaAt).getTime()) / 60000));
+        $("p-age").textContent = "Agenda actualitzada fa " + Math.floor(min / 60) + " h " + (min % 60) + " min.";
+      } else $("p-age").textContent = "L'agenda no s'ha publicat encara.";
+      renderMatches();
+      if (H.isJunta(S.me) && !wEdited) regenWeekly();
+    }).catch(function (e) { $("p-list").innerHTML = errHtml(e); });
+  }
+  $("p-reload").onclick = function () { loadMatches(); };
+  Array.prototype.forEach.call(document.querySelectorAll("[data-pm]"), function (b) {
+    b.onclick = function () {
+      pMode = b.getAttribute("data-pm");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-pm]"), function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      renderMatches();
+    };
+  });
+  $("p-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-pt]"); if (!b) return;
+    var t = b.getAttribute("data-pt"); pTeam = t === "all" ? null : +t; renderMatches();
+    var again = $("p-teams").querySelector('[data-pt="' + t + '"]'); if (again) again.focus();
+  };
+  function myFixtures() {
+    var allowed = H.allowedTeams(S.me, TEAM_ORDER);
+    return (matches || []).filter(function (f) { return allowed.indexOf(f.teamId) >= 0; });
+  }
+  function matchLine(f) {
+    return (f.time || "--:--") + " · " + teamName(f.teamId) + " · " + (f.homeIsClub ? "a casa vs " : "a fora: ") + H.rivalOf(f) +
+      (f.venue ? " · " + H.lowerCap(f.venue) : "") + (f.friendly ? " · " + (f.competition || "Amistós") : f.round ? " · J" + f.round : "");
+  }
+  function renderMatches() {
+    var mine = myFixtures(), present = {};
+    mine.forEach(function (f) { present[f.teamId] = 1; });
+    var teams = TEAM_ORDER.filter(function (t) { return present[t]; });
+    $("p-teams").innerHTML = '<button type="button" class="chip" data-pt="all" aria-pressed="' + (pTeam == null) + '">Tots</button>' +
+      chipsHtml(teams, pTeam == null ? [] : [pTeam], "data-pt");
+    var t = todayIso(), from = H.addDays(t, -30);
+    var list = mine.filter(function (f) { return (pTeam == null || f.teamId === pTeam) && (pMode === "next" ? f.date >= t : f.date < t && f.date >= from); });
+    if (pMode === "past") list.reverse();
+    list = list.slice(0, 60);
+    var box = $("p-list");
+    if (!list.length) {
+      box.innerHTML = '<div class="empty">' + (matches && matches.length ? "No hi ha partits per mostrar." :
+        "Encara no hi ha l'agenda publicada. Es publica quan un entrenador o la junta actualitza l'agenda a l'app.") + "</div>";
+      return;
+    }
+    var html = "", day = "";
+    list.forEach(function (f) {
+      if (f.date !== day) { day = f.date; html += "<h3>" + esc(H.cap(H.localDay(f.date, t))) + "</h3>"; }
+      var c = convs[fixKey(f)], n = c ? (c.d.convocades || []).length : 0;
+      html += '<div class="item"><h4>' + esc(matchLine(f)) + "</h4>" +
+        (f.played ? '<div class="meta">Resultat: ' + f.homeSets + "-" + f.awaySets + "</div>" : "") +
+        '<div class="row" style="margin-top:8px">' +
+        (c ? '<button class="btn primary small" type="button" data-cview="' + esc(fixKey(f)) + '">📋 Convocatòria (' + n + ")</button>"
+           : '<button class="btn ghost small" type="button" data-cnew="' + esc(fixKey(f)) + '">📋 Convocatòria</button>') +
+        '<button class="btn ghost small" type="button" data-notes="' + esc(fixKey(f)) + '">📝 Notes</button></div></div>';
+    });
+    box.innerHTML = html;
+  }
+  function fixtureById(id) { return (matches || []).filter(function (f) { return fixKey(f) === id; })[0]; }
+  $("p-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var f;
+    if (b.hasAttribute("data-cnew")) { f = fixtureById(b.getAttribute("data-cnew")); if (f) openConvocation(f, null); }
+    else if (b.hasAttribute("data-cview")) { f = fixtureById(b.getAttribute("data-cview")); if (f) viewConvocation(f); }
+    else if (b.hasAttribute("data-notes")) { f = fixtureById(b.getAttribute("data-notes")); if (f) openNotes(f); }
+  };
+  function convOf(c) {
+    var d = c.d;
+    return { meeting: String(d.quedada || ""), place: String(d.lloc || ""), kit: String(d.equipacio || ""), notes: String(d.notes || ""),
+             players: (d.convocades || []).map(String).filter(function (x) { return x.trim(); }), author: String(d.autorNom || "") };
+  }
+  /** Who can be called: the squad saved from the app (plantilles, non-federated teams), the players the families stand for
+   *  (equips/{team}/membres "jugadors", same short names as the app's squad) and the ones already called. */
+  function rosterFor(team, existing) {
+    var squad = fsGet("plantilles/" + team).then(function (p) {
+      return (p.d.membres || []).filter(function (m) { return m && m.nom && !H.isStaff(m); }).map(function (m) { return H.shortPerson(m.nom); });
+    }, function () { return []; });
+    var fam = (members[team] ? Promise.resolve(members[team]) : fsList("equips/" + team + "/membres").catch(function () { return []; }))
+      .then(function (l) { var out = []; (l || []).forEach(function (m) { (m.d.jugadors || []).forEach(function (n) { out.push(String(n)); }); }); return out; });
+    return Promise.all([squad, fam]).then(function (r) {
+      var out = [];
+      r[0].concat(r[1], existing || []).forEach(function (n) { n = String(n).trim(); if (n && !out.some(function (x) { return H.sameName(x, n); })) out.push(n); });
+      return out;
+    });
+  }
+  function openConvocation(f, c) {
+    cvFix = f; cvExisting = c || null;
+    var v = c ? convOf(c) : { meeting: H.defaultMeeting(f), place: H.defaultPlace(f), kit: "", notes: "", players: [] };
+    $("cv-title").textContent = "Convocatòria · " + teamName(f.teamId);
+    $("cv-match").textContent = H.cap(H.localDay(f.date, todayIso())) + " · " + matchLine(f);
+    $("cv-meet").value = v.meeting; $("cv-place").value = v.place; $("cv-kit").value = v.kit; $("cv-notes").value = v.notes; $("cv-add").value = "";
+    $("cv-players").innerHTML = loadingHtml(); setMsg($("cv-msg"), "");
+    $("cview-sec").hidden = true; $("nt-sec").hidden = true;
+    $("c-form-sec").hidden = false; $("c-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("cv-meet").focus();
+    rosterFor(f.teamId, v.players).then(function (roster) {
+      if (cvFix !== f) return;
+      cvRoster = roster; cvChosen = c ? v.players.slice() : roster.slice();
+      $("cv-roster-hint").textContent = roster.length ? "" : "No hi ha cap plantilla al núvol per a aquest equip: afegeix els noms a mà (nom i inicial del cognom).";
+      renderCvPlayers();
+    });
+  }
+  function cvPlayersOrdered() { return cvRoster.filter(function (p) { return cvChosen.some(function (x) { return H.sameName(x, p); }); }); }
+  function renderCvPlayers() {
+    $("cv-pl-l").textContent = "Convocades (" + cvPlayersOrdered().length + "/" + cvRoster.length + ")";
+    $("cv-players").innerHTML = cvRoster.length ? cvRoster.map(function (p, i) {
+      return '<label class="check" style="margin-top:6px"><input type="checkbox" data-cvp="' + i + '"' + (cvChosen.some(function (x) { return H.sameName(x, p); }) ? " checked" : "") + "><span>" + esc(p) + "</span></label>";
+    }).join("") : "";
+    updateCvPreview();
+  }
+  function cvValues() {
+    return { meeting: $("cv-meet").value, place: $("cv-place").value, kit: $("cv-kit").value, notes: $("cv-notes").value, players: cvPlayersOrdered() };
+  }
+  function updateCvPreview() {
+    if (!cvFix) return;
+    var v = cvValues();
+    $("cv-preview").textContent = H.convocationText(cvFix, H.APP_NAME[cvFix.teamId] || teamName(cvFix.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
+  }
+  ["cv-meet", "cv-place", "cv-kit", "cv-notes"].forEach(function (id) { $(id).oninput = updateCvPreview; });
+  $("cv-players").onchange = function (ev) {
+    var i = ev.target.getAttribute && ev.target.getAttribute("data-cvp"); if (i == null) return;
+    var p = cvRoster[+i];
+    cvChosen = cvChosen.filter(function (x) { return !H.sameName(x, p); });
+    if (ev.target.checked) cvChosen.push(p);
+    $("cv-pl-l").textContent = "Convocades (" + cvPlayersOrdered().length + "/" + cvRoster.length + ")";
+    updateCvPreview();
+  };
+  function addCvPlayer() {
+    var n = $("cv-add").value.trim().replace(/\s+/g, " ").slice(0, 60); if (!n) return;
+    if (!cvRoster.some(function (x) { return H.sameName(x, n); })) cvRoster.push(n);
+    if (!cvChosen.some(function (x) { return H.sameName(x, n); })) cvChosen.push(n);
+    $("cv-add").value = ""; renderCvPlayers(); $("cv-add").focus();
+  }
+  $("cv-add-btn").onclick = addCvPlayer;
+  $("cv-add").onkeydown = function (ev) { if (ev.key === "Enter") { ev.preventDefault(); addCvPlayer(); } };
+  $("cv-cancel").onclick = function () { $("c-form-sec").hidden = true; cvFix = null; };
+  function saveConvocation(copy) {
+    var f = cvFix, msg = $("cv-msg"); if (!f) return;
+    if (!H.teamsOk(S.me, [f.teamId])) { setMsg(msg, "Només pots publicar per als teus equips.", "err"); return; }
+    var v = cvValues();
+    var data = H.stamp(H.convocationDoc(f, v.meeting, v.place, v.kit, v.players, v.notes), S.me, S.uid, nowIso());
+    var text = H.convocationText(f, H.APP_NAME[f.teamId] || teamName(f.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
+    $("cv-save").disabled = $("cv-save-copy").disabled = true; setMsg(msg, "Desant…");
+    var path = "convocatories/" + fixKey(f), title = "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f);
+    api("PATCH", path, { fields: H.encFields(data) }).then(function () {
+      logWrite(cvExisting ? "update" : "create", path, { titol: title });
+      pingNotice();
+      convs[fixKey(f)] = { id: fixKey(f), path: path, d: data, raw: {} };
+      $("c-form-sec").hidden = true; cvFix = null;
+      if (copy) copyText(text, "Convocatòria publicada i copiada: enganxa-la a WhatsApp"); else toast("Convocatòria publicada");
+      renderMatches(); viewConvocation(f);
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); })
+      .then(function () { $("cv-save").disabled = $("cv-save-copy").disabled = false; });
+  }
+  $("cv-form").onsubmit = function (ev) { ev.preventDefault(); saveConvocation(false); };
+  $("cv-save-copy").onclick = function () { saveConvocation(true); };
+
+  var cviewFix = null;
+  function viewConvocation(f) {
+    var c = convs[fixKey(f)]; if (!c) return;
+    cviewFix = f;
+    var v = convOf(c), text = H.convocationText(f, H.APP_NAME[f.teamId] || teamName(f.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
+    $("cview-text").textContent = text;
+    $("cview-by").textContent = (v.author ? "Publicada per " + v.author : "") + (c.d.created ? " · " + fmtStamp(c.d.created) : "");
+    $("cview-wa").href = waHref(text);
+    $("cview-copy").onclick = function () { copyText(text, "Text copiat: enganxa'l a WhatsApp"); };
+    $("c-form-sec").hidden = true; $("nt-sec").hidden = true;
+    $("cview-sec").hidden = false; $("cview-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("cview-copy").focus();
+    loadRsvp();
+  }
+  function loadRsvp() {
+    var f = cviewFix, c = f && convs[fixKey(f)]; if (!c) return;
+    var box = $("cview-rsvp"); box.innerHTML = loadingHtml();
+    fsList("equips/" + f.teamId + "/respostes").then(function (l) {
+      if (cviewFix !== f) return;
+      var docs = l.map(function (x) { var o = {}; Object.keys(x.d).forEach(function (k) { o[k] = x.d[k]; }); o.id = x.id; return o; });
+      var s = H.rsvpSummary(convOf(c).players, H.rsvpOfFixture(docs, f.id));
+      box.innerHTML = "<p><b>Vénen: " + s.yes.length + " · No vénen: " + s.no.length + " · Sense resposta: " + s.unknown.length + "</b></p>" +
+        (s.yes.length ? "<p>✅ " + esc(s.yes.join(", ")) + "</p>" : "") +
+        (s.no.length ? "<p>❌ " + esc(s.no.map(function (x) { return x[1].trim() ? x[0] + " (" + x[1] + ")" : x[0]; }).join(", ")) + "</p>" : "") +
+        (s.unknown.length ? "<p>❔ " + esc(s.unknown.join(", ")) + "</p>" : "");
+    }).catch(function (e) { box.innerHTML = errHtml(e); });
+  }
+  $("cview-reload").onclick = loadRsvp;
+  $("cview-close").onclick = function () { $("cview-sec").hidden = true; cviewFix = null; };
+  $("cview-edit").onclick = function () { var f = cviewFix; if (f) openConvocation(f, convs[fixKey(f)]); };
+  $("cview-del").onclick = function () {
+    var f = cviewFix, c = f && convs[fixKey(f)]; if (!c) return;
+    if (!confirm("Vols esborrar la convocatòria? Deixarà de sortir a tots els mòbils.")) return;
+    var b = $("cview-del"); b.disabled = true;
+    fsDelete("convocatories/" + fixKey(f), "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f)).then(function () {
+      delete convs[fixKey(f)]; $("cview-sec").hidden = true; cviewFix = null; toast("Convocatòria esborrada"); renderMatches();
+    }).catch(function (e) { toast(errOf(e), true); }).then(function () { b.disabled = false; });
+  };
+
+  // ---- private notes of a match (MatchNotes.kt)
+  function openNotes(f) {
+    ntFix = f; ntExists = false;
+    $("nt-title").textContent = "📝 Notes · " + teamName(f.teamId);
+    $("nt-match").textContent = H.cap(H.localDay(f.date, todayIso())) + " · " + (f.homeIsClub ? "vs " : "a ") + H.rivalOf(f);
+    $("nt-text").value = ""; $("nt-text").disabled = true; $("nt-info").textContent = ""; $("nt-save").disabled = true; setMsg($("nt-msg"), "Carregant…");
+    $("c-form-sec").hidden = true; $("cview-sec").hidden = true;
+    $("nt-sec").hidden = false; $("nt-sec").scrollIntoView({ behavior: "smooth", block: "start" });
+    fsGet("notes/" + fixKey(f)).then(function (p) {
+      if (ntFix !== f) return;
+      ntExists = true; $("nt-text").value = String(p.d.text || "");
+      $("nt-info").textContent = "Darrer canvi: " + (p.d.autorNom || "") + " · " + fmtStamp(p.d.created);
+    }, function (e) { if (e.code !== "NOT_FOUND") throw e; }).then(function () {
+      if (ntFix !== f) return;
+      setMsg($("nt-msg"), ""); $("nt-text").disabled = false; $("nt-save").disabled = false; $("nt-text").focus();
+    }).catch(function (e) { setMsg($("nt-msg"), errOf(e), "err"); });
+  }
+  $("nt-cancel").onclick = function () { $("nt-sec").hidden = true; ntFix = null; };
+  $("nt-save").onclick = function () {
+    var f = ntFix, msg = $("nt-msg"); if (!f) return;
+    var text = $("nt-text").value, path = "notes/" + fixKey(f), title = "Notes " + teamName(f.teamId) + " · " + H.rivalOf(f);
+    if (!H.teamsOk(S.me, [f.teamId])) { setMsg(msg, "Només pots escriure notes dels teus equips.", "err"); return; }
+    $("nt-save").disabled = true; setMsg(msg, "Desant…");
+    var p = !text.trim() ? (ntExists ? fsDelete(path, title) : Promise.resolve())
+      : fsReplace(path, { partit: fixKey(f), equip: f.teamId, text: text.trim().slice(0, 4000), autor: S.uid, autorNom: H.editorName(S.me), created: nowIso() }, null, ntExists)
+        .then(function () { ntExists = true; });
+    p.then(function () { if (!text.trim()) ntExists = false; $("nt-sec").hidden = true; ntFix = null; toast("Notes desades"); })
+      .catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("nt-save").disabled = false; });
+  };
+
+  // ---- board: weekly "Propers partits" WhatsApp message (WeeklyMessage.kt)
+  function regenWeekly() {
+    var text = H.weeklyMessage(matches || [], H.weekendDays(todayIso(), wWeekends), $("w-links").checked, TEAM_ORDER);
+    $("w-text").value = text; $("w-wa").href = waHref(text); wEdited = false;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("[data-wk]"), function (b) {
+    b.onclick = function () {
+      wWeekends = +b.getAttribute("data-wk");
+      Array.prototype.forEach.call(document.querySelectorAll("[data-wk]"), function (x) { x.setAttribute("aria-pressed", String(x === b)); });
+      regenWeekly();
+    };
+  });
+  $("w-links").onchange = regenWeekly;
+  $("w-regen").onclick = regenWeekly;
+  $("w-text").oninput = function () { wEdited = true; $("w-wa").href = waHref($("w-text").value); };
+  $("w-copy").onclick = function () { copyText($("w-text").value, "Missatge copiat"); };
+
+  // =====================================================================
+  // 5. GALERIA: àlbums (albums/{id} + fotos/{id}) i fotos proposades per les famílies
+  var albums = [], alEditing = null, alTeams = [], alKeep = [], alRemoved = [], alNew = [], alBusy = false, proposals = [];
+  function loadGallery() { loadAlbums(); loadProposals(); }
+  function loadAlbums() {
+    $("al-list").innerHTML = loadingHtml();
+    return fsList("albums").then(function (l) { albums = sortByDataDesc(l); renderAlbums(); })
+      .catch(function (e) { $("al-list").innerHTML = errHtml(e); });
+  }
+  function photoIds(a) { return (a.d.fotos || []).map(String).filter(Boolean); }
+  function renderAlbums() {
+    var box = $("al-list");
+    if (!albums.length) { box.innerHTML = '<div class="empty">Encara no s\'ha pujat cap àlbum des de l\'app.</div>'; return; }
+    box.innerHTML = albums.map(function (a, i) {
+      var d = a.d, teams = H.teamsOf(d), mine = H.canPublishFor(S.me, teams), ids = photoIds(a), cover = d.portada || ids[0];
+      return '<div class="item"><div class="row" style="align-items:flex-start;flex-wrap:nowrap"><img class="thumb" alt="" data-cover="' + esc(cover || "") + '">' +
+        '<div style="min-width:0"><h4>' + esc(d.titol || "(sense títol)") + '</h4><div class="meta">' +
+        esc([d.data ? fmtDay(d.data) : "", ids.length + " fotos", teamsText(teams), d.autorNom ? "per " + d.autorNom : ""].filter(Boolean).join(" · ")) + "</div></div></div>" +
+        '<div class="row" style="margin-top:8px">' +
+        (mine ? '<button class="btn ghost small" type="button" data-aedit="' + i + '">✏️ Edita</button>' : "") +
+        (H.isJunta(S.me) ? '<button class="btn ghost small" type="button" data-awa="' + i + '">📋 Text per WhatsApp</button>' : "") +
+        (mine ? '<button class="btn danger small" type="button" data-adel="' + i + '">Esborra</button>' : "") + "</div></div>";
+    }).join("");
+    Array.prototype.forEach.call(box.querySelectorAll("img[data-cover]"), function (img) {
+      var id = img.getAttribute("data-cover"); if (id) showImage(id.indexOf("fs://") === 0 ? id : H.PHOTO_SCHEME + id, img);
+    });
+  }
+  $("al-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var a;
+    if (b.hasAttribute("data-aedit")) openAlbum(albums[+b.getAttribute("data-aedit")]);
+    else if (b.hasAttribute("data-awa")) copyText(H.waPost("albums", albums[+b.getAttribute("data-awa")].d, todayIso()), "Text copiat: enganxa'l a WhatsApp");
+    else if (b.hasAttribute("data-adel")) {
+      a = albums[+b.getAttribute("data-adel")]; if (!a) return;
+      var ids = photoIds(a);
+      if (!confirm("«" + (a.d.titol || "") + "» i les seves " + ids.length + " fotos deixaran de sortir a tots els mòbils. Vols esborrar-lo?")) return;
+      b.disabled = true; toast("Esborrant…");
+      series(ids, function (id) { return fsDelete("fotos/" + id).catch(function (e) { if (e.code !== "NOT_FOUND") throw e; }); })
+        .then(function () { return fsDelete(a.path, a.d.titol); })
+        .then(function () { toast("Esborrat."); loadAlbums(); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+    }
+  };
+  $("al-newbtn").onclick = function () { openAlbum(null); };
+  function openAlbum(a) {
+    if (alBusy) return;
+    alEditing = a || null;
+    $("al-form-title").textContent = a ? "Edita l'àlbum" : "Nou àlbum";
+    $("al-titol").value = a ? String(a.d.titol || "") : ""; $("al-data").value = a ? String(a.d.data || "") : todayIso();
+    alTeams = a ? H.teamsOf(a.d) : (H.isJunta(S.me) ? [] : H.allowedTeams(S.me, TEAM_ORDER).slice(0, 1));
+    alKeep = a ? photoIds(a) : []; alRemoved = []; alNew = [];
+    renderAlbumForm(); setMsg($("al-msg"), "");
+    $("al-form-sec").hidden = false; $("al-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("al-titol").focus();
+  }
+  function renderAlbumForm() {
+    $("al-teams-l").textContent = H.isJunta(S.me) ? "Equips (cap = tot el club)" : "Equips *";
+    $("al-teams").innerHTML = chipsHtml(H.allowedTeams(S.me, TEAM_ORDER), alTeams, "data-alt");
+    $("al-existing-box").hidden = !alKeep.length;
+    $("al-existing").innerHTML = alKeep.map(function (id, i) {
+      return '<button type="button" data-alx="' + i + '" aria-pressed="' + (alRemoved.indexOf(id) >= 0) + '" aria-label="Foto ' + (i + 1) + ' (treu-la)"><img alt="" data-ph="' + esc(id) + '"></button>';
+    }).join("");
+    Array.prototype.forEach.call($("al-existing").querySelectorAll("img[data-ph]"), function (img) { showImage(H.PHOTO_SCHEME + img.getAttribute("data-ph"), img); });
+    renderAlbumNew();
+  }
+  function renderAlbumNew() {
+    $("al-new-count").textContent = alNew.length ? alNew.length + " fotos noves per pujar" : "";
+    $("al-new").innerHTML = alNew.map(function (ph, i) {
+      return '<button type="button" data-aln="' + i + '" aria-label="Foto nova ' + (i + 1) + ' (treu-la)"><img alt="" src="data:image/jpeg;base64,' + ph.thumb + '"></button>';
+    }).join("");
+  }
+  $("al-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-alt]"); if (!b) return;
+    var t = +b.getAttribute("data-alt"), i = alTeams.indexOf(t);
+    if (i >= 0) alTeams.splice(i, 1); else alTeams.push(t);
+    b.setAttribute("aria-pressed", String(i < 0));
+  };
+  $("al-existing").onclick = function (ev) {
+    var b = ev.target.closest("button[data-alx]"); if (!b) return;
+    var id = alKeep[+b.getAttribute("data-alx")], i = alRemoved.indexOf(id);
+    if (i >= 0) alRemoved.splice(i, 1); else alRemoved.push(id);
+    b.setAttribute("aria-pressed", String(i < 0));
+  };
+  $("al-new").onclick = function (ev) {
+    var b = ev.target.closest("button[data-aln]"); if (!b) return;
+    alNew.splice(+b.getAttribute("data-aln"), 1); renderAlbumNew(); $("al-files").focus();
+  };
+  $("al-files").onchange = function () {
+    var files = Array.prototype.slice.call(this.files || []), msg = $("al-msg"), skipped = 0; this.value = "";
+    if (!files.length) return;
+    setMsg(msg, "Preparant " + files.length + " fotos…");
+    series(files, function (f, i) {
+      setMsg(msg, "Preparant foto " + (i + 1) + " de " + files.length + "…");
+      return photoFrom(f).then(function (ph) { if (ph) alNew.push(ph); else skipped++; renderAlbumNew(); });
+    }).then(function () {
+      setMsg(msg, skipped ? "No s'han pogut llegir " + skipped + " de les fotos triades." : "", skipped ? "err" : "");
+    });
+  };
+  $("al-cancel").onclick = function () { if (alBusy) return; $("al-form-sec").hidden = true; alNew = []; alEditing = null; };
+  /** Like the app's EditorViewModel.saveAlbum: the album is saved after every photo, so an interrupted upload loses nothing. */
+  $("al-form").onsubmit = function (ev) {
+    ev.preventDefault(); if (alBusy) return;
+    var msg = $("al-msg"), keep = alKeep.filter(function (id) { return alRemoved.indexOf(id) < 0; }), removed = alRemoved.slice(), add = alNew.slice();
+    var meta = { titol: $("al-titol").value, data: $("al-data").value, equips: alTeams.slice() };
+    var err = H.checkAlbum(meta, S.me, keep.length + add.length);
+    if (err) { setMsg(msg, err, "err"); return; }
+    var teams = H.uniqInts(meta.equips), ids = keep.slice(), path = alEditing ? alEditing.path : null, exists = !!alEditing;
+    function save() {
+      var data = H.stamp(H.albumDoc(meta, ids), S.me, S.uid, nowIso());
+      if (path) return fsReplace(path, data, null, true);
+      return fsCreate("albums", data).then(function (p) { path = p; });
+    }
+    alBusy = true; $("al-save").disabled = true; setMsg(msg, "Desant…");
+    save().then(function () {
+      var albumId = path.split("/").pop();
+      return series(add, function (ph, i) {
+        setMsg(msg, "Pujant foto " + (i + 1) + " de " + add.length + "…");
+        return uploadPhoto(albumId, ph, teams).then(function (id) { ids.push(id); return save(); });
+      });
+    }).then(function () {
+      return series(removed, function (id) { return fsDelete("fotos/" + id).catch(function () {}); });
+    }).then(function () {
+      alNew = []; $("al-form-sec").hidden = true; alEditing = null; toast(exists ? "Desat i publicat." : "Àlbum publicat."); loadAlbums();
+    }).catch(function (e) { setMsg(msg, errOf(e) + (ids.length > keep.length ? " (s'han desat " + (ids.length - keep.length) + " fotos noves)" : ""), "err"); loadAlbums(); })
+      .then(function () { alBusy = false; $("al-save").disabled = false; });
+  };
+
+  // ---- photos proposed by families (PhotoProposals.kt): approve into an album or reject
+  function countProposals() {
+    return queryProposals().then(function (l) {
+      $("prop-total").innerHTML = l.length ? '<span class="badge" aria-label="' + l.length + ' fotos per revisar">' + l.length + "</span>" : "";
+      return l;
+    }, function () { return []; });
+  }
+  function queryProposals() {
+    var teams = H.isJunta(S.me) ? null : (S.me.teams || []).map(Number);
+    if (teams && !teams.length) return Promise.resolve([]);
+    return api("POST", ":runQuery", H.proposalsQuery(teams)).then(function (r) {
+      return (Array.isArray(r) ? r : []).filter(function (x) { return x.document; }).map(function (x) { return H.doc(x.document); })
+        .filter(function (p) { return H.proposalVisible(S.me, Number(p.d.equip) || 0); })
+        .sort(function (a, b) { return String(a.d.created || "") < String(b.d.created || "") ? 1 : -1; });
+    });
+  }
+  function loadProposals() {
+    var box = $("pp-list"); box.innerHTML = loadingHtml();
+    return queryProposals().then(function (l) {
+      proposals = l;
+      $("prop-total").innerHTML = l.length ? '<span class="badge" aria-label="' + l.length + ' fotos per revisar">' + l.length + "</span>" : "";
+      renderProposals();
+    }).catch(function (e) { box.innerHTML = errHtml(e); });
+  }
+  $("pp-reload").onclick = function () { loadProposals(); };
+  function renderProposals() {
+    var box = $("pp-list");
+    if (!proposals.length) { box.innerHTML = '<div class="empty">No hi ha cap foto pendent de revisar.</div>'; return; }
+    box.innerHTML = proposals.map(function (p, i) {
+      var d = p.d, eq = Number(d.equip) || 0;
+      return '<div class="item"><div class="row" style="align-items:flex-start;flex-wrap:nowrap">' +
+        (d.thumb ? '<img class="thumb" style="width:120px;height:90px" alt="Foto proposada" src="data:image/jpeg;base64,' + esc(String(d.thumb).replace(/[^A-Za-z0-9+/=]/g, "")) + '">' : "") +
+        '<div style="min-width:0"><h4>' + esc(eq ? teamName(eq) : "Tot el club") + "</h4>" +
+        '<div class="meta">' + esc([d.nom ? "Per " + d.nom : "", d.created ? fmtStamp(d.created) : "", d.w && d.h ? d.w + "×" + d.h : ""].filter(Boolean).join(" · ")) + "</div>" +
+        (d.text ? "<p>" + esc(d.text) + "</p>" : "") + "</div></div>" +
+        '<div id="pp-a-' + i + '"></div>' +
+        '<div class="row" style="margin-top:8px"><button class="btn primary small" type="button" data-pok="' + i + '">Aprova</button>' +
+        '<button class="btn danger small" type="button" data-pno="' + i + '">Rebutja</button></div></div>';
+    }).join("");
+  }
+  $("pp-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var i, p;
+    if (b.hasAttribute("data-pno")) {
+      p = proposals[+b.getAttribute("data-pno")]; if (!p || !confirm("Vols rebutjar i esborrar aquesta foto?")) return;
+      b.disabled = true;
+      fsDelete(p.path, p.d.nom || p.d.text).then(function () { toast("Proposta esborrada."); loadProposals(); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+    } else if (b.hasAttribute("data-pok")) {
+      i = +b.getAttribute("data-pok"); p = proposals[i]; if (!p) return;
+      var eq = Number(p.d.equip) || 0, box = $("pp-a-" + i);
+      if (box.innerHTML) { box.innerHTML = ""; return; }
+      var opts = H.albumsFor(S.me, eq, albums.length ? albums.map(function (a) { var o = {}; Object.keys(a.d).forEach(function (k) { o[k] = a.d[k]; }); o.id = a.id; return o; }) : []);
+      box.innerHTML = '<div class="box"><label class="f" for="pp-sel-' + i + '">A quin àlbum l\'afegim?</label><select id="pp-sel-' + i + '">' +
+        opts.map(function (a) { return '<option value="' + esc(a.id) + '">' + esc((a.titol || "") + (a.data ? " · " + fmtDay(a.data) : "")) + "</option>"; }).join("") +
+        '<option value="">➕ Àlbum nou</option></select>' +
+        '<div id="pp-newbox-' + i + '"' + (opts.length ? " hidden" : "") + '><label class="f" for="pp-new-' + i + '">Títol de l\'àlbum nou</label>' +
+        '<input id="pp-new-' + i + '" type="text" maxlength="80" value="' + esc(H.defaultAlbumTitle(todayIso())) + '"></div>' +
+        (opts.length ? "" : '<p class="hint">Encara no hi ha cap àlbum on la puguis afegir: crea\'n un de nou.</p>') +
+        '<div class="row" style="margin-top:8px"><button class="btn primary small" type="button" data-pgo="' + i + '">Afegeix</button></div></div>';
+      $("pp-sel-" + i).value = opts.length ? opts[0].id : "";
+      $("pp-sel-" + i).onchange = function () { $("pp-newbox-" + i).hidden = !!this.value; };
+      $("pp-sel-" + i).focus();
+    } else if (b.hasAttribute("data-pgo")) {
+      i = +b.getAttribute("data-pgo"); p = proposals[i]; if (!p) return;
+      var albumId = $("pp-sel-" + i).value, title = ($("pp-new-" + i) || {}).value || "";
+      if (!albumId && !title.trim()) { toast("Escriu el títol de l'àlbum nou.", true); return; }
+      b.disabled = true;
+      approveProposal(p, albumId || null, title).then(function (t) { toast("Foto afegida a l'àlbum «" + t + "»."); loadAlbums(); loadProposals(); },
+        function (e) { b.disabled = false; toast(errOf(e), true); });
+    }
+  };
+  /** EditorProposals.approve: copy into fotos/{id}, append to the album (or a new one), delete the proposal. */
+  function approveProposal(p, albumId, newTitle) {
+    var ph, title;
+    return fsGet(p.path).then(function (full) {
+      var d = full.d; ph = { jpeg: String(d.jpeg || ""), thumb: String(d.thumb || ""), w: Number(d.w) || 0, h: Number(d.h) || 0 };
+      if (!ph.jpeg) throw failure("NOT_FOUND");
+      if (albumId) {
+        return fsGet("albums/" + albumId).then(function (a) {
+          var teams = H.teamsOf(a.d), meta = { titol: a.d.titol, data: a.d.data, equips: teams };
+          title = String(a.d.titol || "");
+          return uploadPhoto(albumId, ph, teams).then(function (id) {
+            return fsReplace(a.path, H.stamp(H.albumDoc(meta, (a.d.fotos || []).map(String).concat([id])), S.me, S.uid, nowIso()), null, true);
+          });
+        });
+      }
+      var eq = Number(p.d.equip) || 0, teams = eq ? [eq] : [], meta = { titol: newTitle.trim().slice(0, 80), data: todayIso(), equips: teams };
+      title = meta.titol;
+      return fsCreate("albums", H.stamp(H.albumDoc(meta, []), S.me, S.uid, nowIso())).then(function (path) {
+        return uploadPhoto(path.split("/").pop(), ph, teams).then(function (id) {
+          return fsReplace(path, H.stamp(H.albumDoc(meta, [id]), S.me, S.uid, nowIso()), null, true);
+        });
+      });
+    }).then(function () { return fsDelete(p.path, p.d.nom || p.d.text); }).then(function () { return title; });
+  }
+
+  // =====================================================================
+  // 6. PLANTILLES dels equips no federats (plantilles/{team} = {equip, nom, membres[{nom, rol, dorsal}], autor, created})
+  var sqTeam = null, sqRows = [];
+  function squadTeams() { return H.allowedTeams(S.me, TEAM_ORDER).filter(function (t) { return t < 0; }); }
+  function loadSquad() {
+    var teams = squadTeams();
+    $("sq-sec").hidden = !teams.length;
+    if (!teams.length) return;
+    if (sqTeam == null || teams.indexOf(sqTeam) < 0) sqTeam = teams[0];
+    $("sq-teams").innerHTML = chipsHtml(teams, [sqTeam], "data-sqt");
+    $("sq-rows").innerHTML = loadingHtml(); setMsg($("sq-msg"), "");
+    var t = sqTeam;
+    fsGet("plantilles/" + t).then(function (p) { return (p.d.membres || []).filter(function (m) { return m && typeof m === "object"; }); },
+      function (e) { if (e.code === "NOT_FOUND") return null; throw e; })
+      .then(function (l) {
+        if (sqTeam !== t) return;
+        sqRows = (l || []).map(function (m) { return { nom: String(m.nom || ""), rol: String(m.rol || ""), dorsal: String(m.dorsal || "") }; });
+        renderSquad();
+        if (l === null) setMsg($("sq-msg"), "Encara no s'ha desat cap plantilla d'aquest equip des de l'app: fins llavors l'app mostra la que porta de sèrie. Si la deses aquí, la substitueix.");
+      }).catch(function (e) { $("sq-rows").innerHTML = errHtml(e); });
+  }
+  function readSquad() {
+    sqRows = sqRows.map(function (r, i) { return { nom: $("sqn-" + i).value, rol: $("sqr-" + i).value, dorsal: $("sqd-" + i).value }; });
+  }
+  function renderSquad() {
+    $("sq-rows").innerHTML = sqRows.length ? sqRows.map(function (r, i) {
+      return '<div class="box"><div class="row" style="flex-wrap:nowrap;align-items:flex-end"><div style="flex:1;min-width:0"><label class="f" for="sqn-' + i + '">Nom i cognom</label>' +
+        '<input id="sqn-' + i + '" type="text" maxlength="50" value="' + esc(r.nom) + '"></div>' +
+        '<div style="width:84px"><label class="f" for="sqd-' + i + '">Dorsal</label><input id="sqd-' + i + '" type="text" maxlength="3" inputmode="numeric" value="' + esc(r.dorsal) + '"></div></div>' +
+        '<div class="chips">' + H.SQUAD.ROLES.map(function (ro) {
+          return '<button type="button" class="chip" data-sqrole="' + i + '" data-v="' + esc(ro) + '" aria-pressed="' + (r.rol === ro) + '">' + esc(ro) + "</button>"; }).join("") + "</div>" +
+        '<label class="f" for="sqr-' + i + '">Rol</label><input id="sqr-' + i + '" type="text" maxlength="40" value="' + esc(r.rol) + '">' +
+        '<button class="linkbtn" type="button" data-sqdel="' + i + '" style="margin-top:8px">Treu</button></div>';
+    }).join("") : '<div class="empty">Plantilla buida.</div>';
+    $("sq-add").disabled = sqRows.length >= H.SQUAD.MAX_MEMBERS;
+  }
+  $("sq-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-sqt]"); if (!b) return;
+    sqTeam = +b.getAttribute("data-sqt"); loadSquad();
+  };
+  $("sq-rows").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    readSquad();
+    if (b.hasAttribute("data-sqdel")) { sqRows.splice(+b.getAttribute("data-sqdel"), 1); renderSquad(); $("sq-add").focus(); }
+    else if (b.hasAttribute("data-sqrole")) { var i = +b.getAttribute("data-sqrole"); sqRows[i].rol = b.getAttribute("data-v"); renderSquad(); $("sqr-" + i).focus(); }
+  };
+  $("sq-add").onclick = function () { readSquad(); sqRows.push({ nom: "", rol: H.SQUAD.ROLES[0], dorsal: "" }); renderSquad(); $("sqn-" + (sqRows.length - 1)).focus(); };
+  $("sq-save").onclick = function () {
+    readSquad();
+    var t = sqTeam, msg = $("sq-msg"), clean = H.cleanSquad(sqRows);
+    if (!H.teamsOk(S.me, [t])) { setMsg(msg, "Només pots editar les plantilles dels teus equips.", "err"); return; }
+    $("sq-save").disabled = true; setMsg(msg, "Desant…");
+    fsReplace("plantilles/" + t, { equip: t, nom: H.APP_NAME[t] || teamName(t), membres: clean, autor: S.uid, created: nowIso() }, null, false)
+      .then(function () { sqRows = clean; renderSquad(); setMsg(msg, "Plantilla desada. Ja surt a tots els mòbils.", "ok"); })
+      .catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("sq-save").disabled = false; });
+  };
+
+  // =====================================================================
+  // 7. JUNTA: comandes d'equipació (comandes/{id}, peticions) i estadístiques d'ús (installs)
+  var campaigns = [], oEditing = null, oProducts = [], oSum = null;
+  var O_STATE = { open: "Oberta", expired: "Termini acabat", closed: "Tancada" };
+  function loadOrders() {
+    $("o-list").innerHTML = loadingHtml();
+    return fsList("comandes").then(function (l) {
+      campaigns = l.map(function (x) { var c = H.campaignOf(x.d); c.id = x.id; c.path = x.path; return c; })
+        .sort(function (a, b) { return (b.oberta - a.oberta) || (a.fins < b.fins ? 1 : a.fins > b.fins ? -1 : 0); });
+      renderOrders();
+    }).catch(function (e) { $("o-list").innerHTML = errHtml(e); });
+  }
+  function renderOrders() {
+    var t = todayIso();
+    $("o-list").innerHTML = campaigns.length ? campaigns.map(function (c, i) {
+      var st = H.campaignState(c, t);
+      return '<div class="item"><h4>' + esc(c.titol || "(sense títol)") + ' <span class="tag' + (st === "open" ? "" : " warn") + '">' + O_STATE[st] + "</span></h4>" +
+        '<div class="meta">' + esc(["Fins al " + fmtDay(c.fins), c.productes.length + " productes", c.autorNom ? "per " + c.autorNom : ""].filter(Boolean).join(" · ")) + "</div>" +
+        '<div class="row" style="margin-top:8px"><button class="btn primary small" type="button" data-osum="' + i + '">Resum</button>' +
+        '<button class="btn ghost small" type="button" data-oedit="' + i + '">✏️ Edita</button>' +
+        '<button class="btn ghost small" type="button" data-otog="' + i + '">' + (c.oberta ? "Tanca" : "Obre") + "</button>" +
+        '<button class="btn danger small" type="button" data-odel="' + i + '">Esborra la comanda</button></div></div>';
+    }).join("") : '<div class="empty">Encara no hi ha cap comanda.</div>';
+  }
+  /** Same document as OrdersRepository.save (created kept from the first save) */
+  function campaignData(c) {
+    return { titol: c.titol, text: c.text, fins: c.fins, oberta: c.oberta,
+      productes: c.productes.map(function (p) {
+        var o = { nom: p.nom, talles: p.talles.slice(), personalitzable: !!p.personalitzable };
+        if (p.preu != null) o.preu = { __dbl: p.preu };
+        return o;
+      }), autor: S.uid, autorNom: H.editorName(S.me), created: c.created || nowIso() };
+  }
+  function saveCampaign(c) {
+    var data = campaignData(c);
+    return c.path ? fsReplace(c.path, data, null, true) : fsCreate("comandes", data);
+  }
+  $("o-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var c;
+    if (b.hasAttribute("data-oedit")) openCampaign(campaigns[+b.getAttribute("data-oedit")]);
+    else if (b.hasAttribute("data-osum")) openSummary(campaigns[+b.getAttribute("data-osum")]);
+    else if (b.hasAttribute("data-otog")) {
+      c = campaigns[+b.getAttribute("data-otog")]; if (!c) return;
+      var copy = H.campaignOf(c); copy.path = c.path; copy.oberta = !c.oberta;
+      b.disabled = true;
+      saveCampaign(copy).then(function () { toast(copy.oberta ? "Comanda oberta" : "Comanda tancada"); loadOrders(); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+    } else if (b.hasAttribute("data-odel")) {
+      c = campaigns[+b.getAttribute("data-odel")]; if (!c || !confirm("Esborrar «" + c.titol + "» i totes les peticions de les famílies?")) return;
+      b.disabled = true;
+      fsList(c.path + "/peticions").then(function (l) { return series(l, function (r) { return fsDelete(r.path, r.d.nom); }); })
+        .then(function () { return fsDelete(c.path, c.titol); })
+        .then(function () { toast("Comanda esborrada"); $("o-sum-sec").hidden = true; loadOrders(); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+    }
+  };
+  $("o-new").onclick = function () { openCampaign(null); };
+  $("o-cancel").onclick = function () { $("o-form-sec").hidden = true; oEditing = null; };
+  function openCampaign(c) {
+    oEditing = c || null;
+    $("o-form-title").textContent = c ? "Edita la comanda" : "Nova comanda";
+    $("o-titol").value = c ? c.titol : ""; $("o-text").value = c ? c.text : ""; $("o-fins").value = c ? c.fins : H.addDays(todayIso(), 14);
+    $("o-oberta").checked = c ? c.oberta : true;
+    oProducts = c ? c.productes.map(function (p) { return { nom: p.nom, talles: p.talles.join(", "), preu: H.priceText(p.preu), personalitzable: p.personalitzable }; })
+      : [{ nom: "", talles: "", preu: "", personalitzable: false }];
+    renderProducts(); setMsg($("o-msg"), "");
+    $("o-form-sec").hidden = false; $("o-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("o-titol").focus();
+  }
+  function readProducts() {
+    oProducts = oProducts.map(function (p, i) {
+      return { nom: $("opn-" + i).value, talles: $("ops-" + i).value, preu: $("opp-" + i).value, personalitzable: $("opc-" + i).checked };
+    });
+  }
+  function renderProducts() {
+    $("o-products").innerHTML = oProducts.map(function (p, i) {
+      return '<div class="box"><label class="f" for="opn-' + i + '">Nom del producte</label><input id="opn-' + i + '" type="text" maxlength="60" placeholder="Samarreta de joc" value="' + esc(p.nom) + '">' +
+        '<label class="f" for="ops-' + i + '">Talles <span class="hint">Separades per comes: 8 anys, 10 anys, S, M, L</span></label><input id="ops-' + i + '" type="text" value="' + esc(p.talles) + '">' +
+        '<div class="row" style="margin-top:6px"><button class="btn ghost small" type="button" data-okids="' + i + '">+ Talles infantils</button><button class="btn ghost small" type="button" data-oadults="' + i + '">+ Talles d\'adult</button></div>' +
+        '<label class="f" for="opp-' + i + '">Preu en € <span class="hint">(opcional)</span></label><input id="opp-' + i + '" type="text" inputmode="decimal" value="' + esc(p.preu) + '">' +
+        '<label class="check"><input type="checkbox" id="opc-' + i + '"' + (p.personalitzable ? " checked" : "") + "><span>Personalitzable (nom o número)</span></label>" +
+        '<button class="linkbtn" type="button" data-orem="' + i + '" style="margin-top:8px">Treu el producte</button></div>';
+    }).join("");
+    $("o-addp").disabled = oProducts.length >= H.ORD.MAX_PRODUCTS;
+  }
+  $("o-products").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    readProducts();
+    var i;
+    if (b.hasAttribute("data-orem")) { oProducts.splice(+b.getAttribute("data-orem"), 1); renderProducts(); $("o-addp").focus(); return; }
+    if (b.hasAttribute("data-okids")) i = +b.getAttribute("data-okids");
+    else if (b.hasAttribute("data-oadults")) i = +b.getAttribute("data-oadults"); else return;
+    var add = b.hasAttribute("data-okids") ? H.ORD.KIDS : H.ORD.ADULTS;
+    oProducts[i].talles = H.parseSizes(oProducts[i].talles + "," + add.join(",")).join(", ");
+    renderProducts(); $("ops-" + i).focus();
+  };
+  $("o-addp").onclick = function () { readProducts(); oProducts.push({ nom: "", talles: "", preu: "", personalitzable: false }); renderProducts(); $("opn-" + (oProducts.length - 1)).focus(); };
+  $("o-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    readProducts();
+    var msg = $("o-msg");
+    var prods = oProducts.map(function (p) { return { nom: p.nom.trim(), talles: H.parseSizes(p.talles), preu: H.parsePrice(p.preu), personalitzable: p.personalitzable }; });
+    var err = H.checkCampaign($("o-titol").value, $("o-fins").value, prods);
+    if (err) { setMsg(msg, err, "err"); return; }
+    var c = { titol: $("o-titol").value.trim(), text: $("o-text").value.trim(), fins: $("o-fins").value.trim(), oberta: $("o-oberta").checked, productes: prods,
+              created: oEditing ? oEditing.created : "", path: oEditing ? oEditing.path : null };
+    $("o-save").disabled = true; setMsg(msg, "Desant…");
+    saveCampaign(c).then(function () { $("o-form-sec").hidden = true; oEditing = null; toast("Comanda desada"); loadOrders(); })
+      .catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { $("o-save").disabled = false; });
+  };
+  function openSummary(c) {
+    oSum = { c: c, reqs: [] };
+    $("o-sum-title").textContent = "Resum · " + c.titol;
+    $("o-sum-text").textContent = "Carregant…"; $("o-sum-list").innerHTML = "";
+    $("o-sum-sec").hidden = false; $("o-sum-sec").scrollIntoView({ behavior: "smooth", block: "start" });
+    fsList(c.path + "/peticions").then(function (l) {
+      if (!oSum || oSum.c !== c) return;
+      oSum.reqs = l.map(function (x) { var r = H.requestOf(x.d); r.path = x.path; return r; });
+      renderSummary();
+    }).catch(function (e) { $("o-sum-text").textContent = errOf(e); });
+  }
+  function renderSummary() {
+    var c = oSum.c, reqs = oSum.reqs;
+    $("o-sum-text").textContent = reqs.length ? H.ordSummary(c, reqs) : "Encara no ha demanat ningú.";
+    $("o-sum-list").innerHTML = reqs.length ? reqs.slice().sort(function (a, b) { return a.nom.toLowerCase() < b.nom.toLowerCase() ? -1 : 1; }).map(function (r) {
+      var i = reqs.indexOf(r);
+      return '<div class="item"><h4>' + esc(r.nom) + (H.hasPrices(c) ? " · " + esc(H.euro(H.ordTotal(r.linies, c))) : "") + "</h4>" +
+        '<p>' + esc(r.linies.map(H.lineText).join("\n")) + "</p>" + (r.comentari ? '<div class="meta">Comentari: ' + esc(r.comentari) + "</div>" : "") +
+        '<div class="meta">' + esc(fmtStamp(r.created)) + "</div>" +
+        '<button class="btn danger small" type="button" data-oreq="' + i + '" style="margin-top:6px">Esborra</button></div>';
+    }).join("") : "";
+  }
+  $("o-sum-list").onclick = function (ev) {
+    var b = ev.target.closest("button[data-oreq]"); if (!b || !oSum) return;
+    var r = oSum.reqs[+b.getAttribute("data-oreq")]; if (!r || !confirm("Esborrar la comanda de " + r.nom + "?")) return;
+    b.disabled = true;
+    fsDelete(r.path, r.nom).then(function () { oSum.reqs.splice(oSum.reqs.indexOf(r), 1); renderSummary(); toast("Esborrat."); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+  };
+  $("o-sum-copy").onclick = function () { if (oSum) copyText(H.ordSummary(oSum.c, oSum.reqs), "Resum copiat"); };
+  $("o-sum-csv").onclick = function () { if (oSum) download(H.csvFileName(oSum.c.titol), H.ordCsv(oSum.c, oSum.reqs), "text/csv;charset=utf-8"); };
+  $("o-sum-close").onclick = function () { $("o-sum-sec").hidden = true; oSum = null; };
+
+  // ---- anonymous usage statistics
+  function loadUsage() {
+    var box = $("u-box"); box.innerHTML = loadingHtml();
+    fsList("installs").then(function (l) {
+      var u = H.usageSummary(l.map(function (x) { return x.d; }), todayIso()), total = Math.max(1, u.active30);
+      function block(title, rows) {
+        return "<h3>" + esc(title) + "</h3>" + (rows.length ? rows.map(function (r) {
+          return '<div style="margin:4px 0"><div class="row"><span class="small">' + esc(r[0]) + '</span><span class="spacer"></span><b>' + r[1] + "</b></div>" +
+            '<div class="bar" role="presentation"><span style="width:' + Math.min(100, Math.round(r[1] * 100 / total)) + '%"></span></div></div>';
+        }).join("") : "<p>—</p>");
+      }
+      box.innerHTML = '<div class="stats"><div class="stat"><b>' + u.installs + '</b><span class="small">Mòbils</span></div>' +
+        '<div class="stat"><b>' + u.active7 + '</b><span class="small">Actius 7 dies</span></div><div class="stat"><b>' + u.active30 + '</b><span class="small">Actius 30 dies</span></div></div>' +
+        '<p class="small">' + u.newLast30 + " instal·lacions noves els últims 30 dies.</p>" +
+        block("Versió de l'app (actius 30 dies)", u.byVersion) +
+        block("Equips marcats amb ★", u.favourites.map(function (x) { return [teamName(x[0]), x[1]]; })) +
+        block("Opcions activades", [["Notificacions (avisos/recordatoris)", u.notifications], ["Avisos de partits en directe", u.liveAlerts],
+          ["Partits al calendari", u.calendar], ["Widget a la pantalla d'inici", u.widget]]) +
+        block("Android", u.byAndroid);
+    }).catch(function (e) { box.innerHTML = errHtml(e); });
+  }
+  $("u-reload").onclick = loadUsage;
+
+  // =====================================================================
+  // 8. ADMINISTRACIÓ: errors, avís de prova real, dades
+  var errGroups = [];
+  function loadErrors() {
+    var box = $("e-list"); box.innerHTML = loadingHtml();
+    fsList("errors").then(function (l) {
+      errGroups = H.groupErrors(l.map(function (x) { var o = {}; Object.keys(x.d).forEach(function (k) { o[k] = x.d[k]; }); o.id = x.id; o.path = x.path; return o; }));
+      box.innerHTML = errGroups.length ? errGroups.map(function (g, i) {
+        var s = g.sample;
+        return '<div class="item"><h4>' + esc(g.count + "× " + (String(s.tipus || "").split(".").pop() || "Error")) + "</h4>" +
+          '<div class="meta">' + esc("Versions " + g.versions.join(", ") + " · últim " + fmtStamp(g.last) + " · " + (s.model || "") + " · SDK " + (Number(s.sdk) || 0)) + "</div>" +
+          (s.msg ? "<p>" + esc(s.msg) + "</p>" : "") +
+          '<details><summary>Detall</summary><div class="pre" style="font-family:monospace;font-size:12px">' + esc(g.signature + "\n\n" + (s.pila || "")) + "</div></details>" +
+          '<button class="btn danger small" type="button" data-edel="' + i + '" style="margin-top:6px">Esborra aquest error</button></div>';
+      }).join("") : '<div class="empty">Cap error enviat. 🎉</div>';
+    }).catch(function (e) { box.innerHTML = errHtml(e); });
+  }
+  $("e-reload").onclick = loadErrors;
+  $("e-list").onclick = function (ev) {
+    var b = ev.target.closest("button[data-edel]"); if (!b) return;
+    var g = errGroups[+b.getAttribute("data-edel")]; if (!g || !confirm("Esborrar els " + g.count + " informes d'aquest error?")) return;
+    b.disabled = true;
+    series(g.docs, function (d) { return fsDelete(d.path); }).then(function () { toast("Esborrat."); loadErrors(); }, function (e) { b.disabled = false; toast(errOf(e), true); });
+  };
+
+  /** TestNotices.send: tidy up test notices older than 24 h, add one, log it and ping the phones. */
+  Array.prototype.forEach.call(document.querySelectorAll("[data-test]"), function (b) {
+    b.onclick = function () {
+      var to = b.getAttribute("data-test"), msg = $("t-msg"), title = "Avís de prova", text = $("t-text").value.trim().slice(0, 300);
+      if (!confirm(to === "jo" ? "Enviar un avís de prova als teus mòbils?" : "Enviar un avís de prova als mòbils de tots els editors?")) return;
+      b.disabled = true; setMsg(msg, "Enviant…");
+      var limit = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+      fsList("avisos_prova").then(function (l) {
+        return series(l.filter(function (x) { return !x.d.created || String(x.d.created) < limit; }), function (x) { return api("DELETE", x.path).catch(noop); });
+      }, noop).then(function () {
+        return api("POST", "avisos_prova", { fields: H.encFields({ titol: title, text: text, desti: to, autor: S.uid, created: nowIso() }) });
+      }).then(function () {
+        logWrite("create", "avisos_prova/-", { titol: "🧪 " + title });
+        pingNotice();
+        setMsg(msg, "Avís de prova enviat: arribarà en uns segons (o en uns minuts als mòbils sense directes activats).", "ok");
+      }).catch(function (e) { setMsg(msg, errOf(e), "err"); }).then(function () { b.disabled = false; });
+    };
+  });
+
+  // ---- data browser (AdminLogic.COLLECTIONS): counts with an aggregation query, list (blobs masked) and delete
+  var dCounts = {}, dColl = null, dDocs = [];
+  function renderColls() {
+    $("d-colls").innerHTML = '<table><tbody>' + H.COLLECTIONS.map(function (c) {
+      var n = dCounts[c[0]];
+      return "<tr><td><b>" + esc(c[0]) + '</b></td><td style="text-align:right">' + (n === undefined ? "" : n === null ? "—" : n) +
+        '</td><td style="text-align:right"><button class="linkbtn" type="button" data-dopen="' + esc(c[0]) + '">Obre</button></td></tr>';
+    }).join("") + "</tbody></table>";
+  }
+  $("d-count").onclick = function () {
+    var b = $("d-count"); b.disabled = true;
+    series(H.COLLECTIONS, function (c) {
+      return api("POST", ":runAggregationQuery", H.countQuery(c[0])).then(function (r) {
+        var n = 0; (Array.isArray(r) ? r : []).forEach(function (x) { var f = x.result && x.result.aggregateFields && x.result.aggregateFields.n; if (f) n = Number(f.integerValue) || 0; });
+        dCounts[c[0]] = n; renderColls();
+      }, function () { dCounts[c[0]] = null; renderColls(); });
+    }).then(function () { b.disabled = false; });
+  };
+  $("d-colls").onclick = function (ev) {
+    var b = ev.target.closest("button[data-dopen]"); if (!b) return;
+    dColl = b.getAttribute("data-dopen"); loadDocs();
+  };
+  function loadDocs() {
+    var c = H.COLLECTIONS.filter(function (x) { return x[0] === dColl; })[0]; if (!c) return;
+    $("d-docs-box").hidden = false; $("d-docs-title").textContent = c[0]; $("d-docs").innerHTML = loadingHtml();
+    var q = "pageSize=300" + (c[1] ? c[1].map(function (f) { return "&mask.fieldPaths=" + encodeURIComponent(f); }).join("") : "");
+    api("GET", c[0], null, q).then(function (r) {
+      dDocs = (r.documents || []).map(H.doc).sort(function (a, b) { return String(a.d.created || "") < String(b.d.created || "") ? 1 : -1; });
+      $("d-docs").innerHTML = dDocs.length ? dDocs.map(function (d, i) {
+        return '<div class="item"><div class="meta"><b>' + esc(d.id) + "</b></div><p class=\"small\">" + esc(H.docSummary(d.d)) + "</p>" +
+          '<button class="btn danger small" type="button" data-ddel="' + i + '">Esborra</button></div>';
+      }).join("") + (r.nextPageToken ? '<p class="muted small">Només es mostren els 300 primers.</p>' : "") : '<div class="empty">Buida.</div>';
+      $("d-docs-box").scrollIntoView({ behavior: "smooth", block: "start" });
+    }).catch(function (e) { $("d-docs").innerHTML = errHtml(e); });
+  }
+  $("d-docs-reload").onclick = loadDocs;
+  $("d-docs-close").onclick = function () { $("d-docs-box").hidden = true; dColl = null; };
+  $("d-docs").onclick = function (ev) {
+    var b = ev.target.closest("button[data-ddel]"); if (!b) return;
+    var d = dDocs[+b.getAttribute("data-ddel")]; if (!d || !confirm("Esborrar " + d.path + "? No es pot desfer.")) return;
+    b.disabled = true;
+    fsDelete(d.path, H.titleOf(d.d)).then(function () {
+      dDocs.splice(dDocs.indexOf(d), 1); if (typeof dCounts[dColl] === "number") dCounts[dColl]--; renderColls(); loadDocs(); toast("Esborrat.");
+    }, function (e) { b.disabled = false; toast(errOf(e), true); });
+  };
 
   // =====================================================================
   // start: resume a session if a refresh token is stored

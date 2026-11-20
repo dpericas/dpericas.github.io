@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Club Vòlei Santpedor</title>
-<meta name="description" content="Club Vòlei Santpedor: agenda i resultats dels equips, avisos, horaris d'entrenament i partits en directe.">
+<meta name="description" content="Club Vòlei Santpedor: equips, agenda i resultats, convocatòries, cotxes compartits, avisos, horaris d'entrenament i partits en directe.">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -14,106 +14,10 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Vòlei Santpedor">
 <meta property="og:title" content="Club Vòlei Santpedor">
-<meta property="og:description" content="Agenda, resultats, avisos, horaris i partits en directe del club.">
+<meta property="og:description" content="Equips, agenda, resultats, avisos, horaris i partits en directe del club.">
 <meta property="og:image" content="https://dpericas.github.io/live/logo.jpg">
-<style>
-  :root {
-    --bg:#f6f7f8; --card:#ffffff; --text:#15191c; --muted:#5f6b73; --line:#e3e7ea;
-    --accent:#b9f6c0; --accent-ink:#1a1a1a; --brand:#0f5132; --live:#d32f2f; --chip:#eef1f3; --chip-on:#0f5132; --chip-on-ink:#fff;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035;
-      --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12;
-    }
-  }
-  :root[data-theme="dark"] {
-    --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035;
-    --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12;
-  }
-  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-  body { margin:0; background:var(--bg); color:var(--text);
-         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; }
-  main { max-width:760px; margin:0 auto; padding:calc(12px + env(safe-area-inset-top)) 16px calc(90px + env(safe-area-inset-bottom)); }
-  a { color:var(--brand); }
-  header.hero { display:flex; align-items:center; gap:14px; padding:4px 44px 8px 0; }
-  header.hero .pili { width:64px; height:64px; margin-left:auto; flex:none; overflow:visible; }
-  header.hero img { width:62px; height:62px; border-radius:50%; background:#fff; flex:none; box-shadow:0 0 0 3px var(--accent); }
-  header.hero h1 { margin:0; font-size:21px; line-height:1.15; }
-  header.hero p { margin:3px 0 0; color:var(--muted); font-size:13px; }
-  section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; }
-  section h2 { margin:0 0 10px; font-size:17px; display:flex; align-items:center; gap:8px; }
-  .muted { color:var(--muted); font-size:14px; }
-  .empty { color:var(--muted); font-size:14px; font-style:italic; }
-  .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:12px 18px;
-         border-radius:12px; font-weight:700; text-decoration:none; font-size:16px; border:0; cursor:pointer; font-family:inherit; }
-  .btn.primary { background:var(--accent); color:var(--accent-ink); }
-  .btn.ghost { background:var(--chip); color:var(--text); }
-  .btn.small { padding:8px 12px; font-size:14px; }
-  .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  details.how { font-size:14px; color:var(--muted); margin-top:8px; }
-  details.how summary { cursor:pointer; }
-  .item { padding:10px 0; border-top:1px solid var(--line); }
-  .item:first-of-type { border-top:0; padding-top:0; }
-  .item h3 { margin:0; font-size:15px; }
-  .item p { margin:4px 0 0; font-size:14px; white-space:pre-line; }
-  .meta { color:var(--muted); font-size:13px; margin-top:2px; }
-  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
-  .chip { background:var(--chip); border-radius:999px; padding:2px 10px; font-size:12px; }
-  button.chip { border:0; font:inherit; font-size:13px; padding:6px 12px; color:var(--text); cursor:pointer; }
-  button.chip.on { background:var(--chip-on); color:var(--chip-on-ink); font-weight:700; }
-  .live-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--live); animation:pulse 1.4s infinite; }
-  @keyframes pulse { 50% { opacity:.3; } }
-  @media (prefers-reduced-motion: reduce) { .live-dot { animation:none; } }
-  .live { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:10px 12px;
-          border-radius:12px; background:var(--chip); text-decoration:none; color:var(--text); margin-top:8px; }
-  .live b { display:block; }
-  .res { display:grid; grid-template-columns:1fr auto 1fr; gap:8px; align-items:center; padding:10px 0; border-top:1px solid var(--line); }
-  .res:first-child { border-top:0; padding-top:0; }
-  .res .h { text-align:right; font-weight:600; } .res .a { font-weight:600; }
-  .res .score { font-size:20px; font-weight:800; background:var(--chip); border-radius:10px; padding:2px 12px; white-space:nowrap; }
-  .res .win { color:var(--brand); }
-  .res .meta { grid-column:1 / -1; text-align:center; margin-top:0; }
-  .day-head { font-weight:800; font-size:14px; color:var(--brand); margin:16px 0 4px; }
-  .day-head::first-letter { text-transform:uppercase; }
-  .day-head:first-child { margin-top:0; }
-  .match { display:grid; grid-template-columns:3.4em 1fr auto; gap:4px 10px; padding:10px 0; border-top:1px solid var(--line); align-items:center; }
-  .match .t { font-weight:800; font-size:15px; }
-  .match .teams { font-size:15px; } .match .teams b { font-weight:700; }
-  .match .score { font-weight:800; font-size:16px; white-space:nowrap; }
-  .match .score.win { color:var(--brand); } .match .score.loss { color:var(--live); }
-  .match .info { grid-column:2 / -1; color:var(--muted); font-size:12.5px; }
-  .match .info a { color:var(--muted); }
-  .team { margin-top:10px; }
-  .team summary { cursor:pointer; font-weight:700; font-size:15px; padding:6px 0; }
-  table { width:100%; border-collapse:collapse; font-size:14px; }
-  td { padding:5px 4px; border-top:1px solid var(--line); vertical-align:top; }
-  td.day { font-weight:600; width:6.5em; }
-  td.time { white-space:nowrap; width:7.5em; }
-  footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
-  .theme { position:fixed; top:calc(10px + env(safe-area-inset-top)); right:10px; background:var(--card); border:1px solid var(--line);
-           color:var(--text); border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px; z-index:5; }
-  nav.tabs { position:fixed; left:0; right:0; bottom:0; display:flex; background:var(--card); border-top:1px solid var(--line);
-             padding-bottom:env(safe-area-inset-bottom); z-index:10; }
-  nav.tabs button { flex:1; border:0; background:none; color:var(--muted); font:inherit; font-size:12px; padding:8px 0 10px; cursor:pointer;
-                    display:flex; flex-direction:column; align-items:center; gap:2px; }
-  nav.tabs button span { font-size:22px; line-height:1; }
-  nav.tabs button.on { color:var(--brand); font-weight:700; }
-  .install { background:var(--accent); color:var(--accent-ink); border-radius:16px; padding:14px 16px; margin-top:12px; position:relative; font-size:14px; }
-  .install b { display:block; font-size:16px; margin-bottom:4px; }
-  .install button { position:absolute; top:6px; right:8px; border:0; background:none; font-size:20px; cursor:pointer; color:var(--accent-ink); }
-  #print { display:none; }
-  [hidden] { display:none !important; }
-  @media print {
-    @page { size:A4 portrait; margin:14mm; }
-    body { background:#fff; color:#000; }
-    main, nav.tabs, .theme { display:none !important; }
-    #print { display:block; font-size:11px; }
-    #print h1 { font-size:18px; margin:0 0 2px; } #print p { margin:0 0 10px; color:#444; }
-    #print table { font-size:11px; } #print th { text-align:left; background:#0f5132; color:#fff; padding:4px; }
-    #print td { padding:4px; border-top:1px solid #ccc; } #print tr.home td { font-weight:700; }
-  }
-</style>
+<link rel="stylesheet" href="css/app.css">
+<script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
 </head>
 <body>
 <button class="theme" id="theme" title="Canvia el tema" aria-label="Canvia el tema clar o fosc">◐</button>
@@ -127,6 +31,8 @@
     <svg class="pili" viewBox="10 10 180 180" role="img" aria-label="La Pili, la mascota del club"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
   </header>
 
+  <div class="banner" id="rc-banner" role="status" hidden></div>
+
   <div class="install" id="ios-install" hidden>
     <button id="ios-close" aria-label="Tancar">×</button>
     <b>📲 Posa-la a la pantalla d'inici</b>
@@ -134,10 +40,19 @@
     <b style="display:inline">«Afegeix a la pantalla d'inici»</b>. S'obrirà com una app.
   </div>
 
+  <!-- ====================== EQUIPS ====================== -->
+  <div data-tab="equips" hidden>
+    <section>
+      <h2>👥 Equips</h2>
+      <p class="muted" id="teams-hint">Toca ☆ per marcar els teus equips: sortiran primer i a «★ Els meus» de l'Agenda.</p>
+      <div id="teams"><div class="empty">Carregant…</div></div>
+    </section>
+  </div>
+
   <!-- ====================== INICI ====================== -->
-  <div data-tab="inici">
+  <div data-tab="inici" hidden>
     <section id="live-sec" hidden>
-      <h2><span class="live-dot"></span> En directe ara</h2>
+      <h2><span class="live-dot" aria-hidden="true"></span> En directe ara</h2>
       <div id="live"></div>
     </section>
 
@@ -162,6 +77,15 @@
       <div id="activitats"></div>
     </section>
 
+    <section>
+      <h2>📡 Seguir un partit amb codi</h2>
+      <form class="form" id="code-f">
+        <label for="code-in" class="muted" style="font-weight:400;margin-top:0">Enganxa l'enllaç o el codi que t'han enviat (p. ex. vsp-abcd2345efgh).</label>
+        <div class="row" style="margin-top:6px"><input class="grow" id="code-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vsp-…"><button class="btn primary small" type="submit">Segueix</button></div>
+        <div class="err" id="code-err" role="alert"></div>
+      </form>
+    </section>
+
     <section id="android-app">
       <h2>📲 L'app per a Android</h2>
       <div class="muted">Amb marcador i retransmissió en directe, avisos al mòbil, cotxes compartits i molt més.</div>
@@ -178,7 +102,7 @@
           <li>L'app avisa sola quan hi ha versions noves.</li>
         </ol>
       </details>
-      <div class="muted" style="margin-top:8px">Tens iPhone? Aquesta mateixa web funciona com una app: posa-la a la pantalla d'inici.</div>
+      <div class="muted" style="margin-top:8px">Tens iPhone o ordinador? Aquesta mateixa web fa gairebé tot el que fa l'app: posa-la a la pantalla d'inici.</div>
     </section>
   </div>
 
@@ -186,23 +110,41 @@
   <div data-tab="agenda" hidden>
     <section>
       <div class="row" style="justify-content:space-between">
-        <div class="chips" style="margin-top:0">
+        <div class="chips" style="margin-top:0" role="group" aria-label="Quins partits">
+          <button class="chip" data-mode="today">Avui</button>
           <button class="chip on" data-mode="next">Propers</button>
           <button class="chip" data-mode="played">Resultats</button>
+          <button class="chip" id="mine-chip" hidden>★ Els meus</button>
         </div>
         <button class="btn ghost small" id="print-btn" hidden>🖨️ Calendari</button>
       </div>
-      <div class="chips" id="team-chips"></div>
+      <div class="chips" id="team-chips" role="group" aria-label="Equips"></div>
       <div class="muted" id="agenda-note" style="margin-top:8px"></div>
     </section>
     <section>
       <div id="agenda"><div class="empty">Carregant…</div></div>
     </section>
-    <p class="muted" style="text-align:center">Dades oficials a <a href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">fcvolei.cat</a>.</p>
+    <p class="muted" style="text-align:center">Toca un partit per veure la convocatòria, com arribar-hi, afegir-lo al calendari o compartir cotxe.<br>Dades oficials a <a href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">fcvolei.cat</a>.</p>
   </div>
 
   <!-- ====================== CLUB ====================== -->
   <div data-tab="club" hidden>
+    <section>
+      <a class="linkrow" href="#meu-equip" data-href="#meu-equip"><span><b>👤 El meu equip</b><span class="meta">Jugadors/es i famílies: avisos de l'equip i «vinc / no vinc»</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#galeria" data-href="#galeria"><span><b>🖼️ Galeria de fotos</b><span class="meta">Àlbums del club</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#proposa" data-href="#proposa" id="propose-link"><span><b>📷 Proposa una foto</b><span class="meta">Perquè surti a la galeria</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#pavellons" data-href="#pavellons" id="tips-link"><span><b>🏟️ Guia de pavellons</b><span class="meta">Aparcament, bar, accés… consells de les famílies</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#valors" data-href="#valors"><span><b>🤝 Els nostres valors</b><span class="meta">Valors i codi de conducta del club</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="manual/"><span><b>📖 Manual de l'app</b><span class="meta">Com funciona cada cosa</span></span><span aria-hidden="true">›</span></a>
+    </section>
+    <section id="orders-sec" hidden>
+      <h2>🛍️ Comandes d'equipació</h2>
+      <div id="orders"></div>
+    </section>
+    <section id="friendly-sec" hidden>
+      <h2>🤝 Amistosos i tornejos</h2>
+      <div id="friendlies"></div>
+    </section>
     <section>
       <h2>🕒 Horaris d'entrenament</h2>
       <div id="horaris"><div class="empty">Carregant…</div></div>
@@ -222,408 +164,27 @@
     </section>
     <footer>Club Vòlei Santpedor · <span id="year"></span> · <a href="manual/" style="color:var(--muted)">Manual</a> · <a href="editors/" rel="nofollow" style="color:var(--muted)">Zona d'editors</a></footer>
   </div>
+
+  <div id="page" hidden></div>
 </main>
 
 <nav class="tabs" aria-label="Seccions">
-  <button data-go="inici" class="on"><span>🏠</span>Inici</button>
-  <button data-go="agenda"><span>📅</span>Agenda</button>
-  <button data-go="club"><span>🏐</span>Club</button>
+  <button data-go="equips"><span aria-hidden="true">👥</span>Equips</button>
+  <button data-go="inici"><span aria-hidden="true">🏠</span>Inici</button>
+  <button data-go="agenda"><span aria-hidden="true">📅</span>Agenda</button>
+  <button data-go="club"><span aria-hidden="true">🏐</span>Club</button>
 </nav>
 
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto" hidden></div>
+<div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="print"></div>
 
-<script>
-(function () {
-  "use strict";
-  var FIREBASE_PROJECT = "volei-santpedor-eaa1d";
-  var FIREBASE_KEY = "AIzaSyAfdF-SxBI89qHnq_Ke2jCki_HnXosBxoY";
-  var NTFY = "https://ntfy.sh";
-  var CHANNEL = "vspclub-5pksq4432g";
-  var TEAMS = { 3629:"Sènior Femení", 4578:"Sènior Masculí", 3630:"Juvenil V", 3631:"Juvenil N",
-    3632:"Cadet V", 3633:"Cadet N", 3634:"Infantil V", 4916:"Infantil N", 6731:"Aleví",
-    "-1":"Escola Aleví", "-2":"Escola", "-3":"Màsters" };
-  var TEAM_ORDER = [3629, 4578, 3630, 3631, 3632, 3633, 3634, 4916, 6731, -1, -2, -3];
-  var DAYS = ["Dilluns","Dimarts","Dimecres","Dijous","Divendres","Dissabte","Diumenge"];
-  var MONTHS = ["gener","febrer","març","abril","maig","juny","juliol","agost","setembre","octubre","novembre","desembre"];
-
-  // ---------- helpers
-  function $(id) { return document.getElementById(id); }
-  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
-    return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); }
-  function safeUrl(u) { return /^https:\/\//i.test(u || "") ? u : null; }
-  function store(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
-  function pad(n) { return (n < 10 ? "0" : "") + n; }
-  function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
-  function today() { return isoDay(new Date()); }
-  function fmtDate(iso, withYear) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return "";
-    var d = new Date(+m[1], +m[2] - 1, +m[3]);
-    var wd = ["diumenge","dilluns","dimarts","dimecres","dijous","divendres","dissabte"][d.getDay()];
-    var mo = MONTHS[d.getMonth()];
-    return wd + " " + d.getDate() + (/^[aeiou]/.test(mo) ? " d'" : " de ") + mo + (withYear ? " de " + m[1] : "");
-  }
-  function shortDate(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? (+m[3]) + "/" + (+m[2]) : ""; }
-  function teamName(id) { return TEAMS[id] || "Vòlei Santpedor"; }
-  function teamsOf(o) {
-    var ids = [];
-    if (o.equip != null && o.equip !== "") ids.push(o.equip);
-    if (Array.isArray(o.equips)) ids = ids.concat(o.equips);
-    return ids.map(function (i) { return TEAMS[i] || null; }).filter(Boolean);
-  }
-  function chips(names) {
-    return names.length ? '<div class="chips">' + names.map(function (n) { return '<span class="chip">' + esc(n) + "</span>"; }).join("") + "</div>" : "";
-  }
-  function getJson(url, opts) {
-    return fetch(url, opts).then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); });
-  }
-  function pretty(s) { s = String(s || "").toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); }
-
-  // ---------- theme
-  var saved = store("theme"); if (saved) document.documentElement.setAttribute("data-theme", saved);
-  $("theme").onclick = function () {
-    var cur = document.documentElement.getAttribute("data-theme");
-    if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-    var next = cur === "dark" ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next); store("theme", next);
-  };
-  $("year").textContent = new Date().getFullYear();
-
-  // ---------- tabs (remembered; #agenda / #club in the address work too)
-  function show(tab) {
-    Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (el) { el.hidden = el.getAttribute("data-tab") !== tab; });
-    Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) { b.classList.toggle("on", b.getAttribute("data-go") === tab); });
-    store("tab", tab);
-    window.scrollTo(0, 0);
-  }
-  Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
-    b.onclick = function () { show(b.getAttribute("data-go")); };
-  });
-  var first = (location.hash || "").replace("#", "");
-  show(["inici", "agenda", "club"].indexOf(first) >= 0 ? first : (store("tab") || "inici"));
-
-  // ---------- iPhone: install hint; Android-only parts hidden on iOS
-  var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-  var standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
-  if (ios) $("android-app").hidden = true;
-  if (ios && !standalone && store("ios-install-closed") !== "1") $("ios-install").hidden = false;
-  $("ios-close").onclick = function () { $("ios-install").hidden = true; store("ios-install-closed", "1"); };
-  if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js"); } catch (e) {} }
-
-  // ---------- Firebase (anonymous read of what the club publishes from the app)
-  function fsValue(v) {
-    if ("stringValue" in v) return v.stringValue;
-    if ("integerValue" in v) return Number(v.integerValue);
-    if ("doubleValue" in v) return v.doubleValue;
-    if ("booleanValue" in v) return v.booleanValue;
-    if ("timestampValue" in v) return v.timestampValue;
-    if ("arrayValue" in v) return (v.arrayValue.values || []).map(fsValue);
-    if ("mapValue" in v) return fsFields(v.mapValue.fields || {});
-    return null;
-  }
-  function fsFields(f) { var o = {}; Object.keys(f).forEach(function (k) { o[k] = fsValue(f[k]); }); return o; }
-  function anonToken() {
-    var refresh = store("fb_refresh");
-    var p = refresh
-      ? getJson("https://securetoken.googleapis.com/v1/token?key=" + FIREBASE_KEY, {
-          method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: "grant_type=refresh_token&refresh_token=" + encodeURIComponent(refresh) })
-          .then(function (r) { return { t: r.id_token, r: r.refresh_token }; })
-      : Promise.reject();
-    return p.catch(function () {
-      return getJson("https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=" + FIREBASE_KEY, {
-        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ returnSecureToken: true }) })
-        .then(function (r) { return { t: r.idToken, r: r.refreshToken }; });
-    }).then(function (x) { store("fb_refresh", x.r); return x.t; });
-  }
-  function fsList(token, coll) {
-    var url = "https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT + "/databases/(default)/documents/" + coll + "?pageSize=300";
-    return getJson(url, { headers: { Authorization: "Bearer " + token } }).then(function (r) {
-      return (r.documents || []).map(function (d) { var o = fsFields(d.fields || {}); o.id = d.name.split("/").pop(); return o; });
-    });
-  }
-  function web(file, key) {
-    return getJson("club/" + file + "?t=" + Date.now()).then(function (r) { return r[key] || []; }).catch(function () { return []; });
-  }
-  var COLLS = ["avisos", "activitats", "amistosos", "horaris", "resultats", "agenda"];
-  var fsToken = null;
-  var fsData = anonToken().then(function (t) {
-    fsToken = t;
-    return Promise.all(COLLS.map(function (c) { return fsList(t, c).catch(function () { return []; }); }));
-  }).catch(function () { return COLLS.map(function () { return []; }); });
-
-  Promise.all([web("avisos.json", "avisos"), web("activitats.json", "activitats"),
-               web("amistosos.json", "partits"), web("horaris.json", "equips"), fsData])
-    .then(function (r) {
-      var fs = r[4];
-      renderNotices(merge(r[0], fs[0]));
-      renderActivities(merge(r[1], fs[1]));
-      renderTrainings(r[3], fs[3]);
-      renderResults(fs[4]);
-      setupAgenda(fs[5], merge(r[2], fs[2]));
-    });
-
-  function merge(a, b) {
-    var seen = {}, out = [];
-    a.concat(b).forEach(function (o) { var k = o.id || JSON.stringify(o); if (!seen[k]) { seen[k] = 1; out.push(o); } });
-    return out;
-  }
-
-  function renderNotices(list) {
-    var t = today();
-    list = list.filter(function (o) { return o.titol && (!o.fins || o.fins >= t); })
-               .sort(function (a, b) { return ((b.urgent ? 1 : 0) - (a.urgent ? 1 : 0)) || (b.data || "").localeCompare(a.data || ""); });
-    $("avisos").innerHTML = list.length ? list.map(function (o) {
-      var link = safeUrl(o.enllac);
-      return '<div class="item"' + (o.urgent ? ' style="border-left:4px solid var(--live);padding-left:10px"' : "") + '><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
-        '<div class="meta">' + esc(fmtDate(o.data)) + (o.autorNom ? " · " + esc(o.autorNom) : "") + "</div>" +
-        (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
-        (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">Més informació</a></p>' : "") +
-        (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">🖼️ Veure la imatge</button></p>' : "") +
-        (o.adjunt ? '<p><button class="btn ghost small" data-doc="' + esc(o.adjunt) + '" data-name="' + esc(o.adjuntNom || "document.pdf") + '">📎 ' + esc(o.adjuntNom || "Document") + '</button></p>' : "") +
-        chips(teamsOf(o)) + "</div>";
-    }).join("") : '<div class="empty">Ara mateix no hi ha avisos.</div>';
-    // PDF documents attached from the app (fs://fitxers/{id}) or plain https ones
-    Array.prototype.forEach.call(document.querySelectorAll("[data-doc]"), function (b) {
-      b.onclick = function () {
-        var src = b.getAttribute("data-doc"), name = b.getAttribute("data-name");
-        if (/^https:\/\//.test(src)) { window.open(src, "_blank"); return; }
-        var m = /^fs:\/\/fitxers\/([A-Za-z0-9]+)$/.exec(src); if (!m || !fsToken) return;
-        var label = b.textContent; b.textContent = "Baixant…";
-        getJson("https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT + "/databases/(default)/documents/fitxers/" + m[1] + "?mask.fieldPaths=dades",
-          { headers: { Authorization: "Bearer " + fsToken } })
-          .then(function (d) {
-            var bin = atob(d.fields.dades.stringValue), bytes = new Uint8Array(bin.length);
-            for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-            var url = URL.createObjectURL(new Blob([bytes], { type: "application/pdf" }));
-            var a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; a.download = name;
-            document.body.appendChild(a); a.click(); a.remove();
-            b.textContent = label;
-          })
-          .catch(function () { b.textContent = "No s'ha pogut baixar el document"; });
-      };
-    });
-    // images attached from the app (fs://fotos/{id}) or plain https ones
-    Array.prototype.forEach.call(document.querySelectorAll("[data-img]"), function (b) {
-      b.onclick = function () {
-        var src = b.getAttribute("data-img");
-        var show = function (url) { var img = document.createElement("img"); img.src = url; img.alt = ""; img.style.cssText = "max-width:100%;border-radius:12px;margin-top:6px"; b.replaceWith(img); };
-        if (/^https:\/\//.test(src)) { show(src); return; }
-        var m = /^fs:\/\/fotos\/([A-Za-z0-9]+)$/.exec(src); if (!m || !fsToken) return;
-        b.textContent = "Carregant…";
-        getJson("https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT + "/databases/(default)/documents/fotos/" + m[1] + "?mask.fieldPaths=jpeg",
-          { headers: { Authorization: "Bearer " + fsToken } })
-          .then(function (d) { show("data:image/jpeg;base64," + d.fields.jpeg.stringValue); })
-          .catch(function () { b.textContent = "No s'ha pogut carregar la imatge"; });
-      };
-    });
-  }
-
-  function renderActivities(list) {
-    var t = today();
-    list = list.filter(function (o) { return o.titol && o.data && (o.fins || o.data) >= t; })
-               .sort(function (a, b) { return a.data.localeCompare(b.data); });
-    if (!list.length) return;
-    $("act-sec").hidden = false;
-    $("activitats").innerHTML = list.map(function (o) {
-      var link = safeUrl(o.enllac);
-      var when = fmtDate(o.data) + (o.hora ? " · " + o.hora : "") + (o.fins && o.fins !== o.data ? " – " + fmtDate(o.fins) : "");
-      return '<div class="item"><h3>' + esc(o.titol) + '</h3><div class="meta">' + esc(when) +
-        (o.lloc ? " · " + esc(o.lloc) : "") + "</div>" + (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
-        (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">Més informació</a></p>' : "") +
-        chips(teamsOf(o)) + "</div>";
-    }).join("");
-  }
-
-  function renderResults(list) {
-    var since = Date.now() - 60 * 24 * 3600 * 1000;
-    list = list.filter(function (o) { return o.local && o.visitant && (o.t || 0) > since; })
-               .sort(function (a, b) { return (b.t || 0) - (a.t || 0); }).slice(0, 8);
-    if (!list.length) return;
-    $("res-sec").hidden = false;
-    $("resultats").innerHTML = list.map(function (o) {
-      var hw = o.sets_local > o.sets_visitant;
-      return '<div class="res"><span class="h' + (hw ? " win" : "") + '">' + esc(o.local) + '</span>' +
-        '<span class="score">' + esc(o.sets_local) + " – " + esc(o.sets_visitant) + "</span>" +
-        '<span class="a' + (hw ? "" : " win") + '">' + esc(o.visitant) + "</span>" +
-        '<div class="meta">' + esc(fmtDate(o.data)) + (o.parcials ? " · " + esc(o.parcials) : "") +
-        (o.competicio ? " · " + esc(o.competicio) : "") + "</div></div>";
-    }).join("");
-  }
-
-  function renderTrainings(webList, fsList2) {
-    var byTeam = {};
-    webList.forEach(function (o) { if (o.equip) byTeam[o.equip] = o.sessions || []; });
-    fsList2.forEach(function (o) { var id = o.equip || Number(o.id); if (id) byTeam[id] = o.sessions || []; });
-    var ids = TEAM_ORDER.filter(function (i) { return byTeam[i] && byTeam[i].length; });
-    $("horaris").innerHTML = ids.length ? ids.map(function (id) {
-      var ses = byTeam[id].slice().sort(function (a, b) {
-        return (DAYS.indexOf(a.dia) - DAYS.indexOf(b.dia)) || (a.inici || "").localeCompare(b.inici || "");
-      });
-      return '<details class="team"' + (ids.length === 1 ? " open" : "") + "><summary>" + esc(teamName(id)) +
-        "</summary><table>" + ses.map(function (s) {
-          return '<tr><td class="day">' + esc(s.dia) + '</td><td class="time">' + esc(s.inici) + "–" + esc(s.fi) +
-            "</td><td>" + esc(s.lloc) + "</td></tr>";
-        }).join("") + "</table></details>";
-    }).join("") : '<div class="empty">Encara no hi ha horaris publicats.</div>';
-  }
-
-  // ---------- agenda (official matches published by the editors' phones + friendlies)
-  var matches = [], mode = "next", chosen = [];
-  try { chosen = JSON.parse(store("teams") || "[]"); } catch (e) { chosen = []; }
-
-  function fromAgenda(p, team) {
-    var f = String(p.f || ""), time = f.slice(11, 16);
-    var lid = Number(p.lid || 0), gl = Number(p.gl || 0), gv = Number(p.gv || 0);
-    var st = String(p.st || "");
-    return { id: "a" + p.id, team: Number(p.t || team), date: f.slice(0, 10), time: time && time !== "00:00" ? time : null,
-      home: p.l, away: p.v, homeIsClub: lid !== 0 && lid === Number(p.t || team),
-      played: /finali[tz]/i.test(st) || gl + gv > 0, hs: gl, as: gv, venue: p.c || "", address: p.d || "",
-      lat: p.la, lon: p.lo, comp: p.co || "", round: Number(p.j || 0) };
-  }
-  function fromFriendly(o) {
-    var club = "Vòlei Santpedor", home = o.local !== false;
-    var sc = o.sets_club, sr = o.sets_rival, has = typeof sc === "number" && typeof sr === "number";
-    return { id: "f" + (o.id || o.data + o.rival), team: Number(o.equip), date: o.data, time: o.hora || null,
-      home: home ? club : o.rival, away: home ? o.rival : club, homeIsClub: home, played: has,
-      hs: has ? (home ? sc : sr) : 0, as: has ? (home ? sr : sc) : 0, venue: o.lloc || "", address: o.adreca || "",
-      comp: o.competicio || "Amistós", round: 0 };
-  }
-
-  function setupAgenda(agendaDocs, friendlies) {
-    var latest = "";
-    agendaDocs.forEach(function (d) {
-      (d.partits || []).forEach(function (p) { matches.push(fromAgenda(p, d.equip)); });
-      if ((d.actualitzat || "") > latest) latest = d.actualitzat;
-    });
-    friendlies.forEach(function (o) { if (o.equip && o.data && o.rival) matches.push(fromFriendly(o)); });
-    var seen = {};
-    matches = matches.filter(function (m) { if (seen[m.id]) return false; seen[m.id] = 1; return true; });
-    $("agenda-note").textContent = latest ? "Actualitzat el " + fmtDate(latest.slice(0, 10)) + " a les " +
-      new Date(latest).toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }) + "." : "";
-    var present = {};
-    matches.forEach(function (m) { present[m.team] = 1; });
-    $("team-chips").innerHTML = '<button class="chip" data-team="all">Tots</button>' + TEAM_ORDER.filter(function (t) { return present[t]; })
-      .map(function (t) { return '<button class="chip" data-team="' + t + '">' + esc(teamName(t)) + "</button>"; }).join("");
-    Array.prototype.forEach.call(document.querySelectorAll("#team-chips button"), function (b) {
-      b.onclick = function () {
-        var t = b.getAttribute("data-team");
-        if (t === "all") chosen = [];
-        else { t = Number(t); var i = chosen.indexOf(t); if (i >= 0) chosen.splice(i, 1); else chosen.push(t); }
-        store("teams", JSON.stringify(chosen));
-        renderAgenda();
-      };
-    });
-    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) {
-      b.onclick = function () { mode = b.getAttribute("data-mode"); renderAgenda(); };
-    });
-    renderAgenda();
-    renderToday();
-  }
-
-  function mapsLink(m) {
-    var q = m.lat && m.lon ? m.lat + "," + m.lon : [m.venue, m.address].filter(Boolean).join(", ");
-    return q ? "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q) : null;
-  }
-
-  function matchRow(m) {
-    var res = "";
-    if (m.played) {
-      var won = m.homeIsClub ? m.hs > m.as : m.as > m.hs;
-      res = '<span class="score ' + (won ? "win" : "loss") + '">' + m.hs + "-" + m.as + "</span>";
-    }
-    var maps = mapsLink(m);
-    var teams = (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + " – " + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>");
-    return '<div class="match"><span class="t">' + esc(m.time || "--:--") + "</span>" +
-      '<span class="teams">' + teams + "</span>" + (res || "<span></span>") +
-      '<span class="info">' + esc(teamName(m.team)) + " · " + (m.homeIsClub ? "a casa" : "a fora") +
-      (m.venue ? " · " + (maps ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(pretty(m.venue)) + "</a>" : esc(pretty(m.venue))) : "") +
-      (m.round ? " · J" + m.round : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") + "</span></div>";
-  }
-
-  function renderAgenda() {
-    Array.prototype.forEach.call(document.querySelectorAll("[data-mode]"), function (b) { b.classList.toggle("on", b.getAttribute("data-mode") === mode); });
-    Array.prototype.forEach.call(document.querySelectorAll("#team-chips button"), function (b) {
-      var t = b.getAttribute("data-team");
-      b.classList.toggle("on", t === "all" ? chosen.length === 0 : chosen.indexOf(Number(t)) >= 0);
-    });
-    $("print-btn").hidden = chosen.length !== 1;
-    var t = today();
-    var list = matches.filter(function (m) { return !chosen.length || chosen.indexOf(m.team) >= 0; })
-      .filter(function (m) { return mode === "next" ? m.date >= t && !(m.played && m.date < t) : m.played; });
-    list.sort(function (a, b) { var k = (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")); return mode === "next" ? k : -k; });
-    if (mode === "played") list = list.slice(0, 60);
-    if (!list.length) {
-      $("agenda").innerHTML = '<div class="empty">' + (matches.length ? "No hi ha partits per mostrar." :
-        "Encara no hi ha l'agenda publicada. Es publica quan un entrenador o la junta actualitza l'agenda a l'app.") + "</div>";
-      return;
-    }
-    var html = "", day = "";
-    list.forEach(function (m) {
-      if (m.date !== day) { day = m.date; html += '<div class="day-head">' + esc(m.date === t ? "Avui · " + fmtDate(m.date) : fmtDate(m.date)) + "</div>"; }
-      html += matchRow(m);
-    });
-    $("agenda").innerHTML = html;
-  }
-
-  function renderToday() {
-    var t = today();
-    var list = matches.filter(function (m) { return m.date === t; }).sort(function (a, b) { return (a.time || "").localeCompare(b.time || ""); });
-    if (!list.length) return;
-    $("today-sec").hidden = false;
-    $("today").innerHTML = list.map(matchRow).join("");
-  }
-
-  // printable season calendar of one team (#3)
-  $("print-btn").onclick = function () {
-    var team = chosen[0];
-    var list = matches.filter(function (m) { return m.team === team; })
-      .sort(function (a, b) { return (a.date + (a.time || "")).localeCompare(b.date + (b.time || "")); });
-    var y = list.length ? Number(list[0].date.slice(0, 4)) - (Number(list[0].date.slice(5, 7)) >= 8 ? 0 : 1) : new Date().getFullYear();
-    $("print").innerHTML = "<h1>Calendari " + esc(teamName(team)) + " · " + y + "-" + pad((y + 1) % 100) + "</h1>" +
-      "<p>Club Vòlei Santpedor · Generat el " + esc(fmtDate(today(), true)) + " · Comproveu els canvis d'última hora a dpericas.github.io</p>" +
-      "<table><tr><th>J</th><th>Data</th><th>Hora</th><th>Partit</th><th>Pavelló</th><th>Resultat</th></tr>" +
-      list.map(function (m) {
-        return '<tr class="' + (m.homeIsClub ? "home" : "") + '"><td>' + (m.round || "") + "</td><td>" + esc(shortDate(m.date)) + "</td><td>" +
-          esc(m.time || "--:--") + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(pretty(m.venue)) + "</td><td>" +
-          (m.played ? m.hs + "-" + m.as : "") + "</td></tr>";
-      }).join("") + "</table>";
-    window.print();
-  };
-
-  // ---------- latest Android app version
-  function code(tag) { var m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag); return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : -1; }
-  if (!ios) getJson("https://api.github.com/repos/dpericas/voleimanagerV/tags?per_page=100").then(function (tags) {
-    var best = tags.map(function (t) { return t.name; }).filter(function (n) { return code(n) >= 0; })
-      .sort(function (a, b) { return code(b) - code(a); })[0];
-    if (best) $("ver").textContent = "Versió " + best.replace(/^v/, "");
-  }).catch(function () {});
-
-  // ---------- club matches broadcast now
-  function loadLive() {
-    fetch(NTFY + "/" + CHANNEL + "/json?poll=1&since=12h").then(function (r) { return r.ok ? r.text() : ""; }).then(function (txt) {
-      var last = {};
-      txt.split("\n").forEach(function (line) {
-        try {
-          var m = JSON.parse(line); if (m.event !== "message") return;
-          var a = JSON.parse(m.message);
-          if (a.v !== 1 || !/^vsp-[a-z0-9]+$/.test(a.topic || "")) return;
-          if (!last[a.topic] || last[a.topic].t <= a.t) last[a.topic] = a;
-        } catch (e) {}
-      });
-      var now = Date.now();
-      var live = Object.keys(last).map(function (k) { return last[k]; })
-        .filter(function (a) { return a.k === "live" && now - a.t < 3 * 3600 * 1000; })
-        .sort(function (a, b) { return b.t - a.t; });
-      $("live-sec").hidden = !live.length;
-      $("live").innerHTML = live.map(function (a) {
-        return '<a class="live" href="live/#' + esc(a.topic) + '"><span><b>' + esc(a.h) + " – " + esc(a.a) + "</b>" +
-          (a.c ? '<span class="muted">' + esc(a.c) + "</span>" : "") + "</span><span>Segueix ▶</span></a>";
-      }).join("");
-    }).catch(function () {});
-  }
-  loadLive();
-  setInterval(loadLive, 60000);
-})();
-</script>
+<script src="js/core.js"></script>
+<script src="js/home.js"></script>
+<script src="js/agenda.js"></script>
+<script src="js/teams.js"></script>
+<script src="js/member.js"></script>
+<script src="js/club.js"></script>
+<script src="js/main.js"></script>
 </body>
 </html>
