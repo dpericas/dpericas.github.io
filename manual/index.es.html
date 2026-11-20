@@ -1,0 +1,469 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manual de la app del Vòlei Santpedor</title>
+<meta name="description" content="Cómo funciona la app del Club Vòlei Santpedor: familias, jugadores/as, entrenadores, junta y administración.">
+<meta name="theme-color" content="#0f5132">
+<style>
+  /* Layout: a phone-first manual. Sticky search + role filter, a table of contents (drawer on phones,
+     sidebar on wide screens) and foldable sections. Print: everything open, no controls (PDF). */
+  :root {
+    --bg: #f4f6f4; --card: #ffffff; --ink: #141a16; --muted: #56655b; --line: #d8e2da;
+    --brand: #0f5132; --green: #1e8c34; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #e6eee8;
+    --warn: #8a5300; --warn-bg: #fff4dc;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0e1310; --card: #161d18; --ink: #e6efe8; --muted: #9fb2a5; --line: #26332a;
+      --brand: #8fd19a; --green: #5fcf7a; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #1f2a22; --warn: #ffcf7a; --warn-bg: #2b2412; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #0e1310; --card: #161d18; --ink: #e6efe8; --muted: #9fb2a5; --line: #26332a;
+    --brand: #8fd19a; --green: #5fcf7a; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #1f2a22; --warn: #ffcf7a; --warn-bg: #2b2412; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 120px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font); }
+  a { color: var(--green); }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff;
+    padding: max(10px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .bar { display: flex; align-items: center; gap: 10px; max-width: 1100px; margin: 0 auto; }
+  .bar svg { width: 38px; height: 38px; flex: none; overflow: visible; }
+  .bar h1 { font-size: 18px; margin: 0; line-height: 1.2; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar h1 small { overflow: hidden; text-overflow: ellipsis; }
+  .bar h1 small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
+  .iconbtn { flex: none; background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 10px; padding: 7px 9px; font-size: 15px; cursor: pointer; text-decoration: none; }
+  .tools { max-width: 1100px; margin: 8px auto 0; display: grid; gap: 8px; }
+  .tools input { width: 100%; border: 0; border-radius: 12px; padding: 10px 12px; font-size: 16px; background: #fff; color: #111; }
+  .roles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .roles button { flex: none; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 999px; padding: 5px 12px; font-size: 14px; cursor: pointer; }
+  .roles button[aria-pressed="true"] { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); font-weight: 700; }
+  .layout { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 16px;
+    padding: 16px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+  @media (min-width: 900px) { .layout { grid-template-columns: 260px 1fr; } nav.toc { position: sticky; top: 140px; align-self: start; max-height: calc(100vh - 160px); overflow: auto; } #tocbtn { display: none; } }
+  nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; font-size: 15px; }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { color: var(--green); }
+  @media (max-width: 899px) { nav.toc { display: none; } nav.toc.open { display: block; } }
+  main { min-width: 0; display: grid; gap: 14px; }
+  section.chap { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 10px; }
+  section.chap > h2 { font-size: 21px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 600; background: var(--chip); color: var(--muted); border-radius: 999px; padding: 2px 8px; }
+  .lead { color: var(--muted); margin: 0 0 6px; }
+  details { border-top: 1px solid var(--line); }
+  details > summary { cursor: pointer; padding: 10px 0; font-weight: 650; list-style: none; display: flex; gap: 8px; align-items: center; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸"; color: var(--green); transition: transform .15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  details > div { padding: 0 0 10px 18px; }
+  details p, details li { margin: 6px 0; }
+  .path { font-family: var(--mono); font-size: 13.5px; background: var(--chip); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+  .tip { background: var(--chip); border-radius: 12px; padding: 8px 12px; margin: 8px 0; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 8px 12px; margin: 8px 0; }
+  kbd { font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  td, th { border-top: 1px solid var(--line); padding: 6px 8px 6px 0; text-align: left; vertical-align: top; }
+  .tablewrap { overflow-x: auto; }
+  .hidden { display: none !important; }
+  mark { background: var(--mint); color: var(--mint-ink); border-radius: 3px; }
+  #noresults { color: var(--muted); }
+  footer.end { color: var(--muted); font-size: 13px; text-align: center; padding: 8px 16px 32px; }
+  :focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { details > summary::before { transition: none; } }
+  @media print {
+    header.top, nav.toc, #noresults, .noprint { display: none !important; }
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .layout { display: block; padding: 0; }
+    section.chap { border: 0; break-inside: auto; padding: 0; margin-bottom: 10pt; }
+    section.chap > h2 { break-after: avoid; border-bottom: 2px solid #1e8c34; }
+    details { border: 0; }
+    details > summary { padding: 4pt 0 0; break-after: avoid; }
+    details > summary::before { content: ""; }
+    details > div { padding-left: 0; }
+    .print-cover { display: block !important; }
+    a { color: #000; text-decoration: none; }
+  }
+  .print-cover { display: none; text-align: center; padding: 40pt 0 20pt; }
+  .print-cover svg { width: 120pt; height: 120pt; }
+.langs { display: flex; justify-content: flex-end; gap: 6px; padding: 0 12px 6px; font-size: 13px; }
+.langs a { color: #fff; opacity: .75; text-decoration: none; padding: 2px 8px; border-radius: 8px; }
+.langs a[aria-current] { opacity: 1; font-weight: 700; background: rgba(255,255,255,.18); }
+@media print { .langs { display: none; } }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <a class="iconbtn noprint noapp" href="https://dpericas.github.io/" aria-label="Volver a la web del club">← Web</a>
+    <svg viewBox="10 10 180 180" role="img" aria-hidden="true" focusable="false"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
+    <h1>Manual de la app<small>Club Vòlei Santpedor · <span id="ver">versión 01.30</span></small></h1>
+    <button class="iconbtn" id="tocbtn" type="button" aria-expanded="false" aria-controls="toc" aria-label="Índice">☰</button>
+    <a class="iconbtn noprint" id="pdf" href="https://dpericas.github.io/manual/manual-es.pdf">PDF</a>
+    <button class="iconbtn" id="theme" type="button" aria-label="Cambiar el tema claro u oscuro">◐</button>
+  </div>
+  <nav class="langs noprint" aria-label="Idioma · Language"><a href="index.html" hreflang="ca" lang="ca">Català</a><a href="index.es.html" hreflang="es" lang="es" aria-current="page">Castellano</a><a href="index.en.html" hreflang="en" lang="en">English</a></nav>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Busca en el manual (p. ej. convocatoria, coche, avisos…)" aria-label="Buscar en el manual">
+    <div class="roles" role="group" aria-label="Muestra lo que me toca">
+      <button type="button" data-role="tots" aria-pressed="true">Todo</button>
+      <button type="button" data-role="families" aria-pressed="false">Familias y jugadores/as</button>
+      <button type="button" data-role="entrenadors" aria-pressed="false">Entrenadores</button>
+      <button type="button" data-role="junta" aria-pressed="false">Junta</button>
+      <button type="button" data-role="admin" aria-pressed="false">Administración</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc" aria-label="Índice"><ol id="toclist"></ol></nav>
+<main id="main">
+  <div class="print-cover"><svg viewBox="10 10 180 180" role="img" aria-hidden="true"><defs><clipPath id="pb0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pb0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pb0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pb0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pb0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pb0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pb0)"><g clip-path="url(#pb0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pb0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pb0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pb0s)"/><circle cx="100" cy="100" r="80" fill="url(#pb0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg><h1>Manual de la app del Club Vòlei Santpedor</h1><p>Familias, jugadores/as, entrenadores, junta y administración</p></div>
+  <p id="noresults" class="hidden">No hay ningún apartado con esta búsqueda. Prueba con otra palabra.</p>
+
+  <section class="chap" id="inici" data-roles="families entrenadors junta admin">
+    <h2>👋 Para empezar</h2>
+    <p class="lead">La app del club tiene el calendario y los resultados de todos los equipos, los partidos en directo, los avisos del club, las convocatorias y mucho más. Toca un apartado para abrirlo.</p>
+    <details><summary>Instalar la app (Android)</summary><div>
+      <p>La app no está en Google Play: se descarga desde la web del club, <span class="path">dpericas.github.io/app</span>, o escaneando el QR del cartel.</p>
+      <ol><li>Toca «Descargar para Android».</li><li>Abre el archivo descargado. Si el móvil lo pide, permite «Instalar aplicaciones de esta fuente».</li><li>Abre la app: aparece una bienvenida con la Pili.</li></ol>
+      <p class="tip">💡 Las actualizaciones llegan solas: cuando hay una nueva, la app te avisa y se instala con un toque.</p>
+    </div></details>
+    <details><summary>Tengo iPhone</summary><div>
+      <p>Usa la web <span class="path">dpericas.github.io</span>: tiene el inicio, la agenda y el club. En Safari, toca <kbd>Compartir</kbd> › «Añadir a pantalla de inicio» y quedará como una app.</p>
+    </div></details>
+    <details><summary>La bienvenida: equipos, avisos y «¿Eres jugador/a o familia?»</summary><div>
+      <p>La primera vez la app te pregunta:</p>
+      <ul><li><b>Qué equipos sigues</b> (los marcas con ★): salen primero, recibes sus recordatorios y los ves juntos en «Mis partidos».</li>
+      <li><b>Qué avisos quieres</b>: avisos del club, recordatorios de partidos y partidos en directo.</li>
+      <li><b>Si eres jugador/a, familia o solo sigues el club</b>. Si eliges jugador/a o familia, al acabar se abre «Mi equipo» para pedir entrar en tu equipo.</li></ul>
+      <p>Puedes volver a verla en <span class="path">Club › ⚙️ › Sobre la app › Bienvenida</span>.</p>
+    </div></details>
+    <details><summary>Las cuatro pestañas</summary><div>
+      <div class="tablewrap"><table>
+        <tr><th>Pestaña</th><th>Qué encuentras</th></tr>
+        <tr><td>🏐 Equipos</td><td>Todos los equipos del club, la cuenta atrás para el próximo partido, los partidos de hoy.</td></tr>
+        <tr><td>📅 Agenda</td><td>Todos los partidos por días, convocatorias, coches compartidos, cómo llegar.</td></tr>
+        <tr><td>ℹ️ Club</td><td>Avisos, horarios, galería, pabellones, la Pili, «Mi equipo» y Preferencias.</td></tr>
+        <tr><td>🔴 Marcador</td><td>Llevar el marcador de un partido, retransmitirlo y seguir los directos.</td></tr>
+      </table></div>
+      <p class="tip">👉 Puedes <b>deslizar a derecha e izquierda</b> para pasar de una pestaña a otra.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="equips" data-roles="families entrenadors junta admin">
+    <h2>🏐 Equipos</h2>
+    <details><summary>Ficha de un equipo: partidos, clasificación y plantilla</summary><div>
+      <p>Toca un equipo para ver sus partidos y la clasificación (de la web oficial de la federación) y la <b>plantilla</b> con fotos. Los equipos no federados (Escuela, Másters…) muestran la plantilla, los horarios y los amistosos.</p>
+      <p>Toca la estrella ★ de un equipo para seguirlo. Los equipos con una racha de victorias llevan 🔥.</p>
+    </div></details>
+    <details><summary>Cuenta atrás y partidos de hoy</summary><div>
+      <p>Arriba del todo está la cuenta atrás para el próximo partido de tus equipos ★ y, los días de partido, la lista de los partidos de hoy.</p>
+    </div></details>
+    <details><summary>Llevar el marcador desde la ficha</summary><div>
+      <p>Abre un partido en la ficha del equipo: si todavía no se ha jugado, aparece el botón pequeño 🔴 para llevar el marcador con los equipos ya puestos.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="agenda" data-roles="families entrenadors junta admin">
+    <h2>📅 Agenda</h2>
+    <details><summary>Partidos por días y «Mis partidos»</summary><div>
+      <p>La agenda tiene todos los partidos del club (oficiales y amistosos) ordenados por días. Con el botón 👪 <b>Mis partidos</b> ves solo los de tus equipos, con un color por equipo, un aviso si dos partidos coinciden y quién lleva a quién.</p>
+    </div></details>
+    <details><summary>Convocatorias y «voy / no voy»</summary><div>
+      <p>Cuando el entrenador/a publica una convocatoria, el partido muestra el botón 👥 con el número de convocadas. Ahí ves la quedada, el lugar, la equipación y quién está convocada.</p>
+      <p>Si eres <b>miembro del equipo</b> y has dicho quién eres en la plantilla (ver <a href="#club">Mi equipo</a>), recibirás el aviso «¡Estás en la convocatoria!» y dentro de la convocatoria podrás responder <b>Voy</b> o <b>No voy</b> (con un motivo). El entrenador/a ve el resumen.</p>
+    </div></details>
+    <details><summary>Cómo llegar y guía de pabellones</summary><div>
+      <p>Toca <b>Cómo llegar</b> en un partido para abrir Google Maps hacia el pabellón. Los partidos fuera de casa tienen una marca cuando los consejos del pabellón están guardados para consultarlos sin cobertura.</p>
+      <p>En <span class="path">Club › Pabellones</span> está el mapa de los pabellones y los consejos de las familias (aparcamiento, bar, acceso…). Tú también puedes añadir.</p>
+    </div></details>
+    <details><summary>Coches compartidos</summary><div>
+      <p>En los partidos fuera de casa, toca <b>Coches compartidos</b>: puedes ofrecer plazas en tu coche, apuntarte a un coche o decir que necesitas plaza. Las entradas se borran solas dos días después del partido.</p>
+    </div></details>
+    <details><summary>Calendario en el móvil y calendario imprimible</summary><div>
+      <p>En Preferencias puedes hacer que los partidos de tus equipos ★ se añadan al calendario del móvil. Desde la ficha de un equipo puedes sacar el calendario de la temporada en PDF para imprimirlo.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="club" data-roles="families entrenadors junta admin">
+    <h2>ℹ️ Club</h2>
+    <details><summary>Avisos (también urgentes y 🔒 del equipo)</summary><div>
+      <p>Los avisos del club salen arriba de la pestaña Club. Los <b>urgentes</b> salen primero y en rojo, con un sonido propio. Algunos llevan imagen o un PDF.</p>
+      <p>Los avisos con <b>🔒</b> son <b>solo para el equipo</b>: solo los ven los jugadores/as y familias aprobados del equipo, los entrenadores y la junta.</p>
+    </div></details>
+    <details><summary>Mi equipo (jugadores/as y familias)</summary><div>
+      <ol><li><span class="path">Club › 👤 Mi equipo</span>.</li>
+      <li>Elige <b>Jugador/a</b> (un solo equipo) o <b>Familia</b> (uno o más equipos) y escribe el nombre.</li>
+      <li>Elige los equipos y, en cada equipo, <b>quién eres en la plantilla</b> (o tus hijos/as).</li>
+      <li><b>Enviar la solicitud</b>. El entrenador/a del equipo o la junta la aprueba.</li></ol>
+      <p>Cuando sale «✅ Dentro», recibes los avisos 🔒 del equipo y el aviso personal de convocatoria, y puedes responder «voy / no voy». Puedes cambiar el nombre o los hijos sin perder la aprobación.</p>
+      <p class="tip">💡 Si te sale «❔ No aprobada», toca «Enviar la solicitud» otra vez.</p>
+    </div></details>
+    <details><summary>Horarios, galería, noticias, valores y calentamiento</summary><div>
+      <ul><li><b>Horarios</b>: los entrenamientos de cada equipo.</li>
+      <li><b>Galería</b>: álbumes de fotos del club; las familias pueden <b>proponer fotos</b>, que el entrenador/a revisa.</li>
+      <li><b>Noticias</b>: lo que publica la federación sobre el club.</li>
+      <li><b>Valores</b>: el código del club.</li>
+      <li><b>Calentamiento</b>: rutinas guiadas con temporizador.</li>
+      <li><b>Guía del voleibol</b>: las reglas explicadas, con un cuestionario.</li></ul>
+    </div></details>
+    <details><summary>Pedidos de equipación</summary><div>
+      <p>Cuando la junta abre un pedido, aparece la baldosa 👕 en Club: eliges prendas, tallas y cantidades y envías la petición.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="marcador" data-roles="families entrenadors junta admin">
+    <h2>🔴 Marcador y directos</h2>
+    <details><summary>Llevar el marcador de un partido</summary><div>
+      <ol><li>Pestaña Marcador. En <b>Partidos de hoy</b> toca «🏐 Llévalo» en un partido (se rellenan los equipos y las reglas), o escribe los equipos a mano.</li>
+      <li>Elige las reglas (al mejor de 5, de 3, alevines…) y quién saca primero.</li>
+      <li>Toca el panel de un equipo para sumarle un punto. <kbd>Deshacer</kbd> corrige el último.</li></ol>
+      <p>Hay tiempos muertos con cuenta atrás, cambios, cambio de campo en el tie-break, avisos de punto de set y de partido, y un «modo drama» cuando el partido está muy igualado.</p>
+    </div></details>
+    <details><summary>Alineación, rotaciones y cambios</summary><div>
+      <p>Con «👥 Elegir de la plantilla» tocas las 6 jugadoras por orden de posición (I la que saca, II, III, IV, V, VI). El marcador muestra el campo con las posiciones, quién saca, la siguiente en sacar y la rotación (R1–R6). Cuando el equipo recupera el saque sale «🔄 rotan · saca X».</p>
+      <p>En <b>Cambios</b> eliges quién sale y quién entra: la nueva jugadora ocupa la misma posición.</p>
+    </div></details>
+    <details><summary>Retransmitir en directo</summary><div>
+      <p>Con el marcador abierto, toca <b>Retransmitir</b>: las familias pueden seguir el partido punto a punto con un enlace o un código y, si el partido está en la lista del club, en «Seguir un partido en directo». Quienes lo siguen pueden aplaudir 👏, tocar el tambor 🥁 y enviar reacciones, y tú lo ves en el marcador.</p>
+    </div></details>
+    <details><summary>Seguir un partido en directo</summary><div>
+      <p>En la pestaña Marcador, <b>Seguir un partido en directo</b> muestra los directos del club; también se puede abrir desde un enlace recibido por WhatsApp. Con los avisos de los directos activados, la app te avisa cuando empieza un partido y al final de cada set.</p>
+    </div></details>
+    <details><summary>Pantalla grande, historial, acta e imagen del resultado</summary><div>
+      <p>La <b>pantalla grande</b> muestra el marcador en grande para el pabellón (ideal en una tableta o tele). En el <b>historial</b> están los partidos guardados: puedes hacer el acta en PDF y una imagen del resultado para compartir.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="pili" data-roles="families entrenadors junta admin">
+    <h2>🐣 La Pili</h2>
+    <details><summary>Tu Pili, stickers, fondos de pantalla y fotomatón</summary><div>
+      <p>La Pili es la mascota del club. En <b>Tu Pili</b> eliges cómo es (verde y negra, rayas, campeona, rematadora… o las amarillas de antes) y los disfraces que vas desbloqueando jugando. También hay <b>stickers para WhatsApp</b>, <b>fondos de pantalla</b> y un <b>fotomatón</b> con marco del club.</p>
+      <p>Si la tocas, salta, gira, guiña el ojo o habla (con sonidos, que se pueden quitar en Preferencias).</p>
+    </div></details>
+    <details><summary>Juegos y ranking</summary><div>
+      <p>Toques, recepción, bloqueo, memoria y el cuestionario de reglas, con un ranking del club por alias. Hay secretos escondidos…</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="preferencies" data-roles="families entrenadors junta admin">
+    <h2>⚙️ Preferencias</h2>
+    <details><summary>Apariencia, intro, idioma y tamaño del texto</summary><div>
+      <p><span class="path">Club › ⚙️</span>: tema claro u oscuro, <b>apariencia</b> (Club, Noche en negro puro, Pista, Retro), la intro al abrir la app (vídeo del club, la Pili animada o ninguna), el idioma (catalán, castellano, inglés) y el tamaño del texto.</p>
+    </div></details>
+    <details><summary>Avisos y el sonido de cada aviso</summary><div>
+      <p>Activa o desactiva los avisos del club, los recordatorios de los partidos y los avisos de los directos. En <b>Sonido de cada aviso</b> eliges el sonido de los avisos, de los urgentes y de los recordatorios (silbato, tambor, campana, voz de la Pili, alarma, sonido del móvil o sin sonido).</p>
+    </div></details>
+    <details><summary>Copia de seguridad, privacidad y actualizaciones</summary><div>
+      <ul><li><b>Copia de seguridad</b>: para cambiar de móvil, exporta e importa el historial, los equipos ★ y las preferencias.</li>
+      <li><b>Estadísticas de uso anónimas</b>: ayudan a la junta a saber cuánta gente usa la app; también envían los informes de error si la app se cierra sola. Se pueden desactivar.</li>
+      <li><b>Sobre la app</b>: la versión, «Buscar actualizaciones», «Novedades» y «Bienvenida».</li></ul>
+    </div></details>
+  </section>
+
+  <section class="chap" id="pantalla" data-roles="families entrenadors junta admin">
+    <h2>📱 Pantalla de inicio y coche</h2>
+    <details><summary>Widgets y accesos directos</summary><div>
+      <ul><li><b>Próximo partido</b>: los próximos partidos de tus equipos.</li>
+      <li><b>La Pili</b>: anima a tus equipos según los resultados.</li>
+      <li><b>Directo</b>: el marcador del partido del club que se juega ahora, punto a punto (activa los avisos de los directos).</li></ul>
+      <p>Si mantienes pulsado el icono de la app hay accesos directos a <b>Agenda</b>, <b>Directos</b> y <b>Mi equipo</b>.</p>
+    </div></details>
+    <details><summary>Android Auto</summary><div>
+      <p>En el coche están los próximos partidos en el mapa, los directos y, para cada partido, <b>Cómo llegar</b> (abre Google Maps o el navegador del coche).</p>
+      <p class="warn">⚠️ Como la app no viene de Google Play, hay que hacerlo una vez en el móvil: Android Auto › Ajustes › toca 10 veces «Versión» › menú ⋮ › Ajustes para desarrolladores › activa <b>Fuentes desconocidas</b>.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="entrenadors" data-roles="entrenadors junta admin">
+    <h2>🧑‍🏫 Entrenadores <span class="tag">entrenadores · junta · admin</span></h2>
+    <details><summary>Entrar en la Zona de editores</summary><div>
+      <ol><li>Al final de la pestaña Club, toca «✏️ ¿Eres entrenador/a o de la junta? Entra aquí».</li>
+      <li>Entra con el correo y la contraseña de la cuenta que te ha creado el club y pide el acceso.</li>
+      <li>Cuando la junta te aprueba, aparece la sección <b>Entrenadores y junta</b> en Club.</li></ol>
+      <p>También se puede hacer desde el ordenador en <span class="path">dpericas.github.io/editors</span> (ver <a href="#web">Web</a>).</p>
+    </div></details>
+    <details><summary>Publicar avisos, actividades, amistosos, horarios y fotos</summary><div>
+      <p>En la Zona de editores eliges qué quieres publicar. Un entrenador/a solo publica para sus equipos; la junta, para todo el club. Los avisos pueden ser urgentes y llevar imagen o un PDF.</p>
+      <p>Activa <b>🔒 Solo para el equipo</b> para que solo lo vean los miembros del equipo (sin imagen ni PDF).</p>
+    </div></details>
+    <details><summary>⚡ Mensaje rápido al equipo</summary><div>
+      <p>Plantillas en dos toques: entreno anulado, cambio de hora o de lugar, equipación, «recordad traer», partido aplazado, quedada o texto libre. Por defecto es solo para el equipo y caduca solo.</p>
+    </div></details>
+    <details><summary>Convocatorias y respuestas</summary><div>
+      <p>Desde la agenda, toca 👥 en un partido de tu equipo: quedada, lugar, equipación, convocadas y notas. Se publica en la app y se puede enviar por WhatsApp. Dentro de la convocatoria ves <b>Vienen / No vienen / Sin respuesta</b> con los motivos. También hay <b>notas privadas</b> del partido solo para los entrenadores.</p>
+    </div></details>
+    <details><summary>Jugadores/as y familias, plantillas y fotos propuestas</summary><div>
+      <ul><li><b>👥 Jugadores/as y familias</b>: cada equipo muestra las solicitudes pendientes («⏳ 2»); aprueba, rechaza o quita. «⚠️ repetido» marca nombres duplicados.</li>
+      <li><b>📋 Plantillas</b> (equipos no federados): nombres, rol y dorsal. Se usan en la ficha, las convocatorias, la ruleta y «Mi equipo».</li>
+      <li><b>Fotos propuestas</b>: revisa las fotos que proponen las familias antes de publicarlas.</li></ul>
+    </div></details>
+    <details><summary>Ruleta del entrenador</summary><div>
+      <p>Elige tu equipo, quita a quien no está y haz girar la ruleta (quién empieza, quién recoge los balones…).</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="junta" data-roles="junta admin">
+    <h2>🏛️ Junta <span class="tag">junta · admin</span></h2>
+    <details><summary>Mensaje semanal «Próximos partidos» y WhatsApp</summary><div>
+      <p>En la Zona de editores, <b>Próximos partidos</b> prepara el mensaje de la semana para el WhatsApp del club (partidos, pabellones con enlace y equipos que descansan). Cada publicación tiene el botón «Publicar en WhatsApp» con la imagen y el texto.</p>
+    </div></details>
+    <details><summary>Editores, solicitudes y uso de la app</summary><div>
+      <p>En <b>Editores y uso</b> apruebas las solicitudes de acceso, eliges el rol (entrenador/a o junta) y los equipos, y ves el uso anónimo de la app. También avisa cuando alguien pide acceso.</p>
+    </div></details>
+    <details><summary>Pedidos de equipación</summary><div>
+      <p>Abre y cierra pedidos con las prendas y tallas, y descarga el resumen de peticiones.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="admin" data-roles="admin">
+    <h2>🛠️ Administración <span class="tag">admin</span></h2>
+    <p class="lead">El administrador/a puede hacer todo lo que hace la junta y, además, gestiona los administradores y puede borrar cualquier cosa. La sección está en <span class="path">Club › 🛠️ Administración</span>.</p>
+    <details><summary>Simular un perfil</summary><div>
+      <p>Mira la app como la ve un usuario general, un entrenador/a de un equipo, la junta, un jugador/a o una familia (con los equipos y nombres que elijas). Sale una banda lila; la ✕ la detiene. Lo que publiques se hace igualmente con tu cuenta.</p>
+    </div></details>
+    <details><summary>Seguimiento: registro de actividad y errores</summary><div>
+      <p><b>Registro</b>: quién ha publicado, editado o borrado qué y cuándo. <b>Errores</b>: los cierres inesperados de la app en los móviles, agrupados.</p>
+    </div></details>
+    <details><summary>Interruptores remotos, aviso de prueba, datos y diagnóstico</summary><div>
+      <ul><li><b>Interruptores</b>: desactivar funciones (coches, consejos, fotos, ranking, afición), poner un mensaje arriba de la app o pedir que actualicen las versiones antiguas, sin publicar ninguna versión.</li>
+      <li><b>Aviso de prueba real</b>: solo en tu móvil o a los editores.</li>
+      <li><b>Datos</b>: cuántos documentos hay en cada colección, y borrarlos.</li>
+      <li><b>Diagnóstico</b>: versión, Android, móvil e identificadores (se puede copiar).</li></ul>
+    </div></details>
+  </section>
+
+  <section class="chap" id="web" data-roles="families entrenadors junta admin">
+    <h2>🌐 Web del club</h2>
+    <details><summary>La web para todo el mundo</summary><div>
+      <p><span class="path">dpericas.github.io</span>: inicio con los avisos, agenda de los equipos, calendario imprimible y club. Se puede instalar en el móvil (sobre todo en iPhone).</p>
+      <p><b>Seguir un directo desde la web</b>: el enlace de un partido retransmitido (<span class="path">dpericas.github.io/live/#vsp-…</span>) muestra el marcador como en la app (saque, rotaciones, rachas, tiempos muertos, tarjeta de set) y cuánta gente lo sigue 👀. Desde ahí también puedes animar: 👏 aplaudir, 🥁 tocar el tambor y enviar reacciones, que llegan a quien lleva el marcador.</p>
+    </div></details>
+    <details data-roles="entrenadors junta admin"><summary>Zona de editores en la web</summary><div>
+      <p><span class="path">dpericas.github.io/editors</span> (enlace al pie de la web): entra con la misma cuenta que en la app. Puedes publicar avisos (también 🔒), aprobar jugadores/as y familias y, si eres admin, gestionar editores, solicitudes, interruptores y el registro.</p>
+      <p class="tip">💡 Marca «Recordarme en este ordenador» solo en un ordenador tuyo.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="problemes" data-roles="families entrenadors junta admin">
+    <h2>❓ Preguntas y problemas</h2>
+    <details><summary>No me llegan los avisos</summary><div>
+      <ul><li>Comprueba que tienes los avisos activados en <span class="path">Club › ⚙️</span>.</li>
+      <li>En el móvil: Ajustes › Aplicaciones › Vòlei Santpedor › Notificaciones activadas, y sin ahorro de batería para la app.</li>
+      <li>Los avisos de los directos necesitan «Avisos de los partidos en directo» activado (deja una notificación pequeña permanente).</li></ul>
+    </div></details>
+    <details><summary>Mi solicitud de equipo no sale aprobada</summary><div>
+      <p>Abre <span class="path">Club › Mi equipo</span> y actualiza. Si sale «No aprobada», vuelve a tocar «Enviar la solicitud» y avisa al entrenador/a.</p>
+    </div></details>
+    <details><summary>La agenda no está actualizada</summary><div>
+      <p>La agenda se lee de la web oficial de la federación cuando abres la app. Ábrela con conexión y toca actualizar.</p>
+    </div></details>
+    <details><summary>Android Auto no muestra la app</summary><div>
+      <p>Activa «Fuentes desconocidas» en los ajustes para desarrolladores de Android Auto (ver <a href="#pantalla">Pantalla de inicio y coche</a>).</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="privacitat" data-roles="families entrenadors junta admin">
+    <h2>🔒 Privacidad</h2>
+    <details><summary>Qué datos usa la app</summary><div>
+      <ul><li>La app no te pide el correo (solo los editores tienen cuenta).</li>
+      <li>Cada móvil tiene un identificador anónimo. El nombre que pones en «Mi equipo» solo lo ven los entrenadores de tus equipos y la junta.</li>
+      <li>Las estadísticas y los informes de error son anónimos y se pueden desactivar.</li>
+      <li>Los avisos «🔒 del equipo» solo los pueden leer los miembros aprobados del equipo.</li></ul>
+      <p>Para cualquier duda: <span class="path">voleisantpedor@hotmail.com</span>.</p>
+    </div></details>
+  </section>
+</main>
+</div>
+<footer class="end">Club Vòlei Santpedor · Manual de la app · <span id="year"></span></footer>
+
+<script>
+(function () {
+  "use strict";
+  var main = document.getElementById("main"), chaps = Array.prototype.slice.call(main.querySelectorAll("section.chap"));
+  // table of contents
+  var toc = document.getElementById("toclist");
+  chaps.forEach(function (s) {
+    var li = document.createElement("li"); li.dataset.for = s.id;
+    var a = document.createElement("a"); a.href = "#" + s.id; a.textContent = s.querySelector("h2").childNodes[0].textContent.trim();
+    a.addEventListener("click", function () { closeToc(); });
+    li.appendChild(a); toc.appendChild(li);
+  });
+  var nav = document.getElementById("toc"), tocbtn = document.getElementById("tocbtn");
+  function closeToc() { nav.classList.remove("open"); tocbtn.setAttribute("aria-expanded", "false"); }
+  tocbtn.addEventListener("click", function () { var o = nav.classList.toggle("open"); tocbtn.setAttribute("aria-expanded", o ? "true" : "false"); if (o) nav.scrollIntoView({ block: "start" }); });
+
+  // role filter (remembered on this device)
+  var role = "tots";
+  try { role = localStorage.getItem("manual_role") || "tots"; } catch (e) {}
+  var roleBtns = Array.prototype.slice.call(document.querySelectorAll(".roles button"));
+  function roleOk(el) { var r = el.getAttribute("data-roles"); return role === "tots" || !r || r.split(" ").indexOf(role) >= 0; }
+  roleBtns.forEach(function (b) { b.addEventListener("click", function () { role = b.dataset.role; try { localStorage.setItem("manual_role", role); } catch (e) {} apply(); }); });
+
+  // search with highlights
+  var q = document.getElementById("q");
+  var originals = new Map();
+  main.querySelectorAll("details").forEach(function (d) { originals.set(d, d.innerHTML); });
+  function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function esc(s) { return s.replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function highlight(d, term) {
+    d.innerHTML = originals.get(d);
+    if (!term) return;
+    var walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT), nodes = [], n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (t) {
+      var txt = t.nodeValue, i = norm(txt).indexOf(term);
+      if (i < 0) return;
+      var span = document.createElement("span");
+      span.innerHTML = esc(txt.slice(0, i)) + "<mark>" + esc(txt.slice(i, i + term.length)) + "</mark>" + esc(txt.slice(i + term.length));
+      t.parentNode.replaceChild(span, t);
+    });
+  }
+  function apply() {
+    roleBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.role === role ? "true" : "false"); });
+    var term = norm(q.value.trim()), any = false;
+    chaps.forEach(function (s) {
+      var sOk = roleOk(s), visible = 0;
+      s.querySelectorAll("details").forEach(function (d) {
+        highlight(d, term);
+        var ok = sOk && roleOk(d) && (!term || norm(d.textContent).indexOf(term) >= 0);
+        d.classList.toggle("hidden", !ok);
+        if (term && ok) d.open = true;
+        if (ok) visible++;
+      });
+      var show = sOk && visible > 0;
+      s.classList.toggle("hidden", !show);
+      var li = toc.querySelector('li[data-for="' + s.id + '"]'); if (li) li.classList.toggle("hidden", !show);
+      if (show) any = true;
+    });
+    document.getElementById("noresults").classList.toggle("hidden", any);
+  }
+  var timer; q.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(apply, 150); });
+
+  // open the section of a #link
+  function openHash() { var el = location.hash && document.getElementById(location.hash.slice(1)); if (el) { var d = el.querySelector("details"); if (d) d.open = true; } }
+  window.addEventListener("hashchange", openHash);
+
+  // theme toggle (remembered)
+  var root = document.documentElement;
+  try { var t = localStorage.getItem("manual_theme"); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+  document.getElementById("theme").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark"; root.setAttribute("data-theme", next);
+    try { localStorage.setItem("manual_theme", next); } catch (e) {}
+  });
+
+  // printing (PDF): everything open, every role, no search
+  window.addEventListener("beforeprint", function () { q.value = ""; role = "tots"; apply(); main.querySelectorAll("details").forEach(function (d) { d.open = true; }); });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+  // opened from the app: "?app=1" (the app shows its own version; the PDF link opens in the browser)
+  if (/[?&]v=([\d.]+)/.test(location.search)) document.getElementById("ver").textContent = "versión " + RegExp.$1;
+  apply(); openHash();
+})();
+</script>
+</body>
+</html>

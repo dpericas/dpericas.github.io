@@ -88,6 +88,10 @@
   }
   .print-cover { display: none; text-align: center; padding: 40pt 0 20pt; }
   .print-cover svg { width: 120pt; height: 120pt; }
+.langs { display: flex; justify-content: flex-end; gap: 6px; padding: 0 12px 6px; font-size: 13px; }
+.langs a { color: #fff; opacity: .75; text-decoration: none; padding: 2px 8px; border-radius: 8px; }
+.langs a[aria-current] { opacity: 1; font-weight: 700; background: rgba(255,255,255,.18); }
+@media print { .langs { display: none; } }
 </style>
 </head>
 <body>
@@ -100,6 +104,7 @@
     <a class="iconbtn noprint" id="pdf" href="https://dpericas.github.io/manual/manual.pdf">PDF</a>
     <button class="iconbtn" id="theme" type="button" aria-label="Canvia el tema clar o fosc">◐</button>
   </div>
+  <nav class="langs noprint" aria-label="Idioma · Language"><a href="index.html" hreflang="ca" lang="ca" aria-current="page">Català</a><a href="index.es.html" hreflang="es" lang="es">Castellano</a><a href="index.en.html" hreflang="en" lang="en">English</a></nav>
   <div class="tools">
     <input id="q" type="search" placeholder="Cerca al manual (p. ex. convocatòria, cotxe, avisos…)" aria-label="Cerca al manual">
     <div class="roles" role="group" aria-label="Mostra el que em toca">

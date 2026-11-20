@@ -28,6 +28,7 @@
 
   VSP.initAgenda();
   VSP.initLive();
+  if (VSP.initPush) VSP.initPush();
 
   VSP.loaded = VSP.load().then(function (d) {
     VSP.renderBanner();

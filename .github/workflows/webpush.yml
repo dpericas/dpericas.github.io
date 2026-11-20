@@ -1,0 +1,33 @@
+# 🔔 Web push: sends the club's new notices and call-ups to the browsers subscribed on the web
+# (iPhone with the web on the home screen, computers). Every 10 minutes (GitHub may run it a few
+# minutes late) and on demand from the Actions tab. Setup: see the secrets in the script header.
+name: Avisos web (web push)
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: webpush
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install --quiet "pywebpush==1.14.1"
+      - run: python .github/scripts/webpush_send.py
+        env:
+          WEBPUSH_SERVICE_EMAIL: ${{ secrets.WEBPUSH_SERVICE_EMAIL }}
+          WEBPUSH_SERVICE_PASSWORD: ${{ secrets.WEBPUSH_SERVICE_PASSWORD }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: mailto:voleisantpedor@hotmail.com

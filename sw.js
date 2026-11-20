@@ -1,9 +1,9 @@
 // Service worker of the club web: works offline with the last version seen.
 // Same-origin pages and files: network first, cache as fallback. Data from Firebase / the live
 // relay (other origins) is never cached here.
-const CACHE = "vsp-v3";
+const CACHE = "vsp-v4";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/live/logo.jpg",
-  "/css/app.css", "/js/core.js", "/js/home.js", "/js/agenda.js", "/js/teams.js", "/js/member.js", "/js/club.js", "/js/main.js"];
+  "/css/app.css", "/js/core.js", "/js/home.js", "/js/agenda.js", "/js/teams.js", "/js/member.js", "/js/club.js", "/js/push.js", "/js/main.js"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -24,3 +24,23 @@ self.addEventListener("fetch", (e) => {
     }).catch(() => caches.match(req, { ignoreSearch: true }).then((r) => r || (req.mode === "navigate" ? caches.match("/") : Response.error())))
   );
 });
+
+// 🔔 Web push (iPhone / browsers): the club's sending service posts {title, body, url, tag}
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (err) { d = { title: "Vòlei Santpedor", body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Vòlei Santpedor", {
+    body: d.body || "", tag: d.tag || undefined, icon: "/icons/icon-192.png", badge: "/icons/icon-192.png",
+    data: { url: d.url || "/" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "/", self.location.origin).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+    for (const c of list) if (c.url.startsWith(self.location.origin) && "focus" in c) { c.navigate(url); return c.focus(); }
+    return self.clients.openWindow(url);
+  }));
+});
+
