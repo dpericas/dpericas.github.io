@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Manual de l'app del Vòlei Santpedor</title>
+<meta name="description" content="Com funciona l'app del Club Vòlei Santpedor: famílies, jugadors/es, entrenadors, junta i administració.">
+<meta name="theme-color" content="#0f5132">
+<style>
+  /* Layout: a phone-first manual. Sticky search + role filter, a table of contents (drawer on phones,
+     sidebar on wide screens) and foldable sections. Print: everything open, no controls (PDF). */
+  :root {
+    --bg: #f4f6f4; --card: #ffffff; --ink: #141a16; --muted: #56655b; --line: #d8e2da;
+    --brand: #0f5132; --green: #1e8c34; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #e6eee8;
+    --warn: #8a5300; --warn-bg: #fff4dc;
+    --font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --bg: #0e1310; --card: #161d18; --ink: #e6efe8; --muted: #9fb2a5; --line: #26332a;
+      --brand: #8fd19a; --green: #5fcf7a; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #1f2a22; --warn: #ffcf7a; --warn-bg: #2b2412; color-scheme: dark; }
+  }
+  :root[data-theme="dark"] { --bg: #0e1310; --card: #161d18; --ink: #e6efe8; --muted: #9fb2a5; --line: #26332a;
+    --brand: #8fd19a; --green: #5fcf7a; --mint: #b9f6c0; --mint-ink: #0b2a14; --chip: #1f2a22; --warn: #ffcf7a; --warn-bg: #2b2412; color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html { scroll-padding-top: 120px; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 var(--font); }
+  a { color: var(--green); }
+  header.top { position: sticky; top: 0; z-index: 5; background: var(--brand); color: #fff;
+    padding: max(10px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px)); }
+  .bar { display: flex; align-items: center; gap: 10px; max-width: 1100px; margin: 0 auto; }
+  .bar svg { width: 38px; height: 38px; flex: none; overflow: visible; }
+  .bar h1 { font-size: 18px; margin: 0; line-height: 1.2; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .bar h1 small { overflow: hidden; text-overflow: ellipsis; }
+  .bar h1 small { display: block; font-weight: 400; font-size: 12px; opacity: .85; }
+  .iconbtn { flex: none; background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 10px; padding: 7px 9px; font-size: 15px; cursor: pointer; text-decoration: none; }
+  .tools { max-width: 1100px; margin: 8px auto 0; display: grid; gap: 8px; }
+  .tools input { width: 100%; border: 0; border-radius: 12px; padding: 10px 12px; font-size: 16px; background: #fff; color: #111; }
+  .roles { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+  .roles button { flex: none; border: 1px solid rgba(255,255,255,.5); background: transparent; color: #fff; border-radius: 999px; padding: 5px 12px; font-size: 14px; cursor: pointer; }
+  .roles button[aria-pressed="true"] { background: var(--mint); color: var(--mint-ink); border-color: var(--mint); font-weight: 700; }
+  .layout { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 1fr; gap: 16px;
+    padding: 16px max(16px, env(safe-area-inset-right, 0px)) 48px max(16px, env(safe-area-inset-left, 0px)); }
+  @media (min-width: 900px) { .layout { grid-template-columns: 260px 1fr; } nav.toc { position: sticky; top: 140px; align-self: start; max-height: calc(100vh - 160px); overflow: auto; } #tocbtn { display: none; } }
+  nav.toc { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 12px 14px; font-size: 15px; }
+  nav.toc ol { margin: 0; padding-left: 20px; }
+  nav.toc li { margin: 4px 0; }
+  nav.toc a { color: var(--ink); text-decoration: none; }
+  nav.toc a:hover { color: var(--green); }
+  @media (max-width: 899px) { nav.toc { display: none; } nav.toc.open { display: block; } }
+  main { min-width: 0; display: grid; gap: 14px; }
+  section.chap { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 4px 16px 10px; }
+  section.chap > h2 { font-size: 21px; margin: 12px 0 4px; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+  .tag { font-size: 12px; font-weight: 600; background: var(--chip); color: var(--muted); border-radius: 999px; padding: 2px 8px; }
+  .lead { color: var(--muted); margin: 0 0 6px; }
+  details { border-top: 1px solid var(--line); }
+  details > summary { cursor: pointer; padding: 10px 0; font-weight: 650; list-style: none; display: flex; gap: 8px; align-items: center; }
+  details > summary::-webkit-details-marker { display: none; }
+  details > summary::before { content: "▸"; color: var(--green); transition: transform .15s; }
+  details[open] > summary::before { transform: rotate(90deg); }
+  details > div { padding: 0 0 10px 18px; }
+  details p, details li { margin: 6px 0; }
+  .path { font-family: var(--mono); font-size: 13.5px; background: var(--chip); border-radius: 6px; padding: 1px 6px; white-space: nowrap; }
+  .tip { background: var(--chip); border-radius: 12px; padding: 8px 12px; margin: 8px 0; }
+  .warn { background: var(--warn-bg); color: var(--warn); border-radius: 12px; padding: 8px 12px; margin: 8px 0; }
+  kbd { font-family: var(--mono); font-size: 13px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 6px; padding: 0 5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 15px; }
+  td, th { border-top: 1px solid var(--line); padding: 6px 8px 6px 0; text-align: left; vertical-align: top; }
+  .tablewrap { overflow-x: auto; }
+  .hidden { display: none !important; }
+  mark { background: var(--mint); color: var(--mint-ink); border-radius: 3px; }
+  #noresults { color: var(--muted); }
+  footer.end { color: var(--muted); font-size: 13px; text-align: center; padding: 8px 16px 32px; }
+  :focus-visible { outline: 3px solid var(--green); outline-offset: 2px; }
+  @media (prefers-reduced-motion: reduce) { details > summary::before { transition: none; } }
+  @media print {
+    header.top, nav.toc, #noresults, .noprint { display: none !important; }
+    body { background: #fff; color: #000; font-size: 11pt; }
+    .layout { display: block; padding: 0; }
+    section.chap { border: 0; break-inside: auto; padding: 0; margin-bottom: 10pt; }
+    section.chap > h2 { break-after: avoid; border-bottom: 2px solid #1e8c34; }
+    details { border: 0; }
+    details > summary { padding: 4pt 0 0; break-after: avoid; }
+    details > summary::before { content: ""; }
+    details > div { padding-left: 0; }
+    .print-cover { display: block !important; }
+    a { color: #000; text-decoration: none; }
+  }
+  .print-cover { display: none; text-align: center; padding: 40pt 0 20pt; }
+  .print-cover svg { width: 120pt; height: 120pt; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="bar">
+    <svg viewBox="10 10 180 180" role="img" aria-hidden="true" focusable="false"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
+    <h1>Manual de l'app<small>Club Vòlei Santpedor · <span id="ver">versió 01.30</span></small></h1>
+    <button class="iconbtn" id="tocbtn" type="button" aria-expanded="false" aria-controls="toc" aria-label="Índex">☰</button>
+    <a class="iconbtn noprint" id="pdf" href="https://dpericas.github.io/manual/manual.pdf">PDF</a>
+    <button class="iconbtn" id="theme" type="button" aria-label="Canvia el tema clar o fosc">◐</button>
+  </div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Cerca al manual (p. ex. convocatòria, cotxe, avisos…)" aria-label="Cerca al manual">
+    <div class="roles" role="group" aria-label="Mostra el que em toca">
+      <button type="button" data-role="tots" aria-pressed="true">Tot</button>
+      <button type="button" data-role="families" aria-pressed="false">Famílies i jugadors/es</button>
+      <button type="button" data-role="entrenadors" aria-pressed="false">Entrenadors</button>
+      <button type="button" data-role="junta" aria-pressed="false">Junta</button>
+      <button type="button" data-role="admin" aria-pressed="false">Administració</button>
+    </div>
+  </div>
+</header>
+
+<div class="layout">
+<nav class="toc" id="toc" aria-label="Índex"><ol id="toclist"></ol></nav>
+<main id="main">
+  <div class="print-cover"><svg viewBox="10 10 180 180" role="img" aria-hidden="true"><defs><clipPath id="pb0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pb0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pb0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pb0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pb0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pb0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pb0)"><g clip-path="url(#pb0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pb0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pb0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pb0s)"/><circle cx="100" cy="100" r="80" fill="url(#pb0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg><h1>Manual de l'app del Club Vòlei Santpedor</h1><p>Famílies, jugadors/es, entrenadors, junta i administració</p></div>
+  <p id="noresults" class="hidden">No hi ha cap apartat amb aquesta cerca. Prova amb una altra paraula.</p>
+
+  <section class="chap" id="inici" data-roles="families entrenadors junta admin">
+    <h2>👋 Per començar</h2>
+    <p class="lead">L'app del club té el calendari i els resultats de tots els equips, els partits en directe, els avisos del club, les convocatòries i molt més. Toca un apartat per obrir-lo.</p>
+    <details><summary>Instal·lar l'app (Android)</summary><div>
+      <p>L'app no és a Google Play: es descarrega des de la web del club, <span class="path">dpericas.github.io/app</span>, o escanejant el QR del cartell.</p>
+      <ol><li>Toca «Descarrega per a Android».</li><li>Obre el fitxer descarregat. Si el mòbil ho demana, permet «Instal·lar aplicacions d'aquesta font».</li><li>Obre l'app: surt una benvinguda amb la Pili.</li></ol>
+      <p class="tip">💡 Les actualitzacions arriben soles: quan n'hi ha una de nova, l'app ho avisa i s'instal·la amb un toc.</p>
+    </div></details>
+    <details><summary>Tinc iPhone</summary><div>
+      <p>Fes servir la web <span class="path">dpericas.github.io</span>: té l'inici, l'agenda i el club. A Safari, toca <kbd>Compartir</kbd> › «Afegeix a la pantalla d'inici» i quedarà com una app.</p>
+    </div></details>
+    <details><summary>La benvinguda: equips, avisos i «Ets jugador/a o família?»</summary><div>
+      <p>La primera vegada l'app et demana:</p>
+      <ul><li><b>Quins equips segueixes</b> (els marques amb ★): surten primer, en tens els recordatoris i els veus junts a «Els meus partits».</li>
+      <li><b>Quins avisos vols</b>: avisos del club, recordatoris de partits i partits en directe.</li>
+      <li><b>Si ets jugador/a, família o només segueixes el club</b>. Si tries jugador/a o família, en acabar s'obre «El meu equip» per demanar entrar al teu equip.</li></ul>
+      <p>La pots tornar a veure a <span class="path">Club › ⚙️ › Sobre l'app › Benvinguda</span>.</p>
+    </div></details>
+    <details><summary>Les quatre pestanyes</summary><div>
+      <div class="tablewrap"><table>
+        <tr><th>Pestanya</th><th>Què hi trobes</th></tr>
+        <tr><td>🏐 Equips</td><td>Tots els equips del club, el compte enrere al proper partit, els partits d'avui.</td></tr>
+        <tr><td>📅 Agenda</td><td>Tots els partits per dies, convocatòries, cotxes compartits, com arribar.</td></tr>
+        <tr><td>🔴 Marcador</td><td>Portar el marcador d'un partit, retransmetre'l i seguir els directes.</td></tr>
+        <tr><td>ℹ️ Club</td><td>Avisos, horaris, galeria, pavellons, la Pili, «El meu equip» i Preferències.</td></tr>
+      </table></div>
+      <p class="tip">👉 Pots <b>lliscar a dreta i esquerra</b> per passar d'una pestanya a l'altra.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="equips" data-roles="families entrenadors junta admin">
+    <h2>🏐 Equips</h2>
+    <details><summary>Fitxa d'un equip: partits, classificació i plantilla</summary><div>
+      <p>Toca un equip per veure els seus partits i la classificació (de la web oficial de la federació) i la <b>plantilla</b> amb fotos. Els equips no federats (Escola, Màsters…) mostren la plantilla, els horaris i els amistosos.</p>
+      <p>Toca l'estrella ★ d'un equip per seguir-lo. Els equips amb una ratxa de victòries porten 🔥.</p>
+    </div></details>
+    <details><summary>Compte enrere i partits d'avui</summary><div>
+      <p>A dalt de tot hi ha el compte enrere al proper partit dels teus equips ★ i, els dies de partit, la llista dels partits d'avui.</p>
+    </div></details>
+    <details><summary>Portar el marcador des de la fitxa</summary><div>
+      <p>Obre un partit a la fitxa de l'equip: si encara no s'ha jugat, surt el botó petit 🔴 per portar-ne el marcador amb els equips ja posats.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="agenda" data-roles="families entrenadors junta admin">
+    <h2>📅 Agenda</h2>
+    <details><summary>Partits per dies i «Els meus partits»</summary><div>
+      <p>L'agenda té tots els partits del club (oficials i amistosos) ordenats per dies. Amb el botó 👪 <b>Els meus partits</b> veus només els dels teus equips, amb un color per equip, un avís si dos partits coincideixen i qui hi porta.</p>
+    </div></details>
+    <details><summary>Convocatòries i «vinc / no vinc»</summary><div>
+      <p>Quan l'entrenador/a publica una convocatòria, el partit mostra el botó 👥 amb el nombre de convocades. Hi veus la quedada, el lloc, l'equipació i qui va convocada.</p>
+      <p>Si ets <b>membre de l'equip</b> i has dit qui ets a la plantilla (vegeu <a href="#club">El meu equip</a>), rebràs l'avís «Estàs a la convocatòria!» i dins la convocatòria podràs respondre <b>Vinc</b> o <b>No vinc</b> (amb un motiu). L'entrenador/a hi veu el resum.</p>
+    </div></details>
+    <details><summary>Com arribar i guia de pavellons</summary><div>
+      <p>Toca <b>Com arribar</b> en un partit per obrir Google Maps cap al pavelló. Els partits de fora tenen una marca quan els consells del pavelló estan guardats per consultar-los sense cobertura.</p>
+      <p>A <span class="path">Club › Pavellons</span> hi ha el mapa dels pavellons i els consells de les famílies (aparcament, bar, accés…). Tu també en pots afegir.</p>
+    </div></details>
+    <details><summary>Cotxes compartits</summary><div>
+      <p>Als partits de fora, toca <b>Cotxes</b>: pots oferir places al teu cotxe, apuntar-te a un cotxe o dir que necessites lloc. Les entrades s'esborren soles dos dies després del partit.</p>
+    </div></details>
+    <details><summary>Calendari al mòbil i calendari imprimible</summary><div>
+      <p>A Preferències pots fer que els partits dels teus equips ★ s'afegeixin al calendari del mòbil. Des de la fitxa d'un equip pots treure el calendari de la temporada en PDF per imprimir.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="marcador" data-roles="families entrenadors junta admin">
+    <h2>🔴 Marcador i directes</h2>
+    <details><summary>Portar el marcador d'un partit</summary><div>
+      <ol><li>Pestanya Marcador. A <b>Partits d'avui</b> toca «🏐 Porta'l» en un partit (s'omplen els equips i les regles), o escriu els equips a mà.</li>
+      <li>Tria les regles (millor de 5, de 3, alevins…) i qui serveix primer.</li>
+      <li>Toca el panell d'un equip per sumar-li un punt. <kbd>Desfés</kbd> corregeix l'últim.</li></ol>
+      <p>Hi ha temps morts amb compte enrere, canvis, canvi de camp al tie-break, avisos de punt de set i de partit, i un «mode drama» quan el partit està molt igualat.</p>
+    </div></details>
+    <details><summary>Alineació, rotacions i canvis</summary><div>
+      <p>Amb «👥 Tria de la plantilla» toques les 6 jugadores per ordre de posició (I la que serveix, II, III, IV, V, VI). El marcador mostra el camp amb les posicions, qui serveix, la següent a servir i la rotació (R1–R6). Quan l'equip recupera el servei surt «🔄 roten · serveix X».</p>
+      <p>A <b>Canvis</b> tries qui surt i qui entra: la nova jugadora ocupa la mateixa posició.</p>
+    </div></details>
+    <details><summary>Retransmetre en directe</summary><div>
+      <p>Amb el marcador obert, toca <b>Retransmet</b>: les famílies poden seguir el partit punt a punt amb un enllaç o un codi, i, si el partit és a la llista del club, a «Seguir un partit». Els que el segueixen poden aplaudir 👏, tocar el tambor 🥁 i enviar reaccions, i tu ho veus al marcador.</p>
+    </div></details>
+    <details><summary>Seguir un partit</summary><div>
+      <p>A la pestanya Marcador, <b>Seguir un partit</b> mostra els directes del club; també es pot obrir des d'un enllaç rebut per WhatsApp. Amb els avisos dels directes activats, l'app t'avisa quan comença un partit i al final de cada set.</p>
+    </div></details>
+    <details><summary>Pantalla gran, historial, acta i imatge del resultat</summary><div>
+      <p>La <b>pantalla gran</b> mostra el marcador en gran per al pavelló (ideal en una tauleta o tele). A l'<b>historial</b> hi ha els partits guardats: en pots fer l'acta en PDF i una imatge del resultat per compartir.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="club" data-roles="families entrenadors junta admin">
+    <h2>ℹ️ Club</h2>
+    <details><summary>Avisos (també urgents i 🔒 de l'equip)</summary><div>
+      <p>Els avisos del club surten a dalt de la pestanya Club. Els <b>urgents</b> surten primer i en vermell, amb un so propi. Alguns porten imatge o un PDF.</p>
+      <p>Els avisos amb <b>🔒</b> són <b>només per a l'equip</b>: només els veuen els jugadors/es i famílies aprovats de l'equip, els entrenadors i la junta.</p>
+    </div></details>
+    <details><summary>El meu equip (jugadors/es i famílies)</summary><div>
+      <ol><li><span class="path">Club › 👤 El meu equip</span>.</li>
+      <li>Tria <b>Jugador/a</b> (un sol equip) o <b>Família</b> (un o més equips) i escriu el nom.</li>
+      <li>Tria els equips i, a cada equip, <b>qui ets a la plantilla</b> (o els teus fills/es).</li>
+      <li><b>Envia la sol·licitud</b>. L'entrenador/a de l'equip o la junta l'aprova.</li></ol>
+      <p>Quan surts «✅ Dins», reps els avisos 🔒 de l'equip, l'avís personal de convocatòria i pots respondre «vinc / no vinc». Pots canviar el nom o els fills sense perdre l'aprovació.</p>
+      <p class="tip">💡 Si et surt «❔ No aprovada», toca «Envia la sol·licitud» un altre cop.</p>
+    </div></details>
+    <details><summary>Horaris, galeria, notícies, valors i escalfament</summary><div>
+      <ul><li><b>Horaris</b>: els entrenaments de cada equip.</li>
+      <li><b>Galeria</b>: àlbums de fotos del club; les famílies poden <b>proposar fotos</b>, que l'entrenador/a revisa.</li>
+      <li><b>Notícies</b>: el que publica la federació sobre el club.</li>
+      <li><b>Valors</b>: el codi del club.</li>
+      <li><b>Escalfament</b>: rutines guiades amb temporitzador.</li>
+      <li><b>Guia del vòlei</b>: les regles explicades, amb un qüestionari.</li></ul>
+    </div></details>
+    <details><summary>Comandes d'equipació</summary><div>
+      <p>Quan la junta obre una comanda, surt la rajola 👕 a Club: tries peces, talles i quantitats i envies la petició.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="pili" data-roles="families entrenadors junta admin">
+    <h2>🐣 La Pili</h2>
+    <details><summary>La teva Pili, adhesius, fons de pantalla i fotomaton</summary><div>
+      <p>La Pili és la mascota del club. A <b>La teva Pili</b> tries com és (verd i negre, ratlles, campiona, rematadora… o les grogues d'abans) i les disfresses que vas desbloquejant jugant. També hi ha <b>adhesius per a WhatsApp</b>, <b>fons de pantalla</b> i un <b>fotomaton</b> amb marc del club.</p>
+      <p>Si la toques, salta, gira, fa l'ullet o parla (amb sons, que es poden treure a Preferències).</p>
+    </div></details>
+    <details><summary>Jocs i rànquing</summary><div>
+      <p>Toquets, recepció, bloqueig, memòria i el qüestionari de regles, amb un rànquing del club per sobrenoms. Hi ha secrets amagats…</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="preferencies" data-roles="families entrenadors junta admin">
+    <h2>⚙️ Preferències</h2>
+    <details><summary>Aparença, intro, idioma i mida del text</summary><div>
+      <p><span class="path">Club › ⚙️</span>: tema clar o fosc, <b>aparença</b> (Club, Nit en negre pur, Pista, Retro), la intro en obrir l'app (vídeo del club, la Pili animada o cap), l'idioma (català, castellà, anglès) i la mida del text.</p>
+    </div></details>
+    <details><summary>Avisos i el so de cada avís</summary><div>
+      <p>Activa o desactiva els avisos del club, els recordatoris dels partits i els avisos dels directes. A <b>So de cada avís</b> tries el so dels avisos, dels urgents i dels recordatoris (xiulet, tambor, campana, veu de la Pili, alarma, so del mòbil o sense so).</p>
+    </div></details>
+    <details><summary>Còpia de seguretat, privacitat i actualitzacions</summary><div>
+      <ul><li><b>Còpia de seguretat</b>: per canviar de mòbil, exporta i importa l'historial, els equips ★ i les preferències.</li>
+      <li><b>Estadístiques anònimes</b>: ajuden la junta a saber quanta gent fa servir l'app; també envien els informes d'error si l'app es tanca sola. Es poden desactivar.</li>
+      <li><b>Sobre l'app</b>: la versió, «Comprovar actualitzacions», «Novetats» i «Benvinguda».</li></ul>
+    </div></details>
+  </section>
+
+  <section class="chap" id="pantalla" data-roles="families entrenadors junta admin">
+    <h2>📱 Pantalla d'inici i cotxe</h2>
+    <details><summary>Ginys (widgets) i dreceres</summary><div>
+      <ul><li><b>Proper partit</b>: els propers partits dels teus equips.</li>
+      <li><b>La Pili</b>: anima els teus equips segons els resultats.</li>
+      <li><b>Directe</b>: el marcador del partit del club que es juga ara, punt a punt (activa els avisos dels directes).</li></ul>
+      <p>Si mantens premuda la icona de l'app hi ha dreceres a <b>Agenda</b>, <b>Directes</b> i <b>El meu equip</b>.</p>
+    </div></details>
+    <details><summary>Android Auto</summary><div>
+      <p>Al cotxe hi ha els propers partits al mapa, els directes i, per a cada partit, <b>Com arribar</b> (obre Google Maps o el navegador del cotxe).</p>
+      <p class="warn">⚠️ Com que l'app no ve de Google Play, cal fer-ho un cop al mòbil: Android Auto › Configuració › toca 10 vegades «Versió» › menú ⋮ › Configuració per a desenvolupadors › activa <b>Fonts desconegudes</b>.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="entrenadors" data-roles="entrenadors junta admin">
+    <h2>🧑‍🏫 Entrenadors <span class="tag">entrenadors · junta · admin</span></h2>
+    <details><summary>Entrar a la Zona d'editors</summary><div>
+      <ol><li>Al final de la pestanya Club, toca «✏️ Ets entrenador/a o de la junta? Entra aquí».</li>
+      <li>Entra amb el correu i la contrasenya del compte que t'ha creat el club i demana l'accés.</li>
+      <li>Quan la junta t'aprova, surt la secció <b>Entrenadors i junta</b> a Club.</li></ol>
+      <p>També es pot fer des de l'ordinador a <span class="path">dpericas.github.io/editors</span> (vegeu <a href="#web">Web</a>).</p>
+    </div></details>
+    <details><summary>Publicar avisos, activitats, amistosos, horaris i fotos</summary><div>
+      <p>A la Zona d'editors tries què vols publicar. Un entrenador/a només publica per als seus equips; la junta, per a tot el club. Els avisos poden ser urgents i portar imatge o un PDF.</p>
+      <p>Activa <b>🔒 Només per a l'equip</b> perquè només ho vegin els membres de l'equip (sense imatge ni PDF).</p>
+    </div></details>
+    <details><summary>⚡ Missatge ràpid a l'equip</summary><div>
+      <p>Plantilles en dos tocs: entreno anul·lat, canvi d'hora o de lloc, equipació, «recordeu portar», partit ajornat, quedada o text lliure. Per defecte és només per a l'equip i caduca sol.</p>
+    </div></details>
+    <details><summary>Convocatòries i respostes</summary><div>
+      <p>Des de l'agenda, toca 👥 en un partit del teu equip: quedada, lloc, equipació, convocades i notes. Es publica a l'app i es pot enviar per WhatsApp. Dins la convocatòria veus <b>Vénen / No vénen / Sense resposta</b> amb els motius. També hi ha <b>notes privades</b> del partit només per als entrenadors.</p>
+    </div></details>
+    <details><summary>Jugadors/es i famílies, plantilles i fotos proposades</summary><div>
+      <ul><li><b>👥 Jugadors/es i famílies</b>: cada equip mostra les sol·licituds pendents («⏳ 2»); aprova, rebutja o treu. «⚠️ repetit» marca noms duplicats.</li>
+      <li><b>📋 Plantilles</b> (equips no federats): noms, rol i dorsal. Es fan servir a la fitxa, les convocatòries, la ruleta i «El meu equip».</li>
+      <li><b>Fotos proposades</b>: revisa les fotos que proposen les famílies abans de publicar-les.</li></ul>
+    </div></details>
+    <details><summary>Ruleta de l'entrenador</summary><div>
+      <p>Tria el teu equip, treu qui no hi és i fes girar la ruleta (qui comença, qui recull les pilotes…).</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="junta" data-roles="junta admin">
+    <h2>🏛️ Junta <span class="tag">junta · admin</span></h2>
+    <details><summary>Missatge setmanal «Propers partits» i WhatsApp</summary><div>
+      <p>A la Zona d'editors, <b>Propers partits</b> prepara el missatge de la setmana per al WhatsApp del club (partits, pavellons amb enllaç i equips que descansen). Cada publicació té el botó «Publica a WhatsApp» amb la imatge i el text.</p>
+    </div></details>
+    <details><summary>Editors, sol·licituds i ús de l'app</summary><div>
+      <p>A <b>Editors i ús</b> aproves les sol·licituds d'accés, tries el rol (entrenador/a o junta) i els equips, i veus l'ús anònim de l'app. També avisa quan algú demana accés.</p>
+    </div></details>
+    <details><summary>Comandes d'equipació</summary><div>
+      <p>Obre i tanca comandes amb les peces i talles, i descarrega el resum de peticions.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="admin" data-roles="admin">
+    <h2>🛠️ Administració <span class="tag">admin</span></h2>
+    <p class="lead">L'administrador/a pot fer tot el que fa la junta i, a més, gestiona els administradors i pot esborrar qualsevol cosa. La secció és a <span class="path">Club › 🛠️ Administració</span>.</p>
+    <details><summary>Simular un perfil</summary><div>
+      <p>Mira l'app com la veu un usuari general, un entrenador/a d'un equip, la junta, un jugador/a o una família (amb els equips i noms que triïs). Surt una bandera lila; la ✕ l'atura. El que publiquis es fa igualment amb el teu compte.</p>
+    </div></details>
+    <details><summary>Seguiment: registre d'activitat i errors</summary><div>
+      <p><b>Registre</b>: qui ha publicat, editat o esborrat què i quan. <b>Errors</b>: els tancaments inesperats de l'app als mòbils, agrupats.</p>
+    </div></details>
+    <details><summary>Interruptors remots, avís de prova, dades i diagnòstic</summary><div>
+      <ul><li><b>Interruptors</b>: desactivar funcions (cotxes, consells, fotos, rànquing, afició), posar un missatge a dalt de l'app o demanar que actualitzin les versions antigues, sense publicar cap versió.</li>
+      <li><b>Avís de prova real</b>: només al teu mòbil o als editors.</li>
+      <li><b>Dades</b>: quants documents hi ha a cada col·lecció, i esborrar-ne.</li>
+      <li><b>Diagnòstic</b>: versió, Android, mòbil i identificadors (es pot copiar).</li></ul>
+    </div></details>
+  </section>
+
+  <section class="chap" id="web" data-roles="families entrenadors junta admin">
+    <h2>🌐 Web del club</h2>
+    <details><summary>La web per a tothom</summary><div>
+      <p><span class="path">dpericas.github.io</span>: inici amb els avisos, agenda dels equips, calendari imprimible i club. Es pot instal·lar al mòbil (sobretot a iPhone).</p>
+    </div></details>
+    <details data-roles="entrenadors junta admin"><summary>Zona d'editors a la web</summary><div>
+      <p><span class="path">dpericas.github.io/editors</span> (enllaç al peu de la web): entra amb el mateix compte que a l'app. Hi pots publicar avisos (també 🔒), aprovar jugadors/es i famílies i, si ets admin, gestionar editors, sol·licituds, interruptors i el registre.</p>
+      <p class="tip">💡 Marca «Recorda'm en aquest ordinador» només en un ordinador teu.</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="problemes" data-roles="families entrenadors junta admin">
+    <h2>❓ Preguntes i problemes</h2>
+    <details><summary>No em arriben els avisos</summary><div>
+      <ul><li>Comprova que tens els avisos activats a <span class="path">Club › ⚙️</span>.</li>
+      <li>Al mòbil: Ajustos › Aplicacions › Vòlei Santpedor › Notificacions activades, i sense estalvi de bateria per a l'app.</li>
+      <li>Els avisos dels directes necessiten «Avisos dels directes» activat (deixa una notificació petita permanent).</li></ul>
+    </div></details>
+    <details><summary>La meva sol·licitud d'equip no surt aprovada</summary><div>
+      <p>Obre <span class="path">Club › El meu equip</span> i refresca. Si surt «No aprovada», torna a tocar «Envia la sol·licitud» i avisa l'entrenador/a.</p>
+    </div></details>
+    <details><summary>L'agenda no està actualitzada</summary><div>
+      <p>L'agenda es llegeix de la web oficial de la federació quan obres l'app. Obre-la amb connexió i toca actualitzar.</p>
+    </div></details>
+    <details><summary>Android Auto no mostra l'app</summary><div>
+      <p>Activa «Fonts desconegudes» a la configuració per a desenvolupadors d'Android Auto (vegeu <a href="#pantalla">Pantalla d'inici i cotxe</a>).</p>
+    </div></details>
+  </section>
+
+  <section class="chap" id="privacitat" data-roles="families entrenadors junta admin">
+    <h2>🔒 Privacitat</h2>
+    <details><summary>Quines dades fa servir l'app</summary><div>
+      <ul><li>L'app no demana el teu correu (només els editors en tenen compte).</li>
+      <li>Cada mòbil té un identificador anònim. El nom que poses a «El meu equip» només el veuen els entrenadors dels teus equips i la junta.</li>
+      <li>Les estadístiques i els informes d'error són anònims i es poden desactivar.</li>
+      <li>Els avisos «🔒 de l'equip» només els poden llegir els membres aprovats de l'equip.</li></ul>
+      <p>Per a qualsevol dubte: <span class="path">voleisantpedor@hotmail.com</span>.</p>
+    </div></details>
+  </section>
+</main>
+</div>
+<footer class="end">Club Vòlei Santpedor · Manual de l'app · <span id="year"></span></footer>
+
+<script>
+(function () {
+  "use strict";
+  var main = document.getElementById("main"), chaps = Array.prototype.slice.call(main.querySelectorAll("section.chap"));
+  // table of contents
+  var toc = document.getElementById("toclist");
+  chaps.forEach(function (s) {
+    var li = document.createElement("li"); li.dataset.for = s.id;
+    var a = document.createElement("a"); a.href = "#" + s.id; a.textContent = s.querySelector("h2").childNodes[0].textContent.trim();
+    a.addEventListener("click", function () { closeToc(); });
+    li.appendChild(a); toc.appendChild(li);
+  });
+  var nav = document.getElementById("toc"), tocbtn = document.getElementById("tocbtn");
+  function closeToc() { nav.classList.remove("open"); tocbtn.setAttribute("aria-expanded", "false"); }
+  tocbtn.addEventListener("click", function () { var o = nav.classList.toggle("open"); tocbtn.setAttribute("aria-expanded", o ? "true" : "false"); if (o) nav.scrollIntoView({ block: "start" }); });
+
+  // role filter (remembered on this device)
+  var role = "tots";
+  try { role = localStorage.getItem("manual_role") || "tots"; } catch (e) {}
+  var roleBtns = Array.prototype.slice.call(document.querySelectorAll(".roles button"));
+  function roleOk(el) { var r = el.getAttribute("data-roles"); return role === "tots" || !r || r.split(" ").indexOf(role) >= 0; }
+  roleBtns.forEach(function (b) { b.addEventListener("click", function () { role = b.dataset.role; try { localStorage.setItem("manual_role", role); } catch (e) {} apply(); }); });
+
+  // search with highlights
+  var q = document.getElementById("q");
+  var originals = new Map();
+  main.querySelectorAll("details").forEach(function (d) { originals.set(d, d.innerHTML); });
+  function norm(s) { return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase(); }
+  function esc(s) { return s.replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function highlight(d, term) {
+    d.innerHTML = originals.get(d);
+    if (!term) return;
+    var walker = document.createTreeWalker(d, NodeFilter.SHOW_TEXT), nodes = [], n;
+    while ((n = walker.nextNode())) nodes.push(n);
+    nodes.forEach(function (t) {
+      var txt = t.nodeValue, i = norm(txt).indexOf(term);
+      if (i < 0) return;
+      var span = document.createElement("span");
+      span.innerHTML = esc(txt.slice(0, i)) + "<mark>" + esc(txt.slice(i, i + term.length)) + "</mark>" + esc(txt.slice(i + term.length));
+      t.parentNode.replaceChild(span, t);
+    });
+  }
+  function apply() {
+    roleBtns.forEach(function (b) { b.setAttribute("aria-pressed", b.dataset.role === role ? "true" : "false"); });
+    var term = norm(q.value.trim()), any = false;
+    chaps.forEach(function (s) {
+      var sOk = roleOk(s), visible = 0;
+      s.querySelectorAll("details").forEach(function (d) {
+        highlight(d, term);
+        var ok = sOk && roleOk(d) && (!term || norm(d.textContent).indexOf(term) >= 0);
+        d.classList.toggle("hidden", !ok);
+        if (term && ok) d.open = true;
+        if (ok) visible++;
+      });
+      var show = sOk && visible > 0;
+      s.classList.toggle("hidden", !show);
+      var li = toc.querySelector('li[data-for="' + s.id + '"]'); if (li) li.classList.toggle("hidden", !show);
+      if (show) any = true;
+    });
+    document.getElementById("noresults").classList.toggle("hidden", any);
+  }
+  var timer; q.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(apply, 150); });
+
+  // open the section of a #link
+  function openHash() { var el = location.hash && document.getElementById(location.hash.slice(1)); if (el) { var d = el.querySelector("details"); if (d) d.open = true; } }
+  window.addEventListener("hashchange", openHash);
+
+  // theme toggle (remembered)
+  var root = document.documentElement;
+  try { var t = localStorage.getItem("manual_theme"); if (t) root.setAttribute("data-theme", t); } catch (e) {}
+  document.getElementById("theme").addEventListener("click", function () {
+    var dark = root.getAttribute("data-theme") ? root.getAttribute("data-theme") === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    var next = dark ? "light" : "dark"; root.setAttribute("data-theme", next);
+    try { localStorage.setItem("manual_theme", next); } catch (e) {}
+  });
+
+  // printing (PDF): everything open, every role, no search
+  window.addEventListener("beforeprint", function () { q.value = ""; role = "tots"; apply(); main.querySelectorAll("details").forEach(function (d) { d.open = true; }); });
+
+  document.getElementById("year").textContent = new Date().getFullYear();
+  // opened from the app: "?app=1" (the app shows its own version; the PDF link opens in the browser)
+  if (/[?&]v=([\d.]+)/.test(location.search)) document.getElementById("ver").textContent = "versió " + RegExp.$1;
+  apply(); openHash();
+})();
+</script>
+</body>
+</html>
