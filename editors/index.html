@@ -1,0 +1,961 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Zona d'editors · Vòlei Santpedor</title>
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ntfy.sh; form-action 'none'; base-uri 'none'; object-src 'none'">
+<link rel="icon" href="../icons/icon-192.png">
+<meta name="theme-color" content="#0f5132">
+<style>
+  :root {
+    --bg:#f6f7f8; --card:#ffffff; --text:#15191c; --muted:#5f6b73; --line:#e3e7ea;
+    --accent:#b9f6c0; --accent-ink:#1a1a1a; --brand:#0f5132; --danger:#c62828; --warn-bg:#fff4d6; --warn-ink:#5c4300;
+    --chip:#eef1f3; --chip-on:#0f5132; --chip-on-ink:#fff; --focus:#1565c0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035; --danger:#ff8a80;
+      --warn-bg:#3a3018; --warn-ink:#ffe08a; --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12; --focus:#90caf9;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg:#101214; --card:#1b1f22; --text:#eef1f3; --muted:#9aa7af; --line:#2a3035; --danger:#ff8a80;
+    --warn-bg:#3a3018; --warn-ink:#ffe08a; --brand:#7fd8a6; --chip:#263036; --chip-on:#7fd8a6; --chip-on-ink:#0b1a12; --focus:#90caf9;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; }
+  main { max-width:760px; margin:0 auto; padding:calc(12px + env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom)); }
+  a { color:var(--brand); }
+  :focus-visible { outline:3px solid var(--focus); outline-offset:2px; }
+  header.hero { display:flex; align-items:center; gap:14px; padding:4px 44px 8px 0; }
+  header.hero img { width:52px; height:52px; border-radius:50%; background:#fff; flex:none; box-shadow:0 0 0 3px var(--accent); }
+  header.hero h1 { margin:0; font-size:20px; line-height:1.15; }
+  header.hero p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:14px; }
+  section h2 { margin:0 0 10px; font-size:17px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  h3 { font-size:15px; margin:14px 0 6px; }
+  .muted { color:var(--muted); font-size:14px; }
+  .small { font-size:13px; }
+  .empty { color:var(--muted); font-size:14px; font-style:italic; }
+  .btn { display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:10px 16px; min-height:42px;
+         border-radius:12px; font-weight:700; text-decoration:none; font-size:15px; border:0; cursor:pointer; font-family:inherit; }
+  .btn.primary { background:var(--accent); color:var(--accent-ink); }
+  .btn.ghost { background:var(--chip); color:var(--text); }
+  .btn.danger { background:transparent; color:var(--danger); border:1px solid currentColor; }
+  .btn.small { padding:6px 12px; min-height:36px; font-size:14px; }
+  .btn[disabled] { opacity:.5; cursor:default; }
+  .linkbtn { background:none; border:0; padding:0; color:var(--brand); font:inherit; font-size:14px; text-decoration:underline; cursor:pointer; }
+  .row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .spacer { flex:1; }
+  .f { display:block; font-weight:600; font-size:14px; margin:12px 0 4px; }
+  .hint { color:var(--muted); font-size:12.5px; font-weight:400; }
+  input[type=text], input[type=email], input[type=password], input[type=url], input[type=date], input[type=number], input[type=search], textarea, select {
+    width:100%; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--text);
+    font:inherit; font-size:16px; }
+  textarea { min-height:110px; resize:vertical; }
+  .check { display:flex; gap:10px; align-items:flex-start; margin-top:12px; font-size:14px; }
+  .check input { width:20px; height:20px; margin:2px 0 0; flex:none; }
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  @media (max-width:440px) { .two { grid-template-columns:1fr; } }
+  .item { padding:12px 0; border-top:1px solid var(--line); }
+  .item:first-child { border-top:0; padding-top:0; }
+  .item h4 { margin:0; font-size:15px; overflow-wrap:anywhere; }
+  .item p { margin:4px 0 0; font-size:14px; white-space:pre-line; overflow-wrap:anywhere; }
+  .item.old { opacity:.6; }
+  .meta { color:var(--muted); font-size:13px; margin-top:2px; overflow-wrap:anywhere; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .chip { background:var(--chip); border-radius:999px; padding:2px 10px; font-size:12px; }
+  button.chip { border:1px solid transparent; font:inherit; font-size:13px; padding:7px 12px; color:var(--text); cursor:pointer; min-height:36px; }
+  button.chip.on, button.chip[aria-pressed="true"] { background:var(--chip-on); color:var(--chip-on-ink); font-weight:700; }
+  button.chip[disabled] { opacity:.45; cursor:default; }
+  .badge { display:inline-block; min-width:20px; padding:0 6px; border-radius:999px; background:var(--danger); color:#fff; font-size:12px; font-weight:700; text-align:center; margin-left:4px; }
+  .tag { display:inline-block; border-radius:6px; padding:0 6px; font-size:12px; font-weight:700; background:var(--chip); }
+  .tag.warn { background:var(--warn-bg); color:var(--warn-ink); }
+  .msg { margin-top:10px; font-size:14px; min-height:1em; }
+  .msg.err { color:var(--danger); font-weight:600; }
+  .msg.ok { color:var(--brand); font-weight:600; }
+  .note { background:var(--warn-bg); color:var(--warn-ink); border-radius:10px; padding:8px 12px; font-size:13px; margin-top:8px; }
+  .theme { position:fixed; top:calc(10px + env(safe-area-inset-top)); right:10px; background:var(--card); border:1px solid var(--line);
+           color:var(--text); border-radius:999px; width:38px; height:38px; cursor:pointer; font-size:16px; z-index:5; }
+  .userbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font-size:14px; }
+  nav.tabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+  nav.tabs button { border:1px solid var(--line); background:var(--card); color:var(--text); border-radius:999px; padding:8px 14px;
+                    font:inherit; font-size:14px; cursor:pointer; min-height:40px; }
+  nav.tabs button[aria-selected="true"] { background:var(--chip-on); color:var(--chip-on-ink); font-weight:700; border-color:transparent; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  td, th { padding:6px 4px; border-top:1px solid var(--line); vertical-align:top; text-align:left; overflow-wrap:anywhere; }
+  .toast { position:fixed; left:50%; bottom:calc(16px + env(safe-area-inset-bottom)); transform:translateX(-50%); max-width:calc(100% - 32px);
+           background:var(--text); color:var(--bg); padding:10px 16px; border-radius:12px; font-size:14px; z-index:20; box-shadow:0 4px 16px rgba(0,0,0,.25); }
+  .toast.err { background:var(--danger); color:#fff; }
+  footer { text-align:center; color:var(--muted); font-size:13px; margin-top:24px; }
+  [hidden] { display:none !important; }
+</style>
+</head>
+<body>
+<button class="theme" id="theme" type="button" title="Canvia el tema" aria-label="Canvia el tema clar o fosc">◐</button>
+<main>
+  <header class="hero">
+    <img src="../live/logo.jpg" alt="">
+    <div>
+      <h1>Zona d'editors</h1>
+      <p>Club Vòlei Santpedor · per a la junta i els entrenadors</p>
+    </div>
+  </header>
+
+  <!-- ====================== LOGIN ====================== -->
+  <section id="login-sec" hidden>
+    <h2>🔑 Entra</h2>
+    <form id="login-form" novalidate>
+      <label class="f" for="l-email">Correu electrònic</label>
+      <input id="l-email" type="email" autocomplete="username" required inputmode="email">
+      <label class="f" for="l-pass">Contrasenya</label>
+      <input id="l-pass" type="password" autocomplete="current-password" required>
+      <label class="check"><input id="l-remember" type="checkbox">
+        <span>Recorda'm en aquest ordinador<br><span class="hint">Només en un ordinador o mòbil teu. En un ordinador compartit (escola, biblioteca…) deixa-ho sense marcar: la sessió s'acabarà en tancar la pestanya.</span></span></label>
+      <div class="row" style="margin-top:14px">
+        <button class="btn primary" id="l-go" type="submit">Entra</button>
+        <button class="linkbtn" id="l-reset" type="button">He oblidat la contrasenya</button>
+      </div>
+      <p class="msg" id="l-msg" role="status" aria-live="polite"></p>
+    </form>
+    <p class="muted small">Fes servir el mateix compte que a l'app. Si encara no en tens, demana l'accés des de l'app (Zona d'editors).</p>
+  </section>
+
+  <section id="wait-sec">
+    <p class="muted" role="status">Carregant…</p>
+  </section>
+
+  <section id="noaccess-sec" hidden>
+    <h2>⏳ Encara no tens accés</h2>
+    <p>Encara no tens accés: demana-ho des de l'app. Quan la junta aprovi la sol·licitud, podràs entrar aquí.</p>
+    <button class="btn ghost" type="button" data-signout>Surt</button>
+  </section>
+
+  <!-- ====================== APP ====================== -->
+  <div id="app" hidden>
+    <section>
+      <div class="userbar">
+        <span>👤 <b id="u-name"></b> · <span id="u-role" class="muted"></span></span>
+        <span class="spacer"></span>
+        <button class="btn ghost small" type="button" data-signout>Surt</button>
+      </div>
+      <nav class="tabs" role="tablist" aria-label="Seccions">
+        <button type="button" role="tab" data-go="avisos" aria-selected="true">📢 Avisos</button>
+        <button type="button" role="tab" data-go="membres" aria-selected="false">👪 Jugadors/es i famílies <span id="pend-total"></span></button>
+        <button type="button" role="tab" data-go="admin" aria-selected="false" id="tab-admin" hidden>🛠️ Administració</button>
+      </nav>
+    </section>
+
+    <!-- ---------- AVISOS ---------- -->
+    <div data-tab="avisos">
+      <section id="n-form-sec" hidden>
+        <h2 id="n-form-title">Nou avís</h2>
+        <form id="n-form" novalidate>
+          <label class="f" for="n-titol">Títol <span class="hint">(obligatori, fins a 120 caràcters)</span></label>
+          <input id="n-titol" type="text" maxlength="120" required>
+          <label class="f" for="n-text">Text <span class="hint">(fins a 1000 caràcters)</span></label>
+          <textarea id="n-text" maxlength="1000"></textarea>
+          <div class="two">
+            <div><label class="f" for="n-data">Data</label><input id="n-data" type="date" required></div>
+            <div><label class="f" for="n-fins">Visible fins <span class="hint">(opcional)</span></label><input id="n-fins" type="date"></div>
+          </div>
+          <div class="f" id="n-teams-label">Per a quins equips <span class="hint" id="n-teams-hint"></span></div>
+          <div class="chips" id="n-teams" role="group" aria-labelledby="n-teams-label"></div>
+          <label class="check"><input id="n-privat" type="checkbox"><span>🔒 Només per a l'equip<br><span class="hint">El veuran només els jugadors/es i famílies aprovats de l'equip (i els entrenadors i la junta). Es desa una còpia per a cada equip triat.</span></span></label>
+          <label class="f" for="n-enllac">Enllaç <span class="hint">(opcional, ha de començar per https://)</span></label>
+          <input id="n-enllac" type="url" placeholder="https://…" inputmode="url">
+          <label class="check"><input id="n-urgent" type="checkbox"><span>⚠️ Urgent<br><span class="hint">Es destaca a dalt de tot a l'app.</span></span></label>
+          <p class="muted small" id="n-extra" hidden>Aquest avís té una imatge o un PDF adjunt: es mantindrà tal com és (des del web no es poden canviar).</p>
+          <div class="row" style="margin-top:14px">
+            <button class="btn primary" type="submit" id="n-save">Publica</button>
+            <button class="btn ghost" type="button" id="n-cancel">Cancel·la</button>
+          </div>
+          <p class="msg" id="n-msg" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section>
+        <h2>📢 Avisos <span class="spacer"></span><button class="btn primary small" type="button" id="n-new">＋ Nou avís</button></h2>
+        <p class="muted small">Els avisos nous arriben als mòbils en pocs minuts. Els marcats amb 🔒 són només per a l'equip.</p>
+        <div id="n-list"><div class="empty">Carregant…</div></div>
+      </section>
+    </div>
+
+    <!-- ---------- MEMBRES ---------- -->
+    <div data-tab="membres" hidden>
+      <section>
+        <h2>👪 Jugadors/es i famílies</h2>
+        <p class="muted small">Els mòbils demanen entrar a un equip des de l'app; aquí les aproves o les treus. Només els aprovats veuen els avisos 🔒 de l'equip.</p>
+        <div class="chips" id="m-teams" role="group" aria-label="Equip"></div>
+        <div id="m-list" style="margin-top:12px"><div class="empty">Carregant…</div></div>
+      </section>
+    </div>
+
+    <!-- ---------- ADMIN ---------- -->
+    <div data-tab="admin" hidden>
+      <section>
+        <h2>📝 Sol·licituds d'accés</h2>
+        <div id="a-req"><div class="empty">Carregant…</div></div>
+      </section>
+      <section>
+        <h2>👥 Editors</h2>
+        <div id="a-ed"><div class="empty">Carregant…</div></div>
+      </section>
+      <section>
+        <h2>🎛️ Interruptors de l'app</h2>
+        <form id="c-form" novalidate>
+          <div class="muted small">Desactiva funcions a tots els mòbils:</div>
+          <div id="c-feats"></div>
+          <label class="f" for="c-msg">Missatge a dalt de l'app <span class="hint">(fins a 300 caràcters; buit = cap)</span></label>
+          <textarea id="c-msg" maxlength="300" style="min-height:70px"></textarea>
+          <div class="two">
+            <div><label class="f" for="c-level">To del missatge</label>
+              <select id="c-level"><option value="info">Informació</option><option value="avis">Avís (color d'alerta)</option></select></div>
+            <div><label class="f" for="c-min">Versió mínima <span class="hint">(codi de versió; 0 = cap)</span></label>
+              <input id="c-min" type="number" min="0" step="1" inputmode="numeric"></div>
+          </div>
+          <div class="row" style="margin-top:14px"><button class="btn primary" type="submit" id="c-save">Desa els interruptors</button></div>
+          <p class="msg" id="c-msg-out" role="status" aria-live="polite"></p>
+        </form>
+      </section>
+      <section>
+        <h2>📜 Registre d'activitat <span class="spacer"></span><button class="btn ghost small" type="button" id="r-reload">Actualitza</button></h2>
+        <label class="f" for="r-filter">Filtra</label>
+        <input id="r-filter" type="search" placeholder="Nom, acció, col·lecció, títol…">
+        <p class="muted small" id="r-count"></p>
+        <div id="r-list" style="overflow-x:auto"><div class="empty">Carregant…</div></div>
+      </section>
+    </div>
+  </div>
+
+  <footer><a href="../">← Web del club</a></footer>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  var FIREBASE_PROJECT = "volei-santpedor-eaa1d";
+  var FIREBASE_KEY = "AIzaSyAfdF-SxBI89qHnq_Ke2jCki_HnXosBxoY";
+  var NTFY = "https://ntfy.sh";
+  var CHANNEL = "vspclub-5pksq4432g";
+  var TEAMS = { 3629:"Sènior Femení", 4578:"Sènior Masculí", 3630:"Juvenil V", 3631:"Juvenil N",
+    3632:"Cadet V", 3633:"Cadet N", 3634:"Infantil V", 4916:"Infantil N", 6731:"Aleví",
+    "-1":"Escola Aleví", "-2":"Escola", "-3":"Màsters" };
+  var TEAM_ORDER = [3629, 4578, 3630, 3631, 3632, 3633, 3634, 4916, 6731, -1, -2, -3];
+  var ROLES = { admin:"Administrador/a", junta:"Junta", entrenador:"Entrenador/a" };
+  var FEATURES = [["cotxes", "🚗 Cotxes compartits"], ["consells", "📍 Consells dels pavellons"], ["fotos", "📷 Fotos proposades per les famílies"],
+                  ["ranking", "🏆 Rànquing dels jocs"], ["aficio", "📣 Afició"]];
+  var FS = "https://firestore.googleapis.com/v1/projects/" + FIREBASE_PROJECT + "/databases/(default)/documents";
+  var RT_KEY = "vspe_refresh";
+
+  // =====================================================================
+  // Pure helpers (no DOM, no network): exposed for the self-test.
+  /*PURE-START*/
+  var H = (function () {
+    function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]; }); }
+    function pad(n) { return (n < 10 ? "0" : "") + n; }
+    function isoDay(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+    function validDay(s) {
+      var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ""); if (!m) return false;
+      var d = new Date(+m[1], +m[2] - 1, +m[3]);
+      return d.getFullYear() === +m[1] && d.getMonth() === +m[2] - 1 && d.getDate() === +m[3];
+    }
+    // ---- Firestore REST value encoding
+    function enc(v) {
+      if (v === null || v === undefined) return { nullValue: null };
+      if (typeof v === "string") return { stringValue: v };
+      if (typeof v === "boolean") return { booleanValue: v };
+      if (typeof v === "number") return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+      if (Array.isArray(v)) return { arrayValue: v.length ? { values: v.map(enc) } : {} };
+      if (typeof v === "object") return { mapValue: { fields: encFields(v) } };
+      return { stringValue: String(v) };
+    }
+    function encFields(o) { var f = {}; Object.keys(o).forEach(function (k) { if (o[k] !== undefined) f[k] = enc(o[k]); }); return f; }
+    function dec(v) {
+      if (!v) return null;
+      if ("stringValue" in v) return v.stringValue;
+      if ("integerValue" in v) return Number(v.integerValue);
+      if ("doubleValue" in v) return Number(v.doubleValue);
+      if ("booleanValue" in v) return v.booleanValue;
+      if ("timestampValue" in v) return v.timestampValue;
+      if ("nullValue" in v) return null;
+      if ("arrayValue" in v) return (v.arrayValue.values || []).map(dec);
+      if ("mapValue" in v) return decFields(v.mapValue.fields || {});
+      return null;
+    }
+    function decFields(f) { var o = {}; Object.keys(f || {}).forEach(function (k) { o[k] = dec(f[k]); }); return o; }
+    /** One REST document → {id, path, d (decoded), raw (encoded fields)}. */
+    function doc(d) {
+      var path = String(d.name || "").split("/documents/")[1] || "";
+      return { id: path.split("/").pop(), path: path, d: decFields(d.fields || {}), raw: d.fields || {} };
+    }
+    // ---- permissions (mirror firestore.rules teamsOk)
+    function isJunta(me) { return !!me && (me.role === "junta" || me.role === "admin"); }
+    function isAdmin(me) { return !!me && me.role === "admin"; }
+    function myTeams(me) {
+      return (me && Array.isArray(me.teams) ? me.teams : []).map(Number).filter(function (n) { return Number.isInteger(n); });
+    }
+    function allowedTeams(me, order) { return isJunta(me) ? order.slice() : myTeams(me); }
+    function teamsOk(me, teams) {
+      teams = (teams || []).map(Number);
+      if (isJunta(me)) return true;
+      if (!me || me.role !== "entrenador" || !teams.length) return false;
+      var mine = myTeams(me);
+      return teams.every(function (t) { return mine.indexOf(t) >= 0; });
+    }
+    function roleOptions(me) { return isAdmin(me) ? ["entrenador", "junta", "admin"] : ["entrenador", "junta"]; }
+    // ---- notice form → document (same fields and checks as the app's EditorForms)
+    function buildNotice(v, me) {
+      var titol = String(v.titol || "").trim(), text = String(v.text || "").trim();
+      var data = String(v.data || "").trim(), fins = String(v.fins || "").trim(), enllac = String(v.enllac || "").trim();
+      var teams = (v.equips || []).map(Number).filter(function (n) { return Number.isInteger(n); });
+      teams = teams.filter(function (t, i) { return teams.indexOf(t) === i; });
+      if (!titol) return { error: "Escriu el títol." };
+      if (!validDay(data)) return { error: "La data no és vàlida." };
+      if (fins && !validDay(fins)) return { error: "La data «Visible fins» no és vàlida." };
+      if (fins && fins < data) return { error: "«Visible fins» no pot ser abans de la data de l'avís." };
+      if (enllac && !/^https:\/\/\S+$/.test(enllac)) return { error: "L'enllaç ha de començar per https://" };
+      if (v.privat && !teams.length) return { error: "Tria almenys un equip per a un avís només per a l'equip." };
+      if (!teamsOk(me, teams)) return { error: teams.length ? "Només pots publicar per als teus equips." : "Només la junta pot publicar per a tot el club: tria un equip." };
+      var o = { titol: titol.slice(0, 120) };
+      if (text) o.text = text.slice(0, 1000);
+      o.data = data;
+      o.equips = teams;
+      if (enllac) o.enllac = enllac;
+      if (fins) o.fins = fins;
+      o.urgent = !!v.urgent;
+      return { doc: o, teams: teams, privat: !!v.privat };
+    }
+    function stamp(o, me, uid, nowIso) {
+      var c = {}; Object.keys(o).forEach(function (k) { c[k] = o[k]; });
+      c.autor = uid; c.autorNom = editorName(me); c.created = nowIso;
+      return c;
+    }
+    function editorName(me) { return String((me && (String(me.nom || "").trim() || me.email)) || "").slice(0, 60); }
+    // ---- activity log entry (same as the app's AuditLog)
+    var SKIP_LOG = ["registre", "errors", "installs"];
+    function titleOf(data) {
+      if (!data) return "";
+      var t = "";
+      ["titol", "nom", "text", "rival", "pavello"].some(function (k) { var s = String(data[k] == null ? "" : data[k]).trim(); if (s) { t = s; return true; } return false; });
+      if (!t && data.equip) t = "#" + data.equip;
+      t = t.replace(/\n/g, " ");
+      return t.length > 80 ? t.slice(0, 79) + "…" : t;
+    }
+    function registreEntry(uid, name, op, path, data, nowIso) {
+      var col = String(path).split("/")[0];
+      if (SKIP_LOG.indexOf(col) >= 0 || !uid) return null;
+      if (["create", "update", "delete"].indexOf(op) < 0) return null;
+      return { autor: uid, nom: String(name || "").slice(0, 60), accio: op, col: col.slice(0, 40),
+               cami: String(path).slice(0, 200), titol: titleOf(data), created: nowIso };
+    }
+    // ---- members
+    function normName(s) { return String(s || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " "); }
+    function duplicates(list) {
+      var seen = {}, dup = {};
+      list.forEach(function (m) { var k = normName(m.nom); if (!k) return; if (seen[k]) dup[k] = true; seen[k] = true; });
+      return dup;
+    }
+    function sortMembers(list) {
+      return list.slice().sort(function (a, b) {
+        var pa = a.estat === "aprovat" ? 1 : 0, pb = b.estat === "aprovat" ? 1 : 0;
+        if (pa !== pb) return pa - pb;
+        return normName(a.nom) < normName(b.nom) ? -1 : normName(a.nom) > normName(b.nom) ? 1 : 0;
+      });
+    }
+    // ---- errors → Catalan
+    function errText(code) {
+      code = String(code || "");
+      if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(code)) return "Correu o contrasenya incorrectes";
+      if (/USER_DISABLED/.test(code)) return "Aquest compte està desactivat. Parla amb la junta.";
+      if (/TOO_MANY_ATTEMPTS/.test(code)) return "Massa intents. Espera uns minuts i torna-ho a provar.";
+      if (/PERMISSION_DENIED|^HTTP 403/.test(code)) return "No tens permís per fer això";
+      if (/NETWORK/.test(code)) return "Sense connexió";
+      if (/TOKEN_EXPIRED|INVALID_REFRESH_TOKEN|USER_NOT_FOUND|UNAUTHENTICATED|INVALID_ID_TOKEN/.test(code)) return "La sessió ha caducat: torna a entrar.";
+      if (/NOT_FOUND/.test(code)) return "No s'ha trobat (potser algú ja l'ha esborrat).";
+      if (/FAILED_PRECONDITION/.test(code)) return "No s'ha pogut fer (el document ha canviat o falta un índex). Torna-ho a provar.";
+      if (/API_KEY|API key/i.test(code)) return "La clau del servei no és vàlida per al web. Avisa l'administrador.";
+      return "Hi ha hagut un error (" + code + ")";
+    }
+    return { esc: esc, isoDay: isoDay, validDay: validDay, enc: enc, encFields: encFields, dec: dec, decFields: decFields, doc: doc,
+             isJunta: isJunta, isAdmin: isAdmin, allowedTeams: allowedTeams, teamsOk: teamsOk, roleOptions: roleOptions,
+             buildNotice: buildNotice, stamp: stamp, editorName: editorName, titleOf: titleOf, registreEntry: registreEntry,
+             normName: normName, duplicates: duplicates, sortMembers: sortMembers, errText: errText };
+  })();
+  /*PURE-END*/
+  if (typeof document === "undefined") { if (typeof module !== "undefined") module.exports = H; return; }
+
+  var esc = H.esc;
+  function $(id) { return document.getElementById(id); }
+  function teamName(id) { return TEAMS[id] || ("Equip " + id); }
+  function nowIso() { return new Date().toISOString(); }
+  function fmtDay(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? (+m[3]) + "/" + (+m[2]) + "/" + m[1] : ""; }
+  function fmtStamp(iso) { var d = new Date(iso); return isNaN(d) ? "" : fmtDay(H.isoDay(d)) + " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2); }
+  function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } }
+  var toastTimer = null;
+  function toast(text, err) {
+    var t = $("toast"); t.textContent = text; t.className = "toast" + (err ? " err" : ""); t.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { t.hidden = true; }, err ? 6000 : 3500);
+  }
+  function setMsg(el, text, kind) { el.textContent = text || ""; el.className = "msg" + (kind ? " " + kind : ""); }
+  function errOf(e) { return H.errText(e && (e.code || e.message)); }
+
+  // ---------- theme (shared with the club web)
+  var savedTheme = ls("theme"); if (savedTheme) document.documentElement.setAttribute("data-theme", savedTheme);
+  $("theme").onclick = function () {
+    var cur = document.documentElement.getAttribute("data-theme");
+    if (!cur) cur = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    var next = cur === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next); ls("theme", next);
+  };
+
+  // =====================================================================
+  // Auth: Firebase Auth REST. Id token only in memory; refresh token in sessionStorage
+  // (or localStorage with "Recorda'm"). Never logged.
+  var S = { idToken: null, exp: 0, refresh: null, uid: null, remember: false, me: null, refreshing: null };
+
+  function failure(code) { var e = new Error(String(code)); e.code = String(code); return e; }
+  function postJson(url, body, form) {
+    return fetch(url, { method: "POST", headers: { "Content-Type": form ? "application/x-www-form-urlencoded" : "application/json" },
+                        body: form ? body : JSON.stringify(body) })
+      .catch(function () { throw failure("NETWORK"); })
+      .then(function (r) { return r.json().catch(function () { return {}; }).then(function (j) {
+        if (!r.ok) throw failure((j.error && (j.error.message || j.error.status)) || ("HTTP " + r.status));
+        return j; }); });
+  }
+  function storeRefresh() {
+    try { sessionStorage.removeItem(RT_KEY); } catch (e) {}
+    try { localStorage.removeItem(RT_KEY); } catch (e) {}
+    if (!S.refresh) return;
+    try { (S.remember ? localStorage : sessionStorage).setItem(RT_KEY, S.refresh); } catch (e) {}
+  }
+  function readRefresh() {
+    var t = null;
+    try { t = sessionStorage.getItem(RT_KEY); } catch (e) {}
+    if (t) { S.remember = false; return t; }
+    try { t = localStorage.getItem(RT_KEY); } catch (e) {}
+    if (t) S.remember = true;
+    return t;
+  }
+  function refreshToken() {
+    if (S.refreshing) return S.refreshing;
+    if (!S.refresh) return Promise.reject(failure("TOKEN_EXPIRED"));
+    S.refreshing = postJson("https://securetoken.googleapis.com/v1/token?key=" + FIREBASE_KEY,
+      "grant_type=refresh_token&refresh_token=" + encodeURIComponent(S.refresh), true)
+      .then(function (r) {
+        S.idToken = r.id_token; S.refresh = r.refresh_token || S.refresh; S.uid = r.user_id;
+        S.exp = Date.now() + (Number(r.expires_in) || 3600) * 1000; storeRefresh();
+        return S.idToken;
+      })
+      .then(function (t) { S.refreshing = null; return t; }, function (e) { S.refreshing = null; throw e; });
+    return S.refreshing;
+  }
+  function token() {
+    if (S.idToken && Date.now() < S.exp - 60000) return Promise.resolve(S.idToken);
+    return refreshToken();
+  }
+  function signIn(email, pass, remember) {
+    return postJson("https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=" + FIREBASE_KEY,
+      { email: email, password: pass, returnSecureToken: true })
+      .then(function (r) {
+        S.idToken = r.idToken; S.refresh = r.refreshToken; S.uid = r.localId; S.remember = !!remember;
+        S.exp = Date.now() + (Number(r.expiresIn) || 3600) * 1000; storeRefresh();
+      });
+  }
+  function signOut(why) {
+    S.idToken = null; S.refresh = null; S.uid = null; S.me = null; S.exp = 0; storeRefresh();
+    $("l-pass").value = "";
+    screen("login");
+    if (why) setMsg($("l-msg"), why, "err"); else setMsg($("l-msg"), "Has sortit.", "ok");
+  }
+
+  // ---------- Firestore REST
+  function api(method, path, body, query, retried) {
+    return token().then(function (t) {
+      var url = FS + "/" + path + (query ? "?" + query : "");
+      var opts = { method: method, headers: { Authorization: "Bearer " + t } };
+      if (body) { opts.headers["Content-Type"] = "application/json"; opts.body = JSON.stringify(body); }
+      return fetch(url, opts).catch(function () { throw failure("NETWORK"); });
+    }).then(function (r) {
+      if (r.status === 401 && !retried) { S.exp = 0; return api(method, path, body, query, true); }
+      return r.text().then(function (txt) {
+        var j = {}; try { j = txt ? JSON.parse(txt) : {}; } catch (e) {}
+        if (!r.ok) {
+          var code = (j.error && j.error.status) || ("HTTP " + r.status);
+          if (code === "UNAUTHENTICATED") { signOut(H.errText(code)); }
+          throw failure(code);
+        }
+        return j;
+      });
+    });
+  }
+  function fsGet(path) { return api("GET", path).then(H.doc); }
+  function fsList(path, query) {
+    var out = [];
+    function page(tok) {
+      var q = "pageSize=300" + (query ? "&" + query : "") + (tok ? "&pageToken=" + encodeURIComponent(tok) : "");
+      return api("GET", path, null, q).then(function (r) {
+        (r.documents || []).forEach(function (d) { out.push(H.doc(d)); });
+        return r.nextPageToken && out.length < 3000 ? page(r.nextPageToken) : out;
+      });
+    }
+    return page(null);
+  }
+  function logWrite(op, path, data) {
+    var e = H.registreEntry(S.uid, H.editorName(S.me), op, path, data, nowIso());
+    if (!e) return Promise.resolve();
+    return api("POST", "registre", { fields: H.encFields(e) }).catch(function () {});
+  }
+  /** create (POST to a collection), returns the new doc path */
+  function fsCreate(coll, data) {
+    return api("POST", coll, { fields: H.encFields(data) }).then(function (r) {
+      var path = H.doc(r).path; logWrite("create", path, data); return path;
+    });
+  }
+  /** full replace of an existing doc (like the app's set), keeping [keepRaw] fields not managed here */
+  function fsReplace(path, data, keepRaw, mustExist) {
+    var fields = {};
+    Object.keys(keepRaw || {}).forEach(function (k) { fields[k] = keepRaw[k]; });
+    var enc = H.encFields(data); Object.keys(enc).forEach(function (k) { fields[k] = enc[k]; });
+    return api("PATCH", path, { fields: fields }, mustExist ? "currentDocument.exists=true" : null)
+      .then(function () { logWrite(mustExist ? "update" : "create", path, data); });
+  }
+  /** masked update: only the given fields change (logged with [title]) */
+  function fsMasked(path, data, title) {
+    var q = Object.keys(data).map(function (k) { return "updateMask.fieldPaths=" + encodeURIComponent(k); }).join("&") + "&currentDocument.exists=true";
+    return api("PATCH", path, { fields: H.encFields(data) }, q).then(function () { logWrite("update", path, { titol: title || "" }); });
+  }
+  function fsDelete(path, title) {
+    return api("DELETE", path).then(function () { logWrite("delete", path, title ? { titol: title } : null); });
+  }
+  function pingNotice() {
+    try { fetch(NTFY + "/" + CHANNEL, { method: "POST", body: JSON.stringify({ v: 1, k: "notice" }) }).catch(function () {}); } catch (e) {}
+  }
+
+  // =====================================================================
+  // Screens and tabs
+  function screen(which) {
+    $("wait-sec").hidden = which !== "wait";
+    $("login-sec").hidden = which !== "login";
+    $("noaccess-sec").hidden = which !== "noaccess";
+    $("app").hidden = which !== "app";
+  }
+  var loaded = {};
+  function showTab(tab) {
+    if (tab === "admin" && !H.isAdmin(S.me)) tab = "avisos";
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (el) { el.hidden = el.getAttribute("data-tab") !== tab; });
+    Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
+      b.setAttribute("aria-selected", b.getAttribute("data-go") === tab ? "true" : "false"); });
+    if (!loaded[tab]) { loaded[tab] = true; ({ avisos: loadNotices, membres: loadMembers, admin: loadAdmin })[tab](); }
+  }
+  Array.prototype.forEach.call(document.querySelectorAll("nav.tabs button"), function (b) {
+    b.onclick = function () { showTab(b.getAttribute("data-go")); };
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-signout]"), function (b) { b.onclick = function () { signOut(); }; });
+
+  function afterAuth() {
+    screen("wait");
+    return fsGet("editors/" + S.uid).then(function (p) {
+      var me = p.d; me.uid = S.uid;
+      if (["admin", "junta", "entrenador"].indexOf(me.role) < 0) throw failure("NOT_FOUND");
+      S.me = me; loaded = {}; members = {}; pending = {}; curTeam = null; notices = []; editing = null;
+      $("n-form-sec").hidden = true; $("pend-total").innerHTML = "";
+      $("u-name").textContent = H.editorName(me) || "Editor/a";
+      $("u-role").textContent = (ROLES[me.role] || me.role) + (me.role === "entrenador" ? " · " + H.allowedTeams(me, TEAM_ORDER).map(teamName).join(", ") : "");
+      $("tab-admin").hidden = !H.isAdmin(me);
+      screen("app"); showTab("avisos");
+      countPending();
+    }).catch(function (e) {
+      if (e.code === "NOT_FOUND" || e.code === "PERMISSION_DENIED") { screen("noaccess"); return; }
+      if (e.code === "NETWORK") { screen("login"); setMsg($("l-msg"), "Sense connexió", "err"); return; }
+      signOut(errOf(e));
+    });
+  }
+
+  $("login-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var email = $("l-email").value.trim(), pass = $("l-pass").value, msg = $("l-msg");
+    if (!email || !pass) { setMsg(msg, "Escriu el correu i la contrasenya.", "err"); return; }
+    $("l-go").disabled = true; setMsg(msg, "Entrant…");
+    signIn(email, pass, $("l-remember").checked).then(function () {
+      $("l-pass").value = ""; setMsg(msg, ""); return afterAuth();
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); })
+      .then(function () { $("l-go").disabled = false; });
+  };
+  $("l-reset").onclick = function () {
+    var email = $("l-email").value.trim(), msg = $("l-msg");
+    if (!email) { setMsg(msg, "Escriu primer el teu correu a dalt.", "err"); $("l-email").focus(); return; }
+    setMsg(msg, "Enviant…");
+    postJson("https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=" + FIREBASE_KEY, { requestType: "PASSWORD_RESET", email: email })
+      .then(ok, function (e) { if (e.code === "NETWORK" || /TOO_MANY/.test(e.code)) setMsg(msg, errOf(e), "err"); else ok(); });
+    function ok() { setMsg(msg, "Si el correu és d'un compte d'editor, rebràs un enllaç per canviar la contrasenya (mira també el correu brossa).", "ok"); }
+  };
+
+  // =====================================================================
+  // 1. AVISOS
+  var notices = [], editing = null, formTeams = [];
+  function noticeTeams(n) { return (n.d.equips || []).map(Number); }
+  function loadNotices() {
+    var box = $("n-list"); box.innerHTML = '<div class="empty">Carregant…</div>';
+    var teams = H.allowedTeams(S.me, TEAM_ORDER);
+    var pub = fsList("avisos").then(function (l) { l.forEach(function (n) { n.team = null; }); return l; });
+    var priv = Promise.all(teams.map(function (t) {
+      return fsList("equips/" + t + "/avisos").then(function (l) {
+        l.forEach(function (n) { n.team = t; n.d.equips = [t]; }); return l;
+      }).catch(function () { return []; });
+    }));
+    Promise.all([pub, priv]).then(function (r) {
+      notices = r[0].concat([].concat.apply([], r[1]));
+      notices.sort(function (a, b) { return String(b.d.data || "") < String(a.d.data || "") ? -1 : String(b.d.data || "") > String(a.d.data || "") ? 1 : String(b.d.created || "") < String(a.d.created || "") ? -1 : 1; });
+      renderNotices();
+    }).catch(function (e) { box.innerHTML = '<div class="msg err">' + esc(errOf(e)) + "</div>"; });
+  }
+  function renderNotices() {
+    var box = $("n-list"), today = H.isoDay(new Date());
+    if (!notices.length) { box.innerHTML = '<div class="empty">Encara no hi ha cap avís.</div>'; return; }
+    box.innerHTML = notices.map(function (n, i) {
+      var d = n.d, teams = noticeTeams(n), can = H.teamsOk(S.me, teams);
+      var old = d.fins ? d.fins < today : false;
+      var tags = (n.team != null ? '<span class="tag">🔒 ' + esc(teamName(n.team)) + "</span> " : "") +
+        (d.urgent ? '<span class="tag warn">⚠️ Urgent</span> ' : "") + (d.imatge ? '<span class="tag">🖼️</span> ' : "") +
+        (d.pdf || d.fitxer ? '<span class="tag">📄</span> ' : "") + (old ? '<span class="tag">Caducat</span> ' : "");
+      var who = n.team == null ? (teams.length ? teams.map(teamName).join(", ") : "Tot el club") : "Només l'equip";
+      var link = d.enllac && /^https:\/\//.test(d.enllac) ? ' · <a href="' + esc(d.enllac) + '" target="_blank" rel="noopener noreferrer">Enllaç</a>' : "";
+      return '<div class="item' + (old ? " old" : "") + '">' + (tags ? '<div>' + tags + "</div>" : "") +
+        "<h4>" + esc(d.titol || "(sense títol)") + "</h4>" +
+        '<div class="meta">' + esc(fmtDay(d.data)) + (d.fins ? " → " + esc(fmtDay(d.fins)) : "") + " · " + esc(who) +
+        (d.autorNom ? " · " + esc(d.autorNom) : "") + link + "</div>" +
+        (d.text ? "<p>" + esc(d.text) + "</p>" : "") +
+        (can ? '<div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" data-edit="' + i + '">✏️ Edita</button>' +
+               '<button class="btn danger small" type="button" data-del="' + i + '">Esborra</button></div>' : "") + "</div>";
+    }).join("");
+  }
+  $("n-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-edit")) openForm(notices[+b.getAttribute("data-edit")]);
+    else if (b.hasAttribute("data-del")) deleteNotice(notices[+b.getAttribute("data-del")], b);
+  };
+  function deleteNotice(n, btn) {
+    if (!n || !confirm("Vols esborrar l'avís «" + (n.d.titol || "") + "»? No es pot desfer.")) return;
+    btn.disabled = true;
+    fsDelete(n.path, n.d.titol).then(function () { toast("Avís esborrat"); loadNotices(); })
+      .catch(function (e) { btn.disabled = false; toast(errOf(e), true); });
+  }
+  function renderFormTeams() {
+    var allowed = H.allowedTeams(S.me, TEAM_ORDER);
+    $("n-teams").innerHTML = allowed.map(function (t) {
+      return '<button type="button" class="chip" data-t="' + t + '" aria-pressed="' + (formTeams.indexOf(t) >= 0) + '">' + esc(teamName(t)) + "</button>";
+    }).join("");
+    $("n-teams-hint").textContent = H.isJunta(S.me) ? (formTeams.length ? "" : "(cap equip triat = tot el club)") : "(almenys un dels teus equips)";
+  }
+  $("n-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-t]"); if (!b) return;
+    var t = +b.getAttribute("data-t"), i = formTeams.indexOf(t);
+    if (i >= 0) formTeams.splice(i, 1); else formTeams.push(t);
+    renderFormTeams();
+    var again = $("n-teams").querySelector('[data-t="' + t + '"]'); if (again) again.focus();
+  };
+  // fields this page edits; any other field of an edited notice (image, PDF…) is kept as it is
+  var NOTICE_KEYS = ["titol", "text", "data", "equips", "enllac", "fins", "urgent", "privat", "autor", "autorNom", "created"];
+  function openForm(n) {
+    editing = n || null;
+    var d = n ? n.d : {};
+    $("n-form-title").textContent = n ? "Edita l'avís" : "Nou avís";
+    $("n-save").textContent = n ? "Desa els canvis" : "Publica";
+    $("n-titol").value = d.titol || ""; $("n-text").value = d.text || "";
+    $("n-data").value = d.data || H.isoDay(new Date()); $("n-fins").value = d.fins || "";
+    $("n-enllac").value = d.enllac || ""; $("n-urgent").checked = !!d.urgent;
+    $("n-privat").checked = !!(n && n.team != null);
+    formTeams = n ? noticeTeams(n).slice() : (H.isJunta(S.me) ? [] : H.allowedTeams(S.me, TEAM_ORDER).slice(0, 1));
+    $("n-extra").hidden = !(n && Object.keys(n.raw).some(function (k) { return NOTICE_KEYS.indexOf(k) < 0; }));
+    setMsg($("n-msg"), "");
+    renderFormTeams();
+    $("n-form-sec").hidden = false; $("n-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("n-titol").focus();
+  }
+  $("n-new").onclick = function () { openForm(null); };
+  $("n-cancel").onclick = function () { $("n-form-sec").hidden = true; editing = null; $("n-new").focus(); };
+  $("n-form").onsubmit = function (ev) {
+    ev.preventDefault();
+    var msg = $("n-msg");
+    var built = H.buildNotice({ titol: $("n-titol").value, text: $("n-text").value, data: $("n-data").value, fins: $("n-fins").value,
+      enllac: $("n-enllac").value, urgent: $("n-urgent").checked, privat: $("n-privat").checked, equips: formTeams }, S.me);
+    if (built.error) { setMsg(msg, built.error, "err"); return; }
+    var data = H.stamp(built.doc, S.me, S.uid, nowIso());
+    var old = editing, keep = {};
+    if (old) Object.keys(old.raw).forEach(function (k) { if (NOTICE_KEYS.indexOf(k) < 0) keep[k] = old.raw[k]; });
+    $("n-save").disabled = true; setMsg(msg, "Desant…");
+    saveNotice(old, data, built, keep).then(function (isNew) {
+      if (isNew) pingNotice();
+      $("n-form-sec").hidden = true; editing = null;
+      toast(old ? "Avís desat" : "Avís publicat"); loadNotices();
+    }).catch(function (e) { setMsg(msg, errOf(e), "err"); })
+      .then(function () { $("n-save").disabled = false; });
+  };
+  /** Same logic as the app (EditorRepository.save / savePrivate). Resolves true when phones should be pinged. */
+  function saveNotice(old, data, built, keep) {
+    var wasPrivate = !!(old && old.team != null);
+    if (!built.privat && !wasPrivate) {
+      if (!old) return fsCreate("avisos", data).then(function () { return true; });
+      return fsReplace(old.path, data, keep, true).then(function () { return false; });
+    }
+    // team-only: edit in place only if it stays private in its only team
+    if (wasPrivate && built.privat && built.teams.length === 1 && built.teams[0] === old.team) {
+      return fsReplace(old.path, data, keep, true).then(function () { return false; });
+    }
+    // otherwise re-create (new copies first, then remove the old one, so nothing is lost on errors)
+    var creates = built.privat
+      ? Promise.all(built.teams.map(function (t) {
+          var c = {}; Object.keys(data).forEach(function (k) { c[k] = data[k]; }); c.equips = [t];
+          return fsCreate("equips/" + t + "/avisos", c);
+        }))
+      : fsCreate("avisos", data);
+    return creates.then(function () { return old ? fsDelete(old.path, old.d.titol) : null; }).then(function () { return true; });
+  }
+
+  // =====================================================================
+  // 2. JUGADORS/ES I FAMÍLIES
+  var members = {}, pending = {}, curTeam = null;
+  function countPending() {
+    var teams = H.allowedTeams(S.me, TEAM_ORDER);
+    return Promise.all(teams.map(function (t) {
+      return fsList("equips/" + t + "/membres").then(function (l) { members[t] = l; }, function () { members[t] = members[t] || null; });
+    })).then(function () {
+      var total = 0;
+      teams.forEach(function (t) { pending[t] = (members[t] || []).filter(function (m) { return m.d.estat !== "aprovat"; }).length; total += pending[t]; });
+      $("pend-total").innerHTML = total ? '<span class="badge" aria-label="' + total + ' pendents">' + total + "</span>" : "";
+      return teams;
+    });
+  }
+  function loadMembers() {
+    $("m-list").innerHTML = '<div class="empty">Carregant…</div>';
+    countPending().then(function (teams) {
+      if (curTeam == null || teams.indexOf(curTeam) < 0) {
+        curTeam = teams.filter(function (t) { return pending[t] > 0; })[0];
+        if (curTeam == null) curTeam = teams[0];
+      }
+      renderMembers();
+    });
+  }
+  function renderMembers() {
+    var teams = H.allowedTeams(S.me, TEAM_ORDER);
+    $("m-teams").innerHTML = teams.map(function (t) {
+      return '<button type="button" class="chip" data-mt="' + t + '" aria-pressed="' + (t === curTeam) + '">' + esc(teamName(t)) +
+        (pending[t] ? ' <span class="badge" aria-label="' + pending[t] + ' pendents">' + pending[t] + "</span>" : "") + "</button>";
+    }).join("");
+    var box = $("m-list");
+    if (curTeam == null) { box.innerHTML = '<div class="empty">No tens cap equip assignat.</div>'; return; }
+    var list = members[curTeam];
+    if (list === null || list === undefined) { box.innerHTML = '<div class="msg err">No s\'ha pogut carregar aquest equip.</div>'; return; }
+    if (!list.length) { box.innerHTML = '<div class="empty">Ningú no ha demanat entrar a ' + esc(teamName(curTeam)) + " encara.</div>"; return; }
+    var dup = H.duplicates(list.map(function (m) { return m.d; }));
+    var sorted = H.sortMembers(list.map(function (m) { return { nom: m.d.nom, estat: m.d.estat, m: m }; })).map(function (x) { return x.m; });
+    var html = "", lastPending = null;
+    sorted.forEach(function (m) {
+      var d = m.d, ok = d.estat === "aprovat";
+      if (lastPending !== ok) { html += "<h3>" + (ok ? "Aprovats" : "⏳ Pendents d'aprovar") + "</h3>"; lastPending = ok; }
+      var idx = list.indexOf(m);
+      var jug = Array.isArray(d.jugadors) && d.jugadors.length ? " · per a: " + d.jugadors.map(esc).join(", ") : "";
+      html += '<div class="item"><h4>' + (d.rol === "familia" ? "👪 " : "🏐 ") + esc(d.nom || "(sense nom)") +
+        (dup[H.normName(d.nom)] ? ' <span class="tag warn" title="Hi ha dues entrades amb aquest nom">Possible duplicat</span>' : "") + "</h4>" +
+        '<div class="meta">' + (d.rol === "familia" ? "Família" : "Jugador/a") + jug +
+        (d.created ? " · demanat el " + esc(fmtStamp(d.created)) : "") + (ok && d.aprovatPer ? " · aprovat per " + esc(d.aprovatPer) : "") + "</div>" +
+        '<div class="row" style="margin-top:8px">' +
+        (ok ? '<button class="btn danger small" type="button" data-mrem="' + idx + '">Treu</button>'
+            : '<button class="btn primary small" type="button" data-mok="' + idx + '">Aprova</button><button class="btn danger small" type="button" data-mno="' + idx + '">Rebutja</button>') +
+        "</div></div>";
+    });
+    box.innerHTML = html;
+  }
+  $("m-teams").onclick = function (ev) {
+    var b = ev.target.closest("button[data-mt]"); if (!b) return;
+    curTeam = +b.getAttribute("data-mt"); renderMembers();
+    var again = $("m-teams").querySelector('[data-mt="' + curTeam + '"]'); if (again) again.focus();
+  };
+  $("m-list").onclick = function (ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    var list = members[curTeam] || [], m, p;
+    if (b.hasAttribute("data-mok")) {
+      m = list[+b.getAttribute("data-mok")]; if (!m) return;
+      p = fsMasked(m.path, { estat: "aprovat", aprovatPer: H.editorName(S.me) }, m.d.nom).then(function () {
+        toast((m.d.nom || "") + " aprovat/da"); });
+    } else if (b.hasAttribute("data-mno")) {
+      m = list[+b.getAttribute("data-mno")]; if (!m || !confirm("Vols rebutjar la sol·licitud de «" + (m.d.nom || "") + "»?")) return;
+      p = fsDelete(m.path, m.d.nom).then(function () { toast("Sol·licitud rebutjada"); });
+    } else if (b.hasAttribute("data-mrem")) {
+      m = list[+b.getAttribute("data-mrem")]; if (!m || !confirm("Vols treure «" + (m.d.nom || "") + "» de " + teamName(curTeam) + "? Deixarà de veure els avisos de l'equip.")) return;
+      p = fsDelete(m.path, m.d.nom).then(function () { toast("Tret/a de l'equip"); });
+    } else return;
+    b.disabled = true;
+    p.then(loadMembers, function (e) { b.disabled = false; toast(errOf(e), true); });
+  };
+
+  // =====================================================================
+  // 4. ADMINISTRACIÓ (admin only)
+  var requests = [], editorsList = [], edState = {};
+  function loadAdmin() { loadPeople(); loadConfig(); loadLog(); }
+  function loadPeople() {
+    $("a-req").innerHTML = $("a-ed").innerHTML = '<div class="empty">Carregant…</div>';
+    Promise.all([fsList("requests"), fsList("editors")]).then(function (r) {
+      requests = r[0].sort(function (a, b) { return String(a.d.created || "") < String(b.d.created || "") ? -1 : 1; });
+      editorsList = r[1].sort(function (a, b) { return H.normName(a.d.nom) < H.normName(b.d.nom) ? -1 : 1; });
+      edState = {};
+      requests.forEach(function (q) { edState["r:" + q.id] = { role: "entrenador", teams: [] }; });
+      editorsList.forEach(function (e) { edState["e:" + e.id] = { role: e.d.role, teams: (e.d.teams || []).map(Number) }; });
+      renderPeople();
+    }).catch(function (e) { $("a-req").innerHTML = $("a-ed").innerHTML = '<div class="msg err">' + esc(errOf(e)) + "</div>"; });
+  }
+  function roleTeamsEditor(key, disabled) {
+    var st = edState[key], opts = H.roleOptions(S.me);
+    if (opts.indexOf(st.role) < 0) opts = opts.concat([st.role]);
+    var html = '<div class="two" style="margin-top:6px"><div><label class="f" for="role-' + esc(key) + '">Rol</label><select id="role-' + esc(key) + '" data-role="' + esc(key) + '"' + (disabled ? " disabled" : "") + ">" +
+      opts.map(function (r) { return '<option value="' + esc(r) + '"' + (r === st.role ? " selected" : "") + ">" + esc(ROLES[r] || r) + "</option>"; }).join("") + "</select></div></div>";
+    if (st.role === "entrenador") {
+      html += '<div class="f">Equips que entrena</div><div class="chips">' + TEAM_ORDER.map(function (t) {
+        return '<button type="button" class="chip" data-k="' + esc(key) + '" data-et="' + t + '" aria-pressed="' + (st.teams.indexOf(t) >= 0) + '"' + (disabled ? " disabled" : "") + ">" + esc(teamName(t)) + "</button>";
+      }).join("") + "</div>";
+    } else html += '<p class="muted small">La junta i els administradors poden publicar per a tots els equips.</p>';
+    return html;
+  }
+  function renderPeople() {
+    $("a-req").innerHTML = requests.length ? requests.map(function (q) {
+      var key = "r:" + q.id;
+      return '<div class="item"><h4>' + esc(q.d.nom || "(sense nom)") + '</h4><div class="meta">' + esc(q.d.email || "") +
+        (q.d.created ? " · " + esc(fmtStamp(q.d.created)) : "") + "</div>" + roleTeamsEditor(key, false) +
+        '<div class="row" style="margin-top:10px"><button class="btn primary small" type="button" data-rok="' + esc(q.id) + '">Aprova</button>' +
+        '<button class="btn danger small" type="button" data-rno="' + esc(q.id) + '">Rebutja</button></div></div>';
+    }).join("") : '<div class="empty">No hi ha cap sol·licitud pendent.</div>';
+    $("a-ed").innerHTML = editorsList.length ? editorsList.map(function (e) {
+      var key = "e:" + e.id, self = e.id === S.uid;
+      return '<div class="item"><h4>' + esc(e.d.nom || "(sense nom)") + (self ? ' <span class="tag">Tu</span>' : "") + '</h4><div class="meta">' + esc(e.d.email || "") + "</div>" +
+        roleTeamsEditor(key, self) +
+        (self ? '<p class="muted small">No pots canviar el teu propi accés.</p>' :
+          '<div class="row" style="margin-top:10px"><button class="btn primary small" type="button" data-esave="' + esc(e.id) + '">Desa</button>' +
+          '<button class="btn danger small" type="button" data-edel="' + esc(e.id) + '">Treu l\'accés</button></div>') + "</div>";
+    }).join("") : '<div class="empty">Cap editor.</div>';
+  }
+  function peopleClick(ev) {
+    var b = ev.target.closest("button"); if (!b) return;
+    if (b.hasAttribute("data-et")) {
+      var st = edState[b.getAttribute("data-k")], t = +b.getAttribute("data-et"), i = st.teams.indexOf(t);
+      if (i >= 0) st.teams.splice(i, 1); else st.teams.push(t);
+      b.setAttribute("aria-pressed", String(i < 0)); return;
+    }
+    var id, p, profile;
+    function profileFor(key, nom, email) {
+      var s = edState[key];
+      if (H.roleOptions(S.me).indexOf(s.role) < 0) throw failure("PERMISSION_DENIED");
+      if (s.role === "entrenador" && !s.teams.length) { toast("Tria almenys un equip per a l'entrenador/a.", true); return null; }
+      var teams = s.role === "entrenador" ? TEAM_ORDER.filter(function (t) { return s.teams.indexOf(t) >= 0; }) : [];
+      return { nom: String(nom || "").slice(0, 60), email: String(email || ""), role: s.role, teams: teams };
+    }
+    try {
+      if (b.hasAttribute("data-rok")) {
+        id = b.getAttribute("data-rok");
+        var q = requests.filter(function (x) { return x.id === id; })[0]; if (!q || id === S.uid) return;
+        profile = profileFor("r:" + id, q.d.nom, q.d.email); if (!profile) return;
+        p = fsReplace("editors/" + id, profile, null, false).then(function () { return fsDelete("requests/" + id, q.d.nom); })
+          .then(function () { toast(profile.nom + " ja és editor/a"); });
+      } else if (b.hasAttribute("data-rno")) {
+        id = b.getAttribute("data-rno");
+        var r = requests.filter(function (x) { return x.id === id; })[0];
+        if (!r || !confirm("Vols rebutjar la sol·licitud de «" + (r.d.nom || "") + "»?")) return;
+        p = fsDelete("requests/" + id, r.d.nom).then(function () { toast("Sol·licitud rebutjada"); });
+      } else if (b.hasAttribute("data-esave")) {
+        id = b.getAttribute("data-esave"); if (id === S.uid) return;
+        var e = editorsList.filter(function (x) { return x.id === id; })[0]; if (!e) return;
+        profile = profileFor("e:" + id, e.d.nom, e.d.email); if (!profile) return;
+        p = fsReplace(e.path, profile, null, true).then(function () { toast("Canvis desats"); });
+      } else if (b.hasAttribute("data-edel")) {
+        id = b.getAttribute("data-edel"); if (id === S.uid) return;
+        var x = editorsList.filter(function (y) { return y.id === id; })[0];
+        if (!x || !confirm("Vols treure l'accés d'editor a «" + (x.d.nom || "") + "»?")) return;
+        p = fsDelete(x.path, x.d.nom).then(function () { toast("Accés tret"); });
+      } else return;
+    } catch (err) { toast(errOf(err), true); return; }
+    b.disabled = true;
+    p.then(loadPeople, function (err) { b.disabled = false; toast(errOf(err), true); });
+  }
+  function peopleChange(ev) {
+    var s = ev.target; if (!s.hasAttribute || !s.hasAttribute("data-role")) return;
+    edState[s.getAttribute("data-role")].role = s.value; renderPeople();
+    var again = document.getElementById(s.id); if (again) again.focus();
+  }
+  $("a-req").onclick = $("a-ed").onclick = peopleClick;
+  $("a-req").onchange = $("a-ed").onchange = peopleChange;
+
+  // ---- remote switches config/app
+  $("c-feats").innerHTML = FEATURES.map(function (f) {
+    return '<label class="check"><input type="checkbox" data-feat="' + f[0] + '"><span>' + esc(f[1]) + "</span></label>";
+  }).join("");
+  var configLoaded = false, configExists = false;
+  function loadConfig() {
+    var out = $("c-msg-out"); setMsg(out, "Carregant…"); $("c-save").disabled = true;
+    fsGet("config/app").then(function (p) { configExists = true; return p.d; }, function (e) { if (e.code === "NOT_FOUND") { configExists = false; return {}; } throw e; })
+      .then(function (c) {
+        var off = Array.isArray(c.desactivades) ? c.desactivades : [];
+        Array.prototype.forEach.call(document.querySelectorAll("[data-feat]"), function (i) { i.checked = off.indexOf(i.getAttribute("data-feat")) >= 0; });
+        $("c-msg").value = String(c.missatge || "").slice(0, 300);
+        $("c-level").value = c.nivell === "avis" ? "avis" : "info";
+        $("c-min").value = Math.max(0, Number(c.minVersio) || 0);
+        configLoaded = true; $("c-save").disabled = false;
+        setMsg(out, c.created ? "Últim canvi: " + fmtStamp(c.created) : "");
+      }).catch(function (e) { setMsg(out, errOf(e), "err"); });
+  }
+  $("c-form").onsubmit = function (ev) {
+    ev.preventDefault(); if (!configLoaded) return;
+    var out = $("c-msg-out"), min = $("c-min").value.trim();
+    if (min && !/^\d+$/.test(min)) { setMsg(out, "La versió mínima ha de ser un nombre enter (0 o més).", "err"); return; }
+    var off = [];
+    Array.prototype.forEach.call(document.querySelectorAll("[data-feat]"), function (i) { if (i.checked) off.push(i.getAttribute("data-feat")); });
+    off.sort();
+    var data = { desactivades: off, missatge: $("c-msg").value.trim().slice(0, 300), nivell: $("c-level").value === "avis" ? "avis" : "info",
+                 minVersio: parseInt(min || "0", 10), autor: S.uid, created: nowIso() };
+    if (!confirm("Aquests canvis arriben a tots els mòbils amb l'app. Vols desar-los?")) return;
+    $("c-save").disabled = true; setMsg(out, "Desant…");
+    fsReplace("config/app", data, null, configExists).then(function () { configExists = true; setMsg(out, "Desat. Els mòbils ho aplicaran en obrir l'app.", "ok"); })
+      .catch(function (e) { setMsg(out, errOf(e), "err"); }).then(function () { $("c-save").disabled = false; });
+  };
+
+  // ---- activity log
+  var logRows = [];
+  var ACC = { create: "crea", update: "modifica", "delete": "esborra" };
+  function loadLog() {
+    $("r-list").innerHTML = '<div class="empty">Carregant…</div>';
+    api("GET", "registre", null, "orderBy=" + encodeURIComponent("created desc") + "&pageSize=300").then(function (r) {
+      logRows = (r.documents || []).map(H.doc).map(function (x) { return x.d; });
+      renderLog();
+    }).catch(function (e) { $("r-list").innerHTML = '<div class="msg err">' + esc(errOf(e)) + "</div>"; });
+  }
+  function renderLog() {
+    var q = H.normName($("r-filter").value);
+    var rows = logRows.filter(function (e) {
+      return !q || H.normName([e.nom, e.accio, ACC[e.accio], e.col, e.cami, e.titol].join(" ")).indexOf(q) >= 0;
+    });
+    $("r-count").textContent = rows.length + " de " + logRows.length + " entrades (les 300 més recents)";
+    $("r-list").innerHTML = rows.length ? "<table><thead><tr><th>Quan</th><th>Qui</th><th>Què</th></tr></thead><tbody>" + rows.map(function (e) {
+      return "<tr><td>" + esc(fmtStamp(e.created)) + "</td><td>" + esc(e.nom) + "</td><td><b>" + esc(ACC[e.accio] || e.accio) + "</b> " + esc(e.titol || "") +
+        '<div class="meta">' + esc(e.cami) + "</div></td></tr>";
+    }).join("") + "</tbody></table>" : '<div class="empty">Cap entrada.</div>';
+  }
+  $("r-filter").oninput = renderLog;
+  $("r-reload").onclick = loadLog;
+
+  // =====================================================================
+  // start: resume a session if a refresh token is stored
+  S.refresh = readRefresh();
+  if (S.refresh) {
+    screen("wait");
+    refreshToken().then(afterAuth, function (e) {
+      if (e.code === "NETWORK") { screen("login"); setMsg($("l-msg"), "Sense connexió", "err"); return; }
+      signOut("La sessió ha caducat: torna a entrar.");
+    });
+  } else screen("login");
+})();
+</script>
+</body>
+</html>
