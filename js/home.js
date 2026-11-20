@@ -174,13 +174,18 @@
     }).then(function (live) {
       live = (live || []).filter(Boolean);
       $("live-sec").hidden = !live.length;
-      $("live").innerHTML = live.map(function (x) {
+      var html = live.map(function (x) {
         var h = x.d ? x.d.h : x.a.h, aw = x.d ? x.d.a : x.a.a, c = (x.d && x.d.c) || x.a.c;
         var sc = x.s ? '<span class="lscore">' + x.s.sh + "-" + x.s.sa + '</span><span class="muted">Set ' + x.s.n + ": " + x.s.h + "-" + x.s.a + "</span>" : "";
         return '<a class="live" href="live/#' + esc(x.a.topic) + '"><span><b>' + esc(h) + " – " + esc(aw) + "</b>" +
           (c ? '<span class="muted">' + esc(c) + "</span>" : "") + sc + "</span><span>Segueix ▶</span></a>";
       }).join("");
-    }).catch(function () {});
+      $("live").innerHTML = html;
+      // "Seguir un partit": the same list (or that nothing is live now), and the code box below it
+      if ($("follow-live")) $("follow-live").innerHTML = html || '<div class="empty">Ara no hi ha cap partit del club en directe. Si t\'han enviat un enllaç o un codi, posa\'l aquí sota.</div>';
+    }).catch(function () {
+      if ($("follow-live")) $("follow-live").innerHTML = '<div class="empty">No s\'ha pogut consultar la llista de directes. Pots seguir un partit amb el codi.</div>';
+    });
   }
   VSP.initLive = function () {
     loadLive();
