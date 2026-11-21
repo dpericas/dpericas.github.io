@@ -46,7 +46,10 @@
           var a = document.createElement("a"); a.href = url; a.target = "_blank"; a.rel = "noopener"; a.download = name;
           document.body.appendChild(a); a.click(); a.remove();
           b.textContent = label;
-        }).catch(function () { b.textContent = "No s'ha pogut baixar el document"; });
+        }).catch(function (e) {
+          // a team-only document (fitxers privat) can be read only by the team's approved members
+          b.textContent = e && e.status === 403 ? "Document només per als membres de l'equip" : "No s'ha pogut baixar el document";
+        });
       };
     });
     // images attached from the app (fs://fotos/{id}) or plain https ones

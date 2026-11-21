@@ -1,7 +1,7 @@
 // Service worker of the club web: works offline with the last version seen.
 // Same-origin pages and files: network first, cache as fallback. Data from Firebase / the live
 // relay (other origins) is never cached here.
-const CACHE = "vsp-v7";
+const CACHE = "vsp-v8";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/live/logo.jpg",
   "/css/app.css", "/js/core.js", "/js/livesign.js", "/js/home.js", "/js/agenda.js", "/js/teams.js", "/js/member.js", "/js/club.js", "/js/push.js", "/js/main.js",
   "/jocs/", "/jocs/index.html", "/jocs/css/jocs.css", "/jocs/js/progress.js", "/jocs/js/pili.js", "/jocs/js/frame.js", "/jocs/js/hub.js"];

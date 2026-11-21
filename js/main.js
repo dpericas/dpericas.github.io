@@ -62,10 +62,10 @@
   }).catch(function (e) { if (window.console) console.error(e); });
   VSP.route();
 
-  // memberships: approved teams → team-only notices; then the status chips
+  // memberships: approved teams → team-only notices and full call-ups; then the status chips
   VSP.loaded.then(function () {
-    VSP.member.loadPrivateNotices();
-    if (VSP.member.requested().length) VSP.member.check().then(function () { VSP.member.loadPrivateNotices(); }, function () {});
+    VSP.member.loadPrivate();
+    if (VSP.member.requested().length) VSP.member.check().then(function () { VSP.member.loadPrivate(); }, function () {});
     VSP.carpoolCleanup();
   });
   VSP.on("member", function () { VSP.renderTeams(); });

@@ -1,6 +1,7 @@
 /* 👤 El meu equip (members/Members.kt): a player or a family asks to join their team(s)
  * (equips/{team}/membres/{uid}, pending until a coach approves it). Approved members read the
- * team-only notices (equips/{team}/avisos, shown with 🔒) and answer the call-ups with
+ * team-only notices (equips/{team}/avisos, shown with 🔒), see the full call-ups
+ * (equips/{team}/convocatories; others only see how many were called) and answer them with
  * "vinc / no vinc" (equips/{team}/respostes/{fixture}_{uid}, members/Rsvp.kt). */
 (function () {
   "use strict";
@@ -121,6 +122,24 @@
     })).then(function (ls) { VSP.setPrivateNotices([].concat.apply([], ls)); });
   };
 
+  /**
+   * Full call-ups of the approved teams (equips/{team}/convocatories, docs/privacitat_dades_equip.md):
+   * they replace the public summaries in VSP.convocations. A team that cannot be read (not approved
+   * any more, offline) keeps the summary.
+   */
+  M.loadPrivateConvocations = function () {
+    var ap = M.approved();
+    if (!ap.length) { VSP.setPrivateConvocations({}); return Promise.resolve(); }
+    return Promise.all(ap.map(function (t) {
+      return VSP.fs.list("equips/" + t + "/convocatories").then(function (l) { return [t, l]; }, function () { return [t, null]; });
+    })).then(function (rows) {
+      var by = {}; rows.forEach(function (r) { by[r[0]] = r[1]; });
+      VSP.setPrivateConvocations(by);
+    });
+  };
+  /** Everything only for the approved teams: notices and call-ups. */
+  M.loadPrivate = function () { return Promise.all([M.loadPrivateNotices(), M.loadPrivateConvocations()]); };
+
   // ---------- page "El meu equip" (MyMembershipScreen)
   VSP.pages["meu-equip"] = { tab: "club", render: function (arg, el, title) {
     title("El meu equip");
@@ -211,7 +230,7 @@
     }
     function run(fn, ok) {
       if (busy) return; busy = true; info = ""; error = ""; draw();
-      fn().then(function () { busy = false; info = ok; draw(); M.loadPrivateNotices(); }, function (e) { busy = false; error = VSP.errText(e); draw(); });
+      fn().then(function () { busy = false; info = ok; draw(); M.loadPrivate(); }, function (e) { busy = false; error = VSP.errText(e); draw(); });
     }
     draw();
     if (M.requested().length) M.check().then(draw, function () {});

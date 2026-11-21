@@ -3,7 +3,7 @@
 
 Run by .github/workflows/webpush.yml every few minutes. It signs in to Firebase with the club's
 sending-service account (listed in Firestore serveis/{uid}), reads the new public notices
-(`avisos`) and call-ups (`convocatories`), and sends each one to the browsers subscribed in
+(`avisos`) and call-ups (`convocatories`: public summaries, only the number called), and sends each one to the browsers subscribed in
 `webpush/{uid}` that want it: whole-club notices for everybody, team ones for the subscription's
 teams (★ in the web), call-ups of its teams. What was already sent is kept in config/webpush.
 The first run only records what exists (nobody gets a pile of old notices).
@@ -65,13 +65,13 @@ def notice_payload(a):
 
 def convocation_payload(c):
     team = TEAMS.get(c.get("equip"), "Vòlei Santpedor")
-    parts = []
-    if c.get("quedada"):
-        parts.append("Quedada: " + c["quedada"] + ((" · " + c["lloc"]) if c.get("lloc") else ""))
-    n = len(c.get("convocades") or [])
-    if n:
-        parts.append("%d convocades" % n)
-    return {"title": "🏐 Convocatòria · " + team, "body": " · ".join(parts) or "Convocatòria publicada",
+    # public summary {partit, equip, n, created, autor}: never the meeting time or place (they are
+    # team-only data); an old full document still counts its "convocades"
+    n = c.get("n")
+    if not isinstance(n, int) or isinstance(n, bool):
+        n = len(c.get("convocades") or [])
+    body = ("%d convocades" % n) if n > 0 else "Convocatòria publicada"
+    return {"title": "🏐 Convocatòria · " + team, "body": body,
             "url": "/#agenda", "tag": "conv-" + c["id"]}
 
 
@@ -231,7 +231,10 @@ def selftest():
     assert msgs == [], "never twice"
     p = notice_payload({"id": "x", "titol": "T", "text": "a" * 300, "urgent": True})
     assert p["title"].startswith("⚠️") and len(p["body"]) == 180
-    assert convocation_payload(convs[0])["body"] == "Quedada: 9:30 · Pavelló · 2 convocades"
+    assert convocation_payload(convs[0])["body"] == "2 convocades", "old full doc: only the count"
+    assert convocation_payload({"id": "101", "equip": 3629, "partit": "101", "n": 5})["body"] == "5 convocades"
+    assert convocation_payload({"id": "102", "equip": 3629, "n": 0})["body"] == "Convocatòria publicada"
+    assert "Pavelló" not in str(convocation_payload(convs[0])) and "9:30" not in str(convocation_payload(convs[0]))
     assert relevant([1], []) and relevant([], [2]) and not relevant([1], [2])
     good = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc:DEF-123", "p256dh": "B" * 87, "auth": "a" * 22}
     assert valid_sub(good)

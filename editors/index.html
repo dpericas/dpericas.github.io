@@ -194,18 +194,22 @@
           <input id="n-enllac" type="url" placeholder="https://…" inputmode="url">
           <label class="check"><input id="n-urgent" type="checkbox"><span>⚠️ Urgent<br><span class="hint">Es destaca a dalt de tot a l'app.</span></span></label>
           <div id="n-files">
+           <div id="n-img-box">
             <div class="f">Imatge <span class="hint">(opcional)</span></div>
             <div class="row" id="n-img-row" hidden><img id="n-img-prev" class="thumb" alt="Imatge de l'avís"><span id="n-img-info" class="muted small"></span>
               <button type="button" class="btn danger small" id="n-img-del">Treu</button></div>
             <label class="btn ghost small" style="margin-top:6px"><input type="file" id="n-img" accept="image/*" class="sr"><span id="n-img-btn">Afegeix imatge</span></label>
             <p class="hint">Es redueix automàticament. Al tauler d'avisos es veurà que porta imatge i s'obrirà en tocar l'avís.</p>
+           </div>
             <div class="f">Document <span class="hint">(PDF, opcional)</span></div>
             <div class="row" id="n-pdf-row" hidden><b id="n-pdf-name" style="overflow-wrap:anywhere"></b>
               <button type="button" class="btn danger small" id="n-pdf-del">Treu</button></div>
             <label class="btn ghost small" style="margin-top:6px"><input type="file" id="n-pdf" accept="application/pdf,.pdf" class="sr"><span id="n-pdf-btn">Adjunta document (PDF)</span></label>
             <p class="hint">Màxim 700 KB. A l'avís es veurà amb 📎 i s'obrirà en tocar-lo.</p>
+            <p class="hint" id="n-pdf-priv" hidden>🔒 En un avís només per a l'equip, el document només el podran obrir els membres aprovats de l'equip (i els entrenadors i la junta).</p>
+            <p class="hint" id="n-pdf-warn" role="note"><b>⚠️ No adjuntis documents amb dades personals (telèfons, DNI, autoritzacions, llistes de jugadors) en avisos públics.</b></p>
           </div>
-          <p class="muted small" id="n-nofiles" hidden>Els avisos només per a l'equip no poden portar imatge ni PDF.</p>
+          <p class="muted small" id="n-nofiles" hidden>Els avisos només per a l'equip no poden portar imatge.</p>
           <div class="row" style="margin-top:14px">
             <button class="btn primary" type="submit" id="n-save">Publica</button>
             <button class="btn ghost" type="button" id="n-cancel">Cancel·la</button>
@@ -285,7 +289,7 @@
         <h2 id="cv-title">Convocatòria</h2>
         <p class="meta" id="cv-match"></p>
         <form id="cv-form" novalidate>
-          <p class="muted small">Es publica a l'app (la veuran tothom a l'Agenda i les famílies de l'equip rebran un avís). Després pots copiar el text per enviar-lo per WhatsApp.</p>
+          <p class="muted small">Es publica a l'app. Els detalls (noms, quedada, lloc) només els veuran els membres aprovats de l'equip, els entrenadors i la junta; la resta només veurà que hi ha convocatòria i quantes convocades. Les famílies de l'equip rebran un avís. Després pots copiar el text per enviar-lo per WhatsApp.</p>
           <div class="two">
             <div><label class="f" for="cv-meet">Hora de quedada</label><input id="cv-meet" type="text" maxlength="40" placeholder="17:15"></div>
             <div><label class="f" for="cv-place">Lloc de quedada</label><input id="cv-place" type="text" maxlength="120"></div>
@@ -860,6 +864,12 @@
       var t = String(name || "").trim(), p = t.split(/\s+/);
       return p.length < 2 ? t : p[0] + " " + p[1].charAt(0).toUpperCase() + ".";
     }
+    /** team-only full call-up (docs/privacitat_dades_equip.md) */
+    function convPrivatePath(team, fixture) { return "equips/" + team + "/convocatories/" + fixture; }
+    /** public summary of a call-up: only {partit, equip, n, created, autor} */
+    function convocationStub(d) {
+      return { partit: String(d.partit), equip: d.equip, n: (d.convocades || []).length, created: d.created, autor: d.autor };
+    }
     function convocationDoc(f, meeting, place, kit, players, notes) {
       return { partit: String(f.id), equip: f.teamId, quedada: String(meeting || "").trim(), lloc: String(place || "").trim(),
                equipacio: String(kit || "").trim(), convocades: players.slice(), notes: String(notes || "").trim() };
@@ -1262,7 +1272,7 @@
              buildSessions: buildSessions, QM: QM, quickNotice: quickNotice, javaHash: javaHash, friendlyId: friendlyId, APP_NAME: APP_NAME,
              fixtureFromAgenda: fixtureFromAgenda, fixtureFromFriendly: fixtureFromFriendly, rivalOf: rivalOf, mapsQuery: mapsQuery,
              isClubHall: isClubHall, defaultMeeting: defaultMeeting, defaultPlace: defaultPlace, shortPerson: shortPerson,
-             convocationDoc: convocationDoc, convocationText: convocationText, sameName: sameName, rsvpOfFixture: rsvpOfFixture,
+             convocationDoc: convocationDoc, convocationStub: convocationStub, convPrivatePath: convPrivatePath, convocationText: convocationText, sameName: sameName, rsvpOfFixture: rsvpOfFixture,
              rsvpSummary: rsvpSummary, weekendDays: weekendDays, town: town, hallName: hallName, mapLink: mapLink, weeklyMessage: weeklyMessage,
              SQUAD: SQUAD, cleanSquad: cleanSquad, isStaff: isStaff, ORD: ORD, parseSizes: parseSizes, parsePrice: parsePrice, priceText: priceText,
              euro: euro, campaignOf: campaignOf, requestOf: requestOf, ordTotal: ordTotal, grandTotal: grandTotal, tally: tally, hasPrices: hasPrices,
@@ -1572,7 +1582,7 @@
   var nImg = { keep: null, pick: null }, nPdf = { keep: null, keepName: null, pick: null };
   function renderNoticeFiles() {
     var priv = $("n-privat").checked;
-    $("n-files").hidden = priv; $("n-nofiles").hidden = !priv;
+    $("n-img-box").hidden = priv; $("n-nofiles").hidden = !priv; $("n-pdf-priv").hidden = !priv;
     var hasImg = !!(nImg.pick || nImg.keep), prev = $("n-img-prev");
     $("n-img-row").hidden = !hasImg;
     $("n-img-btn").textContent = hasImg ? "Canvia la imatge" : "Afegeix imatge";
@@ -1634,7 +1644,7 @@
     var old = editing, keep = {};
     if (old) Object.keys(old.raw).forEach(function (k) { if (NOTICE_KEYS.indexOf(k) < 0) keep[k] = old.raw[k]; });
     $("n-save").disabled = true; setMsg(msg, "Desant…");
-    publishNotice(old, data, built, keep, built.privat ? null : nImg, built.privat ? null : nPdf).then(function (isNew) {
+    publishNotice(old, data, built, keep, built.privat ? null : nImg, nPdf).then(function (isNew) {
       if (isNew) pingNotice();
       $("n-form-sec").hidden = true; editing = null;
       toast(old ? "Avís desat" : "Avís publicat"); loadNotices();
@@ -1643,26 +1653,54 @@
   };
   /**
    * Like the app's EditorViewModel.save: a new PDF goes to fitxers/{id} and a new image to fotos/{id} (album "avisos"),
-   * then the notice is saved; a replaced or removed image / PDF is deleted afterwards. Team-only notices carry neither.
+   * then the notice is saved; a replaced or removed image / PDF is deleted afterwards. Team-only notices carry no image;
+   * their PDF is a team-only fitxers doc ({privat: true, equips: [team]}, one per team copy: docs/privacitat_dades_equip.md).
+   * When a notice changes who sees it (public ↔ team, other teams), its kept PDF is copied with the new visibility.
    */
   function publishNotice(old, data, built, keep, img, pdf) {
-    var file = pdf ? pdf.keep : null, fileName = pdf ? pdf.keepName : null, image = img ? img.keep : null;
+    var wasPrivate = !!(old && old.team != null);
+    var inPlace = !!old && ((!built.privat && !wasPrivate) ||
+      (wasPrivate && built.privat && built.teams.length === 1 && built.teams[0] === old.team));
+    var kept = pdf ? pdf.keep : null, image = img ? img.keep : null;
+    var att = { files: {}, name: pdf ? pdf.keepName : null };   // files: "pub" / team id / "all" -> fs:// link
+    var src = null;
+    if (pdf && pdf.pick) src = Promise.resolve({ name: pdf.pick.name, size: pdf.pick.size, b64: pdf.pick.b64 });
+    else if (kept && !inPlace && String(kept).indexOf(H.FILE_SCHEME) === 0) {
+      src = fsGet("fitxers/" + kept.slice(H.FILE_SCHEME.length)).then(function (f) {
+        var b64 = String(f.d.dades || "");
+        return { name: String(att.name || f.d.nom || "document.pdf").slice(0, 120), size: Number(f.d.mida) || H.b64Bytes(b64), b64: b64 };
+      });
+    } else if (kept) att.files.all = kept;
     var p = Promise.resolve();
-    if (pdf && pdf.pick) p = p.then(function () {
-      return fsCreate("fitxers", { nom: pdf.pick.name, mida: pdf.pick.size, equips: built.teams, dades: pdf.pick.b64, autor: S.uid })
-        .then(function (path) { file = H.FILE_SCHEME + path.split("/").pop(); fileName = pdf.pick.name; });
+    if (src) p = src.then(function (f) {
+      att.name = f.name;
+      var targets = built.privat ? built.teams : [null];
+      return Promise.all(targets.map(function (t) {
+        var doc = { nom: f.name, mida: f.size, equips: t == null ? built.teams : [t], dades: f.b64, autor: S.uid };
+        if (t != null) doc.privat = true;
+        return fsCreate("fitxers", doc).then(function (path) { att.files[t == null ? "pub" : t] = H.FILE_SCHEME + path.split("/").pop(); });
+      }));
     });
     if (img && img.pick) p = p.then(function () {
       return uploadPhoto("avisos", img.pick, built.teams).then(function (id) { image = H.PHOTO_SCHEME + id; });
     });
     return p.then(function () {
-      if (file) { data.adjunt = file; data.adjuntNom = fileName || file.split("/").pop(); }
       if (image) data.imatge = image;
-      return saveNotice(old, data, built, keep);
+      return saveNotice(old, data, built, keep, att);
     }).then(function (isNew) {
+      var used = Object.keys(att.files).map(function (k) { return att.files[k]; });
       var oi = old && old.d.imatge, oa = old && old.d.adjunt;
-      return deleteBlobs(oi && oi !== image ? oi : null, oa && oa !== file ? oa : null).then(function () { return isNew; });
+      return deleteBlobs(oi && oi !== image ? oi : null, oa && used.indexOf(oa) < 0 ? oa : null).then(function () { return isNew; });
     });
+  }
+  /** The copy of [data] for [key] ("pub" or a team id) with its own PDF link (att from publishNotice; none = unchanged). */
+  function withFile(data, att, key) {
+    var c = {}; Object.keys(data).forEach(function (k) { c[k] = data[k]; });
+    if (!att) return c;
+    var link = att.files[key] || att.files.all;
+    delete c.adjunt; delete c.adjuntNom;
+    if (link) { c.adjunt = link; c.adjuntNom = String(att.name || link.split("/").pop()); }
+    return c;
   }
   /** Deletes a notice's image / PDF uploaded from the app or this page (fs:// links only); errors ignored. */
   function deleteBlobs(image, file) {
@@ -1672,23 +1710,23 @@
     return Promise.all(ps);
   }
   /** Same logic as the app (EditorRepository.save / savePrivate). Resolves true when phones should be pinged. */
-  function saveNotice(old, data, built, keep) {
+  function saveNotice(old, data, built, keep, att) {
     var wasPrivate = !!(old && old.team != null);
     if (!built.privat && !wasPrivate) {
-      if (!old) return fsCreate("avisos", data).then(function () { return true; });
-      return fsReplace(old.path, data, keep, true).then(function () { return false; });
+      if (!old) return fsCreate("avisos", withFile(data, att, "pub")).then(function () { return true; });
+      return fsReplace(old.path, withFile(data, att, "pub"), keep, true).then(function () { return false; });
     }
     // team-only: edit in place only if it stays private in its only team
     if (wasPrivate && built.privat && built.teams.length === 1 && built.teams[0] === old.team) {
-      return fsReplace(old.path, data, keep, true).then(function () { return false; });
+      return fsReplace(old.path, withFile(data, att, old.team), keep, true).then(function () { return false; });
     }
     // otherwise re-create (new copies first, then remove the old one, so nothing is lost on errors)
     var creates = built.privat
       ? Promise.all(built.teams.map(function (t) {
-          var c = {}; Object.keys(data).forEach(function (k) { c[k] = data[k]; }); c.equips = [t];
+          var c = withFile(data, att, t); c.equips = [t];
           return fsCreate("equips/" + t + "/avisos", c);
         }))
-      : fsCreate("avisos", data);
+      : fsCreate("avisos", withFile(data, att, "pub"));
     return creates.then(function () { return old ? fsDelete(old.path, old.d.titol) : null; }).then(function () { return true; });
   }
 
@@ -2261,13 +2299,20 @@
   };
 
   // =====================================================================
-  // 4. PARTITS: convocatòries (convocatories/{fixture}), «vinc / no vinc», notes privades (notes/{fixture}), propers partits
+  // 4. PARTITS: convocatòries (equips/{team}/convocatories/{fixture} completa + convocatories/{fixture} resum públic,
+  //    docs/privacitat_dades_equip.md), «vinc / no vinc», notes privades (notes/{fixture}), propers partits
   var matches = null, convs = {}, agendaAt = "", pMode = "next", pTeam = null, cvFix = null, cvExisting = null, cvRoster = [], cvChosen = [];
   var ntFix = null, ntExists = false, wWeekends = 1, wEdited = false;
   function fixKey(f) { return String(f.id); }
   function loadMatches() {
     $("p-list").innerHTML = loadingHtml();
-    return Promise.all([fsList("agenda"), fsList("amistosos"), fsList("convocatories")]).then(function (r) {
+    // full call-ups of the teams this editor manages (board: all), public summaries only as a fallback
+    var privConvs = Promise.all(H.allowedTeams(S.me, TEAM_ORDER).map(function (t) {
+      return fsList("equips/" + t + "/convocatories").then(function (l) {
+        l.forEach(function (c) { c.priv = true; }); return l;
+      }).catch(function () { return []; });
+    }));
+    return Promise.all([fsList("agenda"), fsList("amistosos"), fsList("convocatories"), privConvs]).then(function (r) {
       var all = [], seen = {};
       agendaAt = "";
       r[0].forEach(function (doc) {
@@ -2278,7 +2323,12 @@
       matches = all.filter(function (f) { if (seen[f.id] || !f.date) return false; seen[f.id] = 1; return true; })
         .sort(function (a, b) { return (a.date + (a.time || "99")).localeCompare(b.date + (b.time || "99")); });
       convs = {};
-      r[2].forEach(function (c) { convs[String(c.d.partit || c.id)] = c; });
+      r[2].forEach(function (c) { c.stub = !Array.isArray(c.d.convocades); c.hasPublic = true; convs[String(c.d.partit || c.id)] = c; });
+      [].concat.apply([], r[3]).forEach(function (c) {
+        if (!Array.isArray(c.d.convocades)) return;
+        var k = String(c.d.partit || c.id), pub = convs[k];
+        c.stub = false; c.hasPublic = !!pub; convs[k] = c;
+      });
       if (agendaAt) {
         var min = Math.max(0, Math.round((Date.now() - new Date(agendaAt).getTime()) / 60000));
         $("p-age").textContent = "Agenda actualitzada fa " + Math.floor(min / 60) + " h " + (min % 60) + " min.";
@@ -2327,7 +2377,7 @@
     var html = "", day = "";
     list.forEach(function (f) {
       if (f.date !== day) { day = f.date; html += "<h3>" + esc(H.cap(H.localDay(f.date, t))) + "</h3>"; }
-      var c = convs[fixKey(f)], n = c ? (c.d.convocades || []).length : 0;
+      var c = convs[fixKey(f)], n = c ? (c.stub ? Number(c.d.n) || 0 : (c.d.convocades || []).length) : 0;
       html += '<div class="item"><h4>' + esc(matchLine(f)) + "</h4>" +
         (f.played ? '<div class="meta">Resultat: ' + f.homeSets + "-" + f.awaySets + "</div>" : "") +
         '<div class="row" style="margin-top:8px">' +
@@ -2366,7 +2416,8 @@
   }
   function openConvocation(f, c) {
     cvFix = f; cvExisting = c || null;
-    var v = c ? convOf(c) : { meeting: H.defaultMeeting(f), place: H.defaultPlace(f), kit: "", notes: "", players: [] };
+    var full = c && !c.stub;   // only the public summary: nothing to start from
+    var v = full ? convOf(c) : { meeting: H.defaultMeeting(f), place: H.defaultPlace(f), kit: "", notes: "", players: [] };
     $("cv-title").textContent = "Convocatòria · " + teamName(f.teamId);
     $("cv-match").textContent = H.cap(H.localDay(f.date, todayIso())) + " · " + matchLine(f);
     $("cv-meet").value = v.meeting; $("cv-place").value = v.place; $("cv-kit").value = v.kit; $("cv-notes").value = v.notes; $("cv-add").value = "";
@@ -2375,7 +2426,7 @@
     $("c-form-sec").hidden = false; $("c-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("cv-meet").focus();
     rosterFor(f.teamId, v.players).then(function (roster) {
       if (cvFix !== f) return;
-      cvRoster = roster; cvChosen = c ? v.players.slice() : roster.slice();
+      cvRoster = roster; cvChosen = full ? v.players.slice() : roster.slice();
       $("cv-roster-hint").textContent = roster.length ? "" : "No hi ha cap plantilla al núvol per a aquest equip: afegeix els noms a mà (nom i inicial del cognom).";
       renderCvPlayers();
     });
@@ -2421,11 +2472,15 @@
     var data = H.stamp(H.convocationDoc(f, v.meeting, v.place, v.kit, v.players, v.notes), S.me, S.uid, nowIso());
     var text = H.convocationText(f, H.APP_NAME[f.teamId] || teamName(f.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
     $("cv-save").disabled = $("cv-save-copy").disabled = true; setMsg(msg, "Desant…");
-    var path = "convocatories/" + fixKey(f), title = "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f);
+    // the full call-up only for the team; the public document is just a summary (how many were called)
+    var path = H.convPrivatePath(f.teamId, fixKey(f)), pubPath = "convocatories/" + fixKey(f);
+    var title = "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f);
     api("PATCH", path, { fields: H.encFields(data) }).then(function () {
+      return api("PATCH", pubPath, { fields: H.encFields(H.convocationStub(data)) });
+    }).then(function () {
       logWrite(cvExisting ? "update" : "create", path, { titol: title });
       pingNotice();
-      convs[fixKey(f)] = { id: fixKey(f), path: path, d: data, raw: {} };
+      convs[fixKey(f)] = { id: fixKey(f), path: path, d: data, raw: {}, priv: true, stub: false, hasPublic: true };
       $("c-form-sec").hidden = true; cvFix = null;
       if (copy) copyText(text, "Convocatòria publicada i copiada: enganxa-la a WhatsApp"); else toast("Convocatòria publicada");
       renderMatches(); viewConvocation(f);
@@ -2439,13 +2494,16 @@
   function viewConvocation(f) {
     var c = convs[fixKey(f)]; if (!c) return;
     cviewFix = f;
-    var v = convOf(c), text = H.convocationText(f, H.APP_NAME[f.teamId] || teamName(f.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
+    var v = convOf(c), text = c.stub
+      ? "Només es troba el resum públic d'aquesta convocatòria (" + (Number(c.d.n) || 0) + " convocades): no se'n poden llegir els detalls. Edita-la i torna-la a publicar."
+      : H.convocationText(f, H.APP_NAME[f.teamId] || teamName(f.teamId), v.meeting, v.place, v.kit, v.players, v.notes, todayIso());
     $("cview-text").textContent = text;
     $("cview-by").textContent = (v.author ? "Publicada per " + v.author : "") + (c.d.created ? " · " + fmtStamp(c.d.created) : "");
     $("cview-wa").href = waHref(text);
     $("cview-copy").onclick = function () { copyText(text, "Text copiat: enganxa'l a WhatsApp"); };
+    $("cview-copy").hidden = $("cview-wa").hidden = !!c.stub;
     $("c-form-sec").hidden = true; $("nt-sec").hidden = true;
-    $("cview-sec").hidden = false; $("cview-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("cview-copy").focus();
+    $("cview-sec").hidden = false; $("cview-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $(c.stub ? "cview-edit" : "cview-copy").focus();
     loadRsvp();
   }
   function loadRsvp() {
@@ -2468,7 +2526,14 @@
     var f = cviewFix, c = f && convs[fixKey(f)]; if (!c) return;
     if (!confirm("Vols esborrar la convocatòria? Deixarà de sortir a tots els mòbils.")) return;
     var b = $("cview-del"); b.disabled = true;
-    fsDelete("convocatories/" + fixKey(f), "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f)).then(function () {
+    var title = "Convocatòria " + teamName(f.teamId) + " · " + H.rivalOf(f);
+    // the team's full call-up (if it could not be read, try anyway and ignore "not allowed / not found") and the public summary
+    var priv = fsDelete(H.convPrivatePath(f.teamId, fixKey(f)), title);
+    if (!c.priv) priv = priv.catch(function () {});
+    priv.then(function () {
+      var pub = fsDelete("convocatories/" + fixKey(f), title);
+      return c.hasPublic ? pub : pub.catch(function () {});
+    }).then(function () {
       delete convs[fixKey(f)]; $("cview-sec").hidden = true; cviewFix = null; toast("Convocatòria esborrada"); renderMatches();
     }).catch(function (e) { toast(errOf(e), true); }).then(function () { b.disabled = false; });
   };
