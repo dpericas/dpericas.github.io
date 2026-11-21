@@ -402,7 +402,14 @@
         var f = list[i++];
         return VSP.photoData(f).then(function (p) {
           if (!p) { skipped++; return; }
-          return VSP.fs.add("fotos_proposades", { jpeg: p.jpeg, thumb: p.thumb, w: p.w, h: p.h, owner: VSP.uid(), nom: nom, text: text, equip: equip, created: new Date().toISOString() });
+          // at most 10 proposals waiting per browser: ids <uid>_0 … <uid>_9 (rules allow only "create",
+          // so a taken slot is refused and the next one is tried)
+          var doc = { jpeg: p.jpeg, thumb: p.thumb, w: p.w, h: p.h, owner: VSP.uid(), nom: nom, text: text, equip: equip, created: new Date().toISOString() };
+          var trySlot = function (n) {
+            if (n >= 10) { var e = new Error("Ja tens 10 fotos esperant revisió. Quan els editors les revisin en podràs proposar més."); e.user = true; throw e; }
+            return VSP.fs.set("fotos_proposades/" + VSP.uid() + "_" + n, doc).catch(function (e) { if (e && e.status === 403) return trySlot(n + 1); throw e; });
+          };
+          return trySlot(0);
         }).then(next);
       }
       VSP.token().then(next).then(function () {
