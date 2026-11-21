@@ -15,6 +15,7 @@ Python 3.7+. Needs `pywebpush` only to send (pure parts: python3 webpush_send.py
 import datetime
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.parse
@@ -31,6 +32,20 @@ TEAMS = {3629: "Sènior Femení", 4578: "Sènior Masculí", -3: "Màsters Mixt",
 
 
 # ---------------------------------------------------------------- pure parts (selftest)
+
+# Only the browsers' real push services (same list as the Firestore rules): a made-up address must
+# never make this job post somewhere else or fail.
+PUSH_HOSTS = re.compile(r"^https://(fcm\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|"
+                        r"[a-z0-9-]+\.notify\.windows\.com)/[A-Za-z0-9_:/.=+?%&-]+$")
+MAX_SENDS = 3000   # per run: a flood of subscriptions cannot keep the job busy for ever
+
+
+def valid_sub(s):
+    """A subscription this job may send to (the rules check the same; old documents may not)."""
+    return (isinstance(s.get("endpoint"), str) and len(s["endpoint"]) < 800 and PUSH_HOSTS.match(s["endpoint"]) is not None
+            and isinstance(s.get("p256dh"), str) and re.match(r"^[A-Za-z0-9_-]{80,100}$", s["p256dh"]) is not None
+            and isinstance(s.get("auth"), str) and re.match(r"^[A-Za-z0-9_-]{16,30}$", s["auth"]) is not None)
+
 
 def relevant(notice_teams, sub_teams):
     """Same rule as the app (MembersLogic.relevant): club-wide for all; no teams chosen = everything."""
@@ -169,10 +184,13 @@ def main():
         state = {}
     avisos = list_all("avisos", token)
     convs = list_all("convocatories", token)
-    subs = list_all("webpush", token)
+    subs = [s for s in list_all("webpush", token) if valid_sub(s)]
     today = datetime.date.today().isoformat()
     messages, new_state = plan(state, avisos, convs, subs, today)
     print("subscriptions: %d · new messages: %d" % (len(subs), len(messages)))
+    # remember what is being sent BEFORE sending: if anything fails half way, nothing is sent twice
+    http("PATCH", BASE + "/config/webpush", {"fields": {k: to_value(v) for k, v in new_state.items()}}, token=token)
+    messages = messages[:MAX_SENDS]
     if messages:
         from pywebpush import webpush, WebPushException   # only needed to send
         gone = set()
@@ -182,7 +200,7 @@ def main():
             try:
                 webpush(subscription_info={"endpoint": s["endpoint"], "keys": {"p256dh": s["p256dh"], "auth": s["auth"]}},
                         data=json.dumps(payload, ensure_ascii=False), vapid_private_key=vapid,
-                        vapid_claims={"sub": subject}, ttl=86400)
+                        vapid_claims={"sub": subject}, ttl=86400, timeout=10)
             except WebPushException as e:
                 code = getattr(getattr(e, "response", None), "status_code", None)
                 if code in (404, 410):   # the browser dropped the subscription: forget it
@@ -190,8 +208,9 @@ def main():
                     http("DELETE", BASE + "/webpush/" + s["id"], token=token)
                 else:
                     print("send failed (%s) for one subscription" % code)
+            except Exception as e:   # bad keys, timeouts, network: skip this one, never stop the job
+                print("send failed (%s) for one subscription" % type(e).__name__)
         print("removed expired subscriptions: %d" % len(gone))
-    http("PATCH", BASE + "/config/webpush", {"fields": {k: to_value(v) for k, v in new_state.items()}}, token=token)
     return 0
 
 
@@ -214,6 +233,13 @@ def selftest():
     assert p["title"].startswith("⚠️") and len(p["body"]) == 180
     assert convocation_payload(convs[0])["body"] == "Quedada: 9:30 · Pavelló · 2 convocades"
     assert relevant([1], []) and relevant([], [2]) and not relevant([1], [2])
+    good = {"endpoint": "https://fcm.googleapis.com/fcm/send/abc:DEF-123", "p256dh": "B" * 87, "auth": "a" * 22}
+    assert valid_sub(good)
+    assert not valid_sub(dict(good, endpoint="https://nonexistent.invalid/x"))
+    assert not valid_sub(dict(good, endpoint="https://fcm.googleapis.com.evil.example/x"))
+    assert not valid_sub(dict(good, p256dh="short"))
+    assert valid_sub(dict(good, endpoint="https://web.push.apple.com/QGm1abc"))
+    assert valid_sub(dict(good, endpoint="https://wns2-db5p.notify.windows.com/w/?token=BQYAAAB%2bx&a=1"))
     print("selftest OK")
     return 0
 

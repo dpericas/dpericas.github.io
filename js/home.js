@@ -158,17 +158,35 @@
     return Object.keys(last).map(function (k) { return last[k]; }).filter(function (a) { return a.k === "live"; })
       .sort(function (a, b) { return b.t - a.t; });
   };
+  /**
+   * Matches live now: announced on the club channel, listed by an editor or a team member (Firestore
+   * directes/{topic}) and with the newest score signed by them (js/livesign.js). "end" messages are
+   * not trusted (anyone can post to the channel): the signed scores say when a match is over.
+   */
   function loadLive() {
     lines(VSP.NTFY + "/" + VSP.CHANNEL + "/json?poll=1&since=12h").then(function (msgs) {
-      var active = VSP.activeTopics(msgs), now = Date.now();
+      var seen = {}, active = [], now = Date.now();
+      msgs.forEach(function (m) {
+        try { var a = JSON.parse(m.message); if (a.v === 1 && a.k === "live" && /^vsp-[a-z0-9]{12}$/.test(a.topic || "") && !seen[a.topic]) { seen[a.topic] = 1; active.push(a); } } catch (e) {}
+      });
+      active = active.slice(-30);
       return Promise.all(active.map(function (a) {
-        return lines(VSP.NTFY + "/" + a.topic + "/json?poll=1&since=latest").then(function (ms) {
-          var snap = null;
-          ms.forEach(function (m) { try { var d = JSON.parse(m.message); if (d.v === 1) snap = d; } catch (e) {} });
-          if (!snap) return now - (a.t || 0) < STALE ? { a: a, s: null } : null;   // announced, no score yet
+        return VSP.liveKey(a.topic).then(function (key) {
+          if (!key) return null;
+          return lines(VSP.NTFY + "/" + a.topic + "/json?poll=1&since=12h").then(function (ms) {
+            var snaps = [];
+            ms.forEach(function (m) { try { var d = JSON.parse(m.message); if (VSP.liveGuard(d, now)) snaps.push(d); } catch (e) {} });
+            return Promise.all(snaps.map(function (d) { return VSP.liveVerified(d, a.topic).then(function (ok) { return ok ? d : null; }); }));
+          }).then(function (ok) {
+            var snap = null;
+            ok.forEach(function (d) { if (d && (!snap || d.t > snap.t)) snap = d; });
+            return snap;
+          });
+        }).then(function (snap) {
+          if (!snap) return null;
           var s = VSP.replay(snap);
           if ((snap.end || 0) !== 0 || s.done || now - (snap.t || 0) >= STALE) return null;
-          return { a: a, d: snap, s: s };
+          return { a: { topic: a.topic, h: snap.h, a: snap.a, c: snap.c }, d: snap, s: s };
         }, function () { return null; });
       }));
     }).then(function (live) {

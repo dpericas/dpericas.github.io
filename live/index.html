@@ -119,9 +119,13 @@
 <div class="floaters" id="floaters" aria-hidden="true"></div>
 <div class="card" id="card" hidden aria-live="polite"></div>
 
+<script src="../js/core.js"></script>
+<script src="../js/livesign.js"></script>
 <script>
 (function () {
   "use strict";
+  // this page uses only the Firebase helpers of core.js (signature check), not its tab router
+  if (window.VSP && VSP.route) window.removeEventListener("hashchange", VSP.route);
   var RELAY = "https://ntfy.sh/";
   var PKG = "cat.voleisantpedor.app";
   var m = /vsp-[a-z0-9]{6,32}/.exec((location.hash + " " + location.search + " " + location.pathname).toLowerCase());
@@ -232,7 +236,7 @@
     el.textContent = v;
     if (animate && !reduce) { el.classList.remove("flip"); void el.offsetWidth; el.classList.add("flip"); }
   }
-  function dots(id, won, toWin) { var h = ""; for (var i = 0; i < toWin; i++) h += '<i class="' + (i < won ? "on" : "") + '"></i>'; $(id).innerHTML = h; }
+  function dots(id, won, toWin) { var h = ""; toWin = Math.min(Math.max(toWin | 0, 0), 5); for (var i = 0; i < toWin; i++) h += '<i class="' + (i < won ? "on" : "") + '"></i>'; $(id).innerHTML = h; }
   function showCard(title, line) {
     var c = $("card"); c.innerHTML = "<div><b>" + esc(title) + "</b>" + esc(line) + "</div>"; c.hidden = false;
     clearTimeout(showCard.t); showCard.t = setTimeout(function () { c.hidden = true; }, 3300);
@@ -280,7 +284,12 @@
 
   var es = new EventSource(RELAY + topic + "/sse?since=latest");
   es.onopen = function () { if (!lastSent) $("status").textContent = "Connectat"; };
-  es.onmessage = function (ev) { try { show(JSON.parse(JSON.parse(ev.data).message)); } catch (e) {} };
+  // anyone can post to the relay: a match of the club's list only shows snapshots signed by its scorer
+  es.onmessage = function (ev) {
+    var d; try { d = JSON.parse(JSON.parse(ev.data).message); } catch (e) { return; }
+    var check = window.VSP && VSP.liveAccept ? VSP.liveAccept(d, topic) : Promise.resolve(true);
+    check.then(function (ok) { if (ok) { try { show(d); } catch (e) {} } });
+  };
   es.onerror = function () { $("status").textContent = "Sense connexió amb el directe. Reintentant…"; };
   setInterval(function () {
     if (!lastSent) return;
