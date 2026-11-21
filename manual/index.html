@@ -90,6 +90,21 @@
   }
   .print-cover { display: none; text-align: center; padding: 40pt 0 20pt; }
   .print-cover svg { width: 120pt; height: 120pt; }
+  /* easter egg: type "pili" in the search box and the Pili rolls across the page */
+  .pili-walk { position: fixed; left: 0; bottom: 18px; width: 84px; height: 84px; z-index: 50; pointer-events: none; animation: piliRoll 4s linear forwards; }
+  .pili-walk svg { width: 100%; height: 100%; display: block; }
+  @keyframes piliRoll {
+    0% { transform: translate(-100px, 0) rotate(0deg); }
+    25% { transform: translate(25vw, -40px) rotate(180deg); }
+    50% { transform: translate(50vw, 0) rotate(360deg); }
+    75% { transform: translate(75vw, -40px) rotate(540deg); }
+    100% { transform: translate(calc(100vw + 20px), 0) rotate(720deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pili-walk { left: calc(50% - 42px); animation: piliHop 1.6s ease forwards; }
+    @keyframes piliHop { 0% { opacity: 0; } 30% { opacity: 1; } 80% { opacity: 1; } 100% { opacity: 0; } }
+  }
+  @media print { .pili-walk { display: none; } }
 .langs { display: flex; justify-content: flex-end; gap: 6px; padding: 0 12px 6px; font-size: 13px; }
 .langs a { color: #fff; opacity: .75; text-decoration: none; padding: 2px 8px; border-radius: 8px; }
 .langs a[aria-current] { opacity: 1; font-weight: 700; background: rgba(255,255,255,.18); }
@@ -448,6 +463,18 @@
     document.getElementById("noresults").classList.toggle("hidden", any);
   }
   var timer; q.addEventListener("input", function () { clearTimeout(timer); timer = setTimeout(apply, 150); });
+  // easter egg: type "pili" (or "la pili") and the Pili rolls across the manual, once per time it is typed
+  var piliShown = false;
+  q.addEventListener("input", function () {
+    var v = q.value.trim().toLowerCase();
+    if (v !== "pili" && v !== "la pili") { piliShown = false; return; }
+    if (piliShown) return;
+    piliShown = true;
+    var src = document.querySelector("header svg"); if (!src) return;
+    var el = document.createElement("div"); el.className = "pili-walk"; el.setAttribute("aria-hidden", "true");
+    el.appendChild(src.cloneNode(true)); document.body.appendChild(el);
+    setTimeout(function () { el.remove(); }, 4300);
+  });
 
   // open the section of a #link
   function openHash() { var el = location.hash && document.getElementById(location.hash.slice(1)); if (el) { var d = el.querySelector("details"); if (d) d.open = true; } }

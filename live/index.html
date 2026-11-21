@@ -69,6 +69,13 @@
   .floaters { position:fixed; inset:0; pointer-events:none; overflow:hidden; z-index:15; }
   .floaters span { position:absolute; bottom:90px; font-size:28px; animation:rise 2.8s ease-out forwards; }
   @keyframes rise { from { transform:translateY(0); opacity:1; } to { transform:translateY(-60vh); opacity:0; } }
+  /* L'onada (stadium wave): a green band with raised hands sweeping left to right */
+  .wave { position:fixed; left:0; right:0; bottom:0; height:46vh; pointer-events:none; overflow:hidden; z-index:16; }
+  .wave .band { position:absolute; bottom:0; left:-40%; width:40%; height:100%; border-radius:50% 50% 0 0;
+    background:linear-gradient(to top, rgba(30,140,52,.65), rgba(60,194,74,.85) 70%, rgba(185,246,192,.0)); animation:sweep 2.2s linear forwards; }
+  .wave span { position:absolute; bottom:8vh; font-size:30px; opacity:.4; animation:hand 2.2s linear forwards; }
+  @keyframes sweep { to { transform:translateX(350%); } }
+  @keyframes hand { 0% { transform:translateY(0); opacity:.4; } 12% { transform:translateY(-26vh) rotate(-10deg); opacity:1; } 26% { transform:translateY(0); opacity:.4; } 100% { transform:translateY(0); opacity:0; } }
   :focus-visible { outline:3px solid var(--mint); outline-offset:2px; }
   @media (prefers-reduced-motion: reduce) { .team.serving, .streak, .pts span.flip, .flash, .floaters span, .card div { animation:none !important; } .team.serving { border-color:var(--mint); } }
   [hidden] { display:none !important; }
@@ -115,9 +122,11 @@
     <button type="button" data-r="💪" aria-label="Força">💪</button>
     <button type="button" data-r="😍" aria-label="M'encanta">😍</button>
     <button type="button" data-r="🏐" aria-label="Pilota">🏐</button>
+    <button type="button" data-r="🌊" aria-label="Onada">🌊</button>
   </div>
 </div>
 <div class="floaters" id="floaters" aria-hidden="true"></div>
+<div class="wave" id="wave" hidden aria-hidden="true"></div>
 <div class="card" id="card" hidden aria-live="polite"></div>
 
 <script src="../js/core.js"></script>
@@ -325,7 +334,25 @@
   $("clap").onclick = sender(topic + "-a", "clap", "claps");
   $("drum").onclick = sender(topic + "-b", "drum", "drums");
   // 🔥 reactions: shown floating for everybody (our own at once), sent in batches every 3 s
-  var EMOJIS = ["🔥", "😱", "💪", "😍", "🏐"], batch = {}, rtimer = null, floating = 0;
+  var EMOJIS = ["🔥", "😱", "💪", "😍", "🏐", "🌊"], batch = {}, rtimer = null, floating = 0;
+  // 🌊 l'onada: 5 different senders within 10 s start a stadium wave, at most once every 30 s
+  // (same logic as the app's WaveCounter; every follower counts on its own)
+  var WAVE = "🌊", waveSeen = {}, lastWave = -1e12, waveTimer = null;
+  function waveAdd(sender, now) {
+    waveSeen[sender] = now;
+    var n = 0; for (var k in waveSeen) { if (now - waveSeen[k] > 10000) delete waveSeen[k]; else n++; }
+    if (n < 5 || now - lastWave < 30000) return false;
+    lastWave = now; waveSeen = {};
+    return true;
+  }
+  function wave() {
+    if (reduce) return;
+    var w = $("wave"), html = '<div class="band"></div>';
+    for (var i = 0; i < 12; i++) html += '<span style="left:' + ((i + 0.5) / 12 * 100 - 2) + '%;animation-delay:' + (i * 0.12).toFixed(2) + 's">🙌</span>';
+    w.innerHTML = html; w.hidden = false;
+    clearTimeout(waveTimer); waveTimer = setTimeout(function () { w.hidden = true; w.innerHTML = ""; }, 3700);
+  }
+  function waveFrom(sender) { if (waveAdd(sender, Date.now())) wave(); }
   function float(e) {
     if (floating >= 30 || reduce) return;
     floating++;
@@ -337,6 +364,7 @@
   Array.prototype.forEach.call(document.querySelectorAll(".crowd [data-r]"), function (b) {
     b.onclick = function () {
       var e = b.dataset.r; float(e);
+      if (e === WAVE) waveFrom(me);
       var total = 0; for (var k in batch) total += batch[k];
       if (total < 20) batch[e] = (batch[e] || 0) + 1;
       if (!rtimer) rtimer = setTimeout(function () {
@@ -346,9 +374,11 @@
       }, 3000);
     };
   });
-  var rs = new EventSource(RELAY + topic + "-r/sse?since=latest");
+  var rs = new EventSource(RELAY + topic + "-r/sse?since=latest"), ropened = Date.now() / 1000;
   rs.onmessage = function (ev) {
-    try { var m = JSON.parse(JSON.parse(ev.data).message); if (m.v !== 1 || !m.r || m.s === me) return;
+    try { var o = JSON.parse(ev.data), m = JSON.parse(o.message); if (m.v !== 1 || !m.r || m.s === me) return;
+      // only fresh 🌊 with a valid sender id count for the wave (not the cached latest message)
+      if ((+m.r[WAVE] || 0) > 0 && typeof m.s === "string" && /^[A-Za-z0-9]{4,32}$/.test(m.s) && o.time >= ropened - 10) waveFrom(m.s);
       var n = 0; EMOJIS.forEach(function (e) { var k = Math.min(+m.r[e] || 0, 20 - n); for (var i = 0; i < k; i++, n++) setTimeout(function () { float(e); }, i * 120); }); } catch (e) {}
   };
 })();
