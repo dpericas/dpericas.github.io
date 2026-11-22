@@ -204,7 +204,9 @@
         return { id: c.id, title: c.titol || "", text: c.text || "", until: String(c.fins).trim(),
           products: (c.productes || []).map(function (p) {
             return { name: String(p.nom || ""), sizes: (p.talles || []).map(String).filter(function (s) { return s.trim(); }),
-              price: typeof p.preu === "number" && isFinite(p.preu) ? p.preu : null, custom: !!p.personalitzable };
+              price: typeof p.preu === "number" && isFinite(p.preu) ? p.preu : null, custom: !!p.personalitzable,
+              // product photo published from the app: fs://fotos/{id} → loaded by loadThumbs as "fs:{id}"
+              image: /^fs:\/\/fotos\/[A-Za-z0-9]+$/.test(String(p.imatge || "")) ? "fs:" + String(p.imatge).slice(12) : null };
           }).filter(function (p) { return p.name; }) };
       });
   }
@@ -250,6 +252,10 @@
         '<div class="meta">Fins al ' + esc(VSP.fmtDate(c.until, true)) + " · Una petició per mòbil; la pots canviar o retirar fins al dia de tancament.</div>" +
         (existing ? '<p class="ok">Ja tens una comanda enviada: la pots canviar o retirar.</p>' : "") +
         (msg ? '<p class="ok" role="status"><b>' + esc(msg) + "</b></p>" : "") + "</section>" +
+        (c.products.some(function (x) { return x.image; }) ? '<section><div class="albums">' + c.products.map(function (x) {
+          return '<div class="album">' + (x.image ? '<img alt="' + esc(x.name) + '" loading="lazy" data-thumb="' + esc(x.image) + '">' : '<span class="noimg">👕</span>') +
+            "<b>" + esc(x.name) + "</b>" + '<span class="meta">' + (x.price != null ? esc(euro(x.price)) : "&nbsp;") + "</span></div>";
+        }).join("") + "</div></section>" : "") +
         '<section><form class="form" id="ord-f"><label>Nom del jugador/a o persona<input id="ord-name" maxlength="40" value="' + esc(name) + '"></label>' +
         '<h3 class="sub">Què voleu?</h3>' + lines.map(function (l, i) {
           var p = c.products.filter(function (x) { return x.name === l.producte; })[0] || c.products[0];
@@ -270,6 +276,7 @@
         '<div class="row"><button class="btn primary" type="submit"' + (busy ? " disabled" : "") + ">" + (existing ? "Actualitza la comanda" : "Envia la comanda") + "</button>" +
         (existing ? '<button class="btn ghost" type="button" id="ord-del">Retira la comanda</button>' : "") + "</div>" +
         '<p class="meta">La junta us dirà com i quan pagar-ho.</p></form></section>';
+      loadThumbs(el);
       $("ord-name").oninput = function () { name = this.value; };
       $("ord-comment").oninput = function () { comment = this.value; };
       VSP.each("[data-l]", function (inp) {

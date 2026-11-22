@@ -1033,7 +1033,8 @@
       return { id: d.id || "", titol: String(d.titol || ""), text: String(d.text || ""), fins: String(d.fins || ""), oberta: !!d.oberta,
         productes: (d.productes || []).filter(function (p) { return p && typeof p === "object"; }).map(function (p) {
           return { nom: String(p.nom || ""), talles: (p.talles || []).map(String).filter(function (x) { return x.trim(); }),
-                   preu: typeof p.preu === "number" && !isNaN(p.preu) ? p.preu : null, personalitzable: !!p.personalitzable };
+                   preu: typeof p.preu === "number" && !isNaN(p.preu) ? p.preu : null, personalitzable: !!p.personalitzable,
+                   imatge: /^fs:\/\/fotos\/[A-Za-z0-9]+$/.test(String(p.imatge || "")) ? String(p.imatge) : "" };
         }), autorNom: String(d.autorNom || ""), created: String(d.created || "") };
     }
     function requestOf(d) {
@@ -2893,6 +2894,7 @@
       productes: c.productes.map(function (p) {
         var o = { nom: p.nom, talles: p.talles.slice(), personalitzable: !!p.personalitzable };
         if (p.preu != null) o.preu = { __dbl: p.preu };
+        if (p.imatge) o.imatge = p.imatge;   // photo added from the app: kept as it is
         return o;
       }), autor: S.uid, autorNom: H.editorName(S.me), created: c.created || nowIso() };
   }
@@ -2925,14 +2927,14 @@
     $("o-form-title").textContent = c ? "Edita la comanda" : "Nova comanda";
     $("o-titol").value = c ? c.titol : ""; $("o-text").value = c ? c.text : ""; $("o-fins").value = c ? c.fins : H.addDays(todayIso(), 14);
     $("o-oberta").checked = c ? c.oberta : true;
-    oProducts = c ? c.productes.map(function (p) { return { nom: p.nom, talles: p.talles.join(", "), preu: H.priceText(p.preu), personalitzable: p.personalitzable }; })
+    oProducts = c ? c.productes.map(function (p) { return { nom: p.nom, talles: p.talles.join(", "), preu: H.priceText(p.preu), personalitzable: p.personalitzable, imatge: p.imatge || "" }; })
       : [{ nom: "", talles: "", preu: "", personalitzable: false }];
     renderProducts(); setMsg($("o-msg"), "");
     $("o-form-sec").hidden = false; $("o-form-sec").scrollIntoView({ behavior: "smooth", block: "start" }); $("o-titol").focus();
   }
   function readProducts() {
     oProducts = oProducts.map(function (p, i) {
-      return { nom: $("opn-" + i).value, talles: $("ops-" + i).value, preu: $("opp-" + i).value, personalitzable: $("opc-" + i).checked };
+      return { nom: $("opn-" + i).value, talles: $("ops-" + i).value, preu: $("opp-" + i).value, personalitzable: $("opc-" + i).checked, imatge: p.imatge || "" };
     });
   }
   function renderProducts() {
@@ -2942,6 +2944,7 @@
         '<div class="row" style="margin-top:6px"><button class="btn ghost small" type="button" data-okids="' + i + '">+ Talles infantils</button><button class="btn ghost small" type="button" data-oadults="' + i + '">+ Talles d\'adult</button></div>' +
         '<label class="f" for="opp-' + i + '">Preu en € <span class="hint">(opcional)</span></label><input id="opp-' + i + '" type="text" inputmode="decimal" value="' + esc(p.preu) + '">' +
         '<label class="check"><input type="checkbox" id="opc-' + i + '"' + (p.personalitzable ? " checked" : "") + "><span>Personalitzable (nom o número)</span></label>" +
+        (p.imatge ? '<p class="hint">📷 Té foto (es posa o es canvia des de l\'app).</p>' : "") +
         '<button class="linkbtn" type="button" data-orem="' + i + '" style="margin-top:8px">Treu el producte</button></div>';
     }).join("");
     $("o-addp").disabled = oProducts.length >= H.ORD.MAX_PRODUCTS;
@@ -2962,7 +2965,7 @@
     ev.preventDefault();
     readProducts();
     var msg = $("o-msg");
-    var prods = oProducts.map(function (p) { return { nom: p.nom.trim(), talles: H.parseSizes(p.talles), preu: H.parsePrice(p.preu), personalitzable: p.personalitzable }; });
+    var prods = oProducts.map(function (p) { return { nom: p.nom.trim(), talles: H.parseSizes(p.talles), preu: H.parsePrice(p.preu), personalitzable: p.personalitzable, imatge: p.imatge || "" }; });
     var err = H.checkCampaign($("o-titol").value, $("o-fins").value, prods);
     if (err) { setMsg(msg, err, "err"); return; }
     var c = { titol: $("o-titol").value.trim(), text: $("o-text").value.trim(), fins: $("o-fins").value.trim(), oberta: $("o-oberta").checked, productes: prods,
