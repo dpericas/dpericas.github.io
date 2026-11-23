@@ -6,7 +6,7 @@
 <title>Zona d'editors · Vòlei Santpedor</title>
 <meta name="robots" content="noindex,nofollow">
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ntfy.sh/vspclub-5pksq4432g; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firestore.googleapis.com https://ntfy.sh/vspclub-5pksq4432g; form-action 'none'; base-uri 'none'; object-src 'none'">
 <link rel="icon" href="../icons/icon-192.png">
 <meta name="theme-color" content="#0f5132">
 <style>
@@ -112,7 +112,27 @@
   .bar span { display:block; height:100%; background:var(--brand); }
   .subnav { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 0; }
   details summary { cursor:pointer; font-weight:600; }
+  .inv-t th, .inv-t td { text-align:center; white-space:nowrap; }
+  .inv-t th:first-child, .inv-t td:first-child, .inv-t th:nth-child(2), .inv-t td:nth-child(2) { text-align:left; }
+  .inv-t tfoot th { border-top:2px solid var(--line); }
   [hidden] { display:none !important; }
+  /* printable invitation cards (InvitationSheet: 2 × 4 per A4); only while printing them */
+  #inv-print { display:none; }
+  @media print {
+    body.inv-printing { background:#fff; color:#000; }
+    body.inv-printing > :not(#inv-print) { display:none !important; }
+    body.inv-printing #inv-print { display:block; }
+    @page { size:A4; margin:10mm; }
+    .ppage { display:grid; grid-template-columns:95mm 95mm; grid-template-rows:repeat(4, 68mm); break-after:page; page-break-after:always; }
+    .ppage:last-child { break-after:auto; page-break-after:auto; }
+    .pcard { border:0.3mm dashed #888; padding:3mm 4mm; display:flex; flex-direction:column; overflow:hidden; color:#000; font-size:9pt; line-height:1.25; }
+    .pcard .ptop { display:flex; gap:4mm; align-items:flex-start; }
+    .pcard svg { width:36mm; height:36mm; flex:none; }
+    .pcard b { display:block; font-size:10.5pt; }
+    .pcard .pname { margin-top:1.5mm; font-weight:600; }
+    .pcard .pcode { font:700 11.5pt ui-monospace,Menlo,Consolas,monospace; margin-top:2mm; letter-spacing:.5px; }
+    .pcard .pfoot { margin-top:auto; font-size:8.5pt; }
+  }
 </style>
 </head>
 <body>
@@ -442,6 +462,28 @@
         <div id="a-ed"><div class="empty">Carregant…</div></div>
         <p class="muted small">Per afegir algú: crea-li el compte a la consola de Firebase (Authentication &gt; Afegeix usuari) i digues-li que entri a la Zona d'editors de l'app i en sol·liciti l'accés.</p>
       </section>
+      <section id="inv-sec">
+        <h2>🎟️ Invitacions <span class="spacer"></span><button class="btn ghost small" type="button" id="inv-reload">Actualitza</button></h2>
+        <p class="muted small">Una invitació per jugador/a de la plantilla. Qui l'obre entra a l'equip ja aprovat, a fins a 3 dispositius, durant 30 dies. Les targetes porten el nom: doneu-les en mà o envieu-les només a la família. És el mateix que a l'app (Zona d'editors › Invitacions): podeu fer servir l'una o l'altra.</p>
+        <h3>Seguiment de tots els equips</h3>
+        <div id="inv-overview" style="overflow-x:auto"><div class="empty">Carregant…</div></div>
+        <div class="row" style="margin-top:10px"><button class="btn ghost small" type="button" id="inv-renew-all" disabled>♻️ Renova les caducades de tot el club</button></div>
+        <p class="msg" id="inv-glob-msg" role="status" aria-live="polite"></p>
+        <p class="hint">Toca un equip per obrir-lo. «Renova» torna a fer, amb un codi nou vàlid 30 dies, les invitacions que no ha fet servir ningú i que han caducat o caduquen d'aquí a 5 dies (l'antic deixa de funcionar).</p>
+        <div id="inv-team-box" hidden>
+          <h3 id="inv-team-title"></h3>
+          <div class="chips" id="inv-teams" role="group" aria-label="Equip"></div>
+          <p class="muted small" id="inv-kind-text"></p>
+          <div class="chips" id="inv-roles" role="group" aria-label="Tipus d'invitació"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary small" type="button" id="inv-gen">Crea les que falten</button>
+            <button class="btn ghost small" type="button" id="inv-print-btn">🖨️ Targetes per imprimir</button>
+            <button class="btn ghost small" type="button" id="inv-renew-team">♻️ Renova les caducades</button>
+          </div>
+          <p class="msg" id="inv-msg" role="status" aria-live="polite"></p>
+          <div id="inv-list" style="margin-top:8px"></div>
+        </div>
+      </section>
       <section id="o-form-sec" hidden>
         <h2 id="o-form-title">Nova comanda</h2>
         <form id="o-form" novalidate>
@@ -544,6 +586,7 @@
   <footer><a href="../">← Web del club</a></footer>
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<div id="inv-print"></div>
 
 <script>
 (function () {
@@ -1286,6 +1329,152 @@
       return lines.join("\n");
     }
 
+    // ---- board invitations (members/Invitations.kt InvitationLogic + InvitationSheet): invitacions/{CODE}
+    var INV = { COLLECTION: "invitacions", CODE_LEN: 12, ALPHABET: "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", MAX_USES: 3, DAYS: 30,
+      DAY_MS: 86400000, SOON_DAYS: 5, MAX_NAME: 60, MAX_PLAYERS: 6, URL: "https://dpericas.github.io/invitacio/#",
+      TEAMS: [3629, 4578, -3, 3630, 3631, 3632, 3633, 3634, 4916, 6731, -1, -2],
+      /** exactly the keys firestore.rules accepts on create */
+      KEYS: ["equip", "rol", "jugadors", "nom", "usos", "max", "expira", "caduca", "creat", "autor"],
+      PLAYER: "jugador", FAMILY: "familia", COLS: 2, ROWS: 4 };
+    /** 12 random bytes → code (32 symbols: byte % 32 is unbiased) */
+    function invCode(bytes) { var s = ""; for (var i = 0; i < INV.CODE_LEN; i++) s += INV.ALPHABET.charAt(bytes[i] % INV.ALPHABET.length); return s; }
+    function invCodeOk(c) { return typeof c === "string" && new RegExp("^[" + INV.ALPHABET + "]{" + INV.CODE_LEN + "}$").test(c); }
+    function invFormat(code) { return (String(code || "").match(/.{1,4}/g) || []).join("-"); }
+    function invUrl(code) { return INV.URL + code; }
+    /** Sènior → player and family; Màsters → player; Cadet and Juvenil → family and player; younger → family */
+    function invRolesFor(team) {
+      team = Number(team);
+      if (team === 3629 || team === 4578) return [INV.PLAYER, INV.FAMILY];
+      if (team === -3) return [INV.PLAYER];
+      if ([3630, 3631, 3632, 3633].indexOf(team) >= 0) return [INV.FAMILY, INV.PLAYER];
+      return [INV.FAMILY];
+    }
+    /** {id, d} (doc) → invitation or null (as InvitationLogic.parse) */
+    function invParse(x) {
+      var d = (x && x.d) || {}, team = Number(d.equip);
+      if (!x || !invCodeOk(x.id) || [INV.PLAYER, INV.FAMILY].indexOf(d.rol) < 0 || INV.TEAMS.indexOf(team) < 0) return null;
+      return { code: x.id, team: team, rol: d.rol,
+        players: (Array.isArray(d.jugadors) ? d.jugadors : []).map(function (p) { return String(p == null ? "" : p).trim(); }).filter(Boolean),
+        nom: String(d.nom || "").trim(), usos: Number(d.usos) || 0, max: d.max == null ? INV.MAX_USES : Number(d.max) || 0,
+        expira: Number(d.expira) || 0, creat: String(d.creat || "") };
+    }
+    /** "active" | "used" (used up) | "expired" */
+    function invState(i, now) { return i.expira <= now ? "expired" : i.usos >= i.max ? "used" : "active"; }
+    /** plantilles/{team} document → [{nom, rol, dorsal}] (ClubSquads.parse) */
+    function invSquadOf(d) {
+      return ((d && d.membres) || []).filter(function (m) { return m && typeof m === "object"; }).map(function (m) {
+        return { nom: String(m.nom || "").trim().slice(0, 50), rol: String(m.rol || "").trim().slice(0, 40), dorsal: String(m.dorsal || "").trim().slice(0, 3) };
+      }).filter(function (m) { return !!m.nom; });
+    }
+    function invSquadName(m) { return shortPerson(m.nom); }
+    function invPlayers(squad) { return (squad || []).filter(function (m) { return !isStaff(m); }); }
+    function invFor(i, m) { return i.players.some(function (p) { return sameName(p, invSquadName(m)); }); }
+    /** squad players (not staff) without an invitation of [role] that can still be used (an expired one is made again; a used-up one is not) */
+    function invMissing(squad, invs, now, role) {
+      return invPlayers(squad).filter(function (m) {
+        return !invs.some(function (i) { return i.rol === role && invState(i, now) !== "expired" && invFor(i, m); });
+      });
+    }
+    /** the newest invitation of a player for [role], or null */
+    function invOf(m, invs, role) {
+      var best = null;
+      invs.forEach(function (i) { if (i.rol === role && invFor(i, m) && (!best || i.expira > best.expira)) best = i; });
+      return best;
+    }
+    function invSuggestedName(role, player) { return (role === INV.PLAYER ? player : "Família de " + shortPerson(player)).slice(0, INV.MAX_NAME); }
+    /** a new invitation (code from [bytes]), 30 days from [now] */
+    function invNew(team, role, players, nom, now, bytes) {
+      return { code: invCode(bytes), team: Number(team), rol: role, players: players.slice(0, INV.MAX_PLAYERS), nom: String(nom || "").slice(0, INV.MAX_NAME),
+        usos: 0, max: INV.MAX_USES, expira: now + INV.DAYS * INV.DAY_MS, creat: new Date(now).toISOString() };
+    }
+    /** document written on create (InvitationLogic.toDoc); caduca as ISO (written as a timestamp, see invFields) */
+    function invDoc(i, uid) {
+      return { equip: i.team, rol: i.rol, jugadors: i.players.slice(), nom: i.nom, usos: i.usos, max: i.max, expira: i.expira,
+        caduca: new Date(i.expira).toISOString(), creat: i.creat, autor: uid };
+    }
+    function invFields(i, uid) {
+      var d = invDoc(i, uid), ts = d.caduca; delete d.caduca;
+      var f = encFields(d); f.caduca = { timestampValue: ts }; return f;
+    }
+    /** null if the create passes firestore.rules (match /invitacions/{code}), else why not */
+    function invCheck(code, d, uid, now) {
+      if (!invCodeOk(code)) return "codi";
+      if (!Object.keys(d).every(function (k) { return INV.KEYS.indexOf(k) >= 0; })) return "camps";
+      if (!Number.isInteger(d.equip) || INV.TEAMS.indexOf(d.equip) < 0) return "equip";
+      if ([INV.PLAYER, INV.FAMILY].indexOf(d.rol) < 0) return "rol";
+      if (!Array.isArray(d.jugadors) || d.jugadors.length < 1 || d.jugadors.length > INV.MAX_PLAYERS) return "jugadors";
+      if (typeof d.nom !== "string" || d.nom.length < 2 || d.nom.length > INV.MAX_NAME) return "nom";
+      if (d.usos !== 0) return "usos";
+      if (!Number.isInteger(d.max) || d.max < 1 || d.max > 3) return "max";
+      if (!Number.isInteger(d.expira) || d.expira > now + 31 * INV.DAY_MS) return "expira";
+      if (typeof d.caduca !== "string" || isNaN(Date.parse(d.caduca)) || Date.parse(d.caduca) > now + 31 * INV.DAY_MS) return "caduca";
+      if (typeof d.creat !== "string" || d.creat.length > 40) return "creat";
+      if (d.autor !== uid || !uid) return "autor";
+      return null;
+    }
+    /** unused and expired or expiring within 5 days */
+    function invStale(i, now) { return i.usos === 0 && i.expira <= now + INV.SOON_DAYS * INV.DAY_MS; }
+    function invSoon(i, now) { return i.usos === 0 && invState(i, now) === "active" && i.expira <= now + INV.SOON_DAYS * INV.DAY_MS; }
+    function invKey(i) { return i.team + "|" + i.rol + "|" + i.players.map(normName).sort().join(","); }
+    /**
+     * "Renova les caducades" of [team] (null = every team): {renew: [invitations made again with a new code], drop: [only deleted]}.
+     * A stale one whose players already have another live invitation of the same role, or an older stale twin, is only deleted (no duplicates).
+     */
+    function invRenewalPlan(invs, now, team) {
+      var scope = invs.filter(function (i) { return team == null || i.team === Number(team); });
+      var stale = scope.filter(function (i) { return invStale(i, now); });
+      var live = {};
+      scope.forEach(function (i) { if (!invStale(i, now) && invState(i, now) !== "expired") live[invKey(i)] = true; });
+      var best = {};
+      stale.forEach(function (i) { var k = invKey(i); if (!best[k] || i.expira > best[k].expira) best[k] = i; });
+      var renew = [], drop = [];
+      stale.forEach(function (i) { var k = invKey(i); if (!live[k] && best[k] === i) renew.push(i); else drop.push(i); });
+      return { renew: renew, drop: drop };
+    }
+    /** tracking of one team: per role {rol, players, used, active, soon, expired, missing} */
+    function invOverview(team, squad, invs, now) {
+      team = Number(team);
+      var mine = invs.filter(function (i) { return i.team === team; });
+      return invRolesFor(team).map(function (role) {
+        var l = mine.filter(function (i) { return i.rol === role; });
+        return { rol: role, players: invPlayers(squad).length,
+          used: l.filter(function (i) { return i.usos > 0; }).length,
+          active: l.filter(function (i) { return i.usos === 0 && invState(i, now) === "active"; }).length,
+          soon: l.filter(function (i) { return invSoon(i, now); }).length,
+          expired: l.filter(function (i) { return i.usos === 0 && invState(i, now) === "expired"; }).length,
+          missing: squad ? invMissing(squad, l, now, role).length : 0 };
+      });
+    }
+    function invUntil(ms) { var d = new Date(ms); return pad(d.getDate()) + "/" + pad(d.getMonth() + 1) + "/" + d.getFullYear(); }
+    /** InvitationSheet.shareOne (inv_share_text) */
+    function invShareText(teamName, i) {
+      return "Invitació del Club Vòlei Santpedor per a " + teamName + " (" + i.players.join(", ") + "). Obre aquest enllaç al mòbil i entraràs directament a l'equip a l'app o al web:\n" +
+        invUrl(i.code) + "\nCodi: " + invFormat(i.code) + " · vàlida fins al " + invUntil(i.expira) + ". És personal: no la reenviïs.";
+    }
+    /** the status line of a player (inv_st_*) */
+    function invStateText(i, now) {
+      if (!i) return "Sense invitació";
+      var st = invState(i, now);
+      if (st === "active") return "🎟️ " + i.usos + " de " + i.max + " dispositius · fins al " + invUntil(i.expira);
+      if (st === "used") return "✅ Feta servir (" + i.usos + " dispositius)";
+      return "⌛ Caducada (" + i.usos + " dispositius)";
+    }
+    /** printable cards: the active invitations of [role] in [team], full name from the squad, sorted (InvitationsViewModel.sheet) */
+    function invCards(team, role, squad, invs, now) {
+      return invs.filter(function (i) { return i.team === Number(team) && i.rol === role && invState(i, now) === "active"; }).map(function (i) {
+        var m = (squad || []).filter(function (x) { return invFor(i, x); })[0];
+        return { inv: i, name: m ? m.nom : i.players.join(", ") };
+      }).sort(function (a, b) { var x = a.name.toLowerCase(), y = b.name.toLowerCase(); return x < y ? -1 : x > y ? 1 : 0; });
+    }
+    /** [cards] in pages of 8 (2 columns × 4 rows, like InvitationSheet) */
+    function invPages(cards) { var out = []; for (var k = 0; k < cards.length; k += INV.COLS * INV.ROWS) out.push(cards.slice(k, k + INV.COLS * INV.ROWS)); return out; }
+    /** SVG path of the dark modules of a QR matrix (isDark(row, col)), one 1×1 square each */
+    function qrPath(n, isDark) {
+      var p = [];
+      for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (isDark(r, c)) p.push("M" + c + " " + r + "h1v1h-1z");
+      return p.join("");
+    }
+
     return { esc: esc, isoDay: isoDay, validDay: validDay, enc: enc, encFields: encFields, dec: dec, decFields: decFields, doc: doc,
              isJunta: isJunta, isAdmin: isAdmin, allowedTeams: allowedTeams, teamsOk: teamsOk, roleOptions: roleOptions,
              buildNotice: buildNotice, stamp: stamp, editorName: editorName, titleOf: titleOf, registreEntry: registreEntry,
@@ -1304,7 +1493,11 @@
              campaignState: campaignState, lineText: lineText, androidName: androidName, usageSummary: usageSummary, errSignature: errSignature,
              groupErrors: groupErrors, COLLECTIONS: COLLECTIONS, docSummary: docSummary, countQuery: countQuery, proposalsQuery: proposalsQuery,
              proposalVisible: proposalVisible, albumsFor: albumsFor, defaultAlbumTitle: defaultAlbumTitle, albumDoc: albumDoc, checkAlbum: checkAlbum,
-             waPost: waPost };
+             waPost: waPost, INV: INV, invCode: invCode, invCodeOk: invCodeOk, invFormat: invFormat, invUrl: invUrl, invRolesFor: invRolesFor,
+             invParse: invParse, invState: invState, invSquadOf: invSquadOf, invSquadName: invSquadName, invPlayers: invPlayers, invMissing: invMissing,
+             invOf: invOf, invSuggestedName: invSuggestedName, invNew: invNew, invDoc: invDoc, invFields: invFields, invCheck: invCheck,
+             invStale: invStale, invSoon: invSoon, invRenewalPlan: invRenewalPlan, invOverview: invOverview, invUntil: invUntil,
+             invShareText: invShareText, invStateText: invStateText, invCards: invCards, invPages: invPages, qrPath: qrPath };
   })();
   /*PURE-END*/
   if (typeof document === "undefined") { if (typeof module !== "undefined") module.exports = H; return; }
@@ -1884,7 +2077,7 @@
   // 4. ADMINISTRACIÓ (admin only)
   var requests = [], editorsList = [], edState = {};
   function loadAdmin() { loadConfig(); loadLog(); loadErrors(); }
-  function loadJunta() { loadPeople(); loadOrders(); loadUsage(); }
+  function loadJunta() { loadPeople(); loadOrders(); loadUsage(); loadInvitations(); }
   function loadPeople() {
     $("a-req").innerHTML = $("a-ed").innerHTML = '<div class="empty">Carregant…</div>';
     Promise.all([fsList("requests"), fsList("editors")]).then(function (r) {
@@ -2127,6 +2320,7 @@
   function resetExtras() {
     ["q-sec", "i-form-sec", "h-form-sec", "c-form-sec", "cview-sec", "nt-sec", "al-form-sec", "o-form-sec", "o-sum-sec", "d-docs-box"].forEach(function (id) { $(id).hidden = true; });
     content = {}; ckind = "activitats"; matches = null; pTeam = null; albums = []; proposals = []; sqTeam = null; campaigns = [];
+    invAll = []; invSquads = {}; invTeam = null; invRole = null; invBusy = false; $("inv-team-box").hidden = true; $("inv-print").innerHTML = "";
   }
 
   // =====================================================================
@@ -3151,6 +3345,226 @@
       dDocs.splice(dDocs.indexOf(d), 1); if (typeof dCounts[dColl] === "number") dCounts[dColl]--; renderColls(); loadDocs(); toast("Esborrat.");
     }, function (e) { b.disabled = false; toast(errOf(e), true); });
   };
+
+  // =====================================================================
+  // 9. INVITACIONS de la junta (invitacions/{CODE}, members/Invitations.kt + InvitationsScreen.kt): per equip i tipus,
+  //    seguiment de tots els equips, renovació de les caducades sense fer servir, targetes per imprimir i enviar-ne una.
+  var invAll = [], invSquads = {}, invTeam = null, invRole = null, invBusy = false, qrLoading = null;
+  var INV_ROLE_CHIP = { jugador: "🏐 Per a les jugadores", familia: "👨‍👩‍👧 Per a les famílies" };
+  var INV_ROLE_SHORT = { jugador: "Jugadors/es", familia: "Famílies" };
+  var QR_SRC = "../js/vendor/qrcode.min.js";
+  var QR_SRI = "sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSQX0FslNhTDadL4O5SAGapGt4FodqL8My0mA==";
+  function invTeamName(t) { return H.APP_NAME[t] || teamName(t); }
+  function invRandom() { var b = new Uint8Array(H.INV.CODE_LEN); crypto.getRandomValues(b); return b; }
+  function loadInvitations() {
+    $("inv-overview").innerHTML = loadingHtml();
+    return Promise.all([fsList(H.INV.COLLECTION), Promise.all(TEAM_ORDER.map(function (t) {
+      return fsGet("plantilles/" + t).then(function (p) { return H.invSquadOf(p.d); }, function (e) { if (e.code === "NOT_FOUND") return null; throw e; });
+    }))]).then(function (r) {
+      invAll = r[0].map(H.invParse).filter(Boolean);
+      invSquads = {}; TEAM_ORDER.forEach(function (t, i) { invSquads[t] = r[1][i]; });
+      renderInvOverview(); if (invTeam != null) renderInvTeam();
+    }).catch(function (e) { $("inv-overview").innerHTML = errHtml(e); });
+  }
+  function renderInvOverview() {
+    var now = Date.now(), tot = { players: 0, used: 0, active: 0, soon: 0, expired: 0, missing: 0 };
+    function cell(n, warn) { return "<td>" + (n && warn ? '<span class="tag warn">' + n + "</span>" : n) + "</td>"; }
+    var rows = TEAM_ORDER.map(function (t) {
+      var sq = invSquads[t], ov = H.invOverview(t, sq, invAll, now);
+      return ov.map(function (o, k) {
+        ["used", "active", "soon", "expired", "missing"].forEach(function (x) { tot[x] += o[x]; });
+        if (k === 0) tot.players += o.players;
+        return '<tr><td>' + (k === 0 ? '<button class="linkbtn" type="button" data-invt="' + t + '">' + esc(teamName(t)) + "</button>" : "") +
+          (k === 0 && !sq ? ' <span class="hint">(sense plantilla)</span>' : "") + "</td><td>" + INV_ROLE_SHORT[o.rol] + "</td>" +
+          "<td>" + o.players + "</td>" + cell(o.used) + cell(o.active) + cell(o.soon, true) + cell(o.expired, true) + cell(o.missing, true) + "</tr>";
+      }).join("");
+    }).join("");
+    $("inv-overview").innerHTML = '<table class="inv-t"><thead><tr><th>Equip</th><th>Tipus</th><th title="Jugadors/es de la plantilla (sense entrenadors)">Plantilla</th>' +
+      '<th title="Invitacions amb almenys un dispositiu dins">✅ Fetes servir</th><th title="Vigents i encara sense cap ús">🎟️ Actives sense ús</th>' +
+      '<th title="Vigents sense ús que caduquen d\'aquí a 5 dies o menys (també comptades a «Actives»)">⏳ Caduquen ≤5 dies</th>' +
+      '<th title="Caducades sense que ningú les hagi fet servir">⌛ Caducades sense ús</th><th title="Jugadors/es sense cap invitació vigent">❗ Falten</th></tr></thead><tbody>' +
+      rows + '</tbody><tfoot><tr><th>Total</th><th></th><th>' + tot.players + "</th><th>" + tot.used + "</th><th>" + tot.active + "</th><th>" + tot.soon + "</th><th>" +
+      tot.expired + "</th><th>" + tot.missing + "</th></tr></tfoot></table>";
+    var plan = H.invRenewalPlan(invAll, now, null);
+    $("inv-renew-all").textContent = "♻️ Renova les caducades de tot el club (" + plan.renew.length + ")";
+    $("inv-renew-all").disabled = invBusy || !(plan.renew.length + plan.drop.length);
+  }
+  function invOpenTeam(t) {
+    invTeam = Number(t); invRole = H.invRolesFor(invTeam)[0]; setMsg($("inv-msg"), "");
+    renderInvTeam(); $("inv-team-box").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function renderInvTeam() {
+    var t = invTeam, now = Date.now(), sq = invSquads[t], kinds = H.invRolesFor(t);
+    if (kinds.indexOf(invRole) < 0) invRole = kinds[0];
+    var mine = invAll.filter(function (i) { return i.team === t; }), players = H.invPlayers(sq);
+    var missing = sq ? H.invMissing(sq, mine, now, invRole) : [], plan = H.invRenewalPlan(invAll, now, t);
+    var active = mine.filter(function (i) { return i.rol === invRole && H.invState(i, now) === "active"; });
+    $("inv-team-box").hidden = false;
+    $("inv-team-title").textContent = "🎟️ " + invTeamName(t);
+    $("inv-teams").innerHTML = chipsHtml(TEAM_ORDER, [t], "data-invc");
+    $("inv-kind-text").textContent = kinds.length > 1 ? "Una invitació per a la família i una altra per a la jugadora o el jugador. Tria quines vols veure."
+      : kinds[0] === H.INV.PLAYER ? "Màsters: les invitacions són per als jugadors i jugadores." : "Equip d'infantils o més petits: les invitacions són per a les famílies.";
+    $("inv-roles").hidden = kinds.length < 2;
+    $("inv-roles").innerHTML = kinds.map(function (r) {
+      return '<button type="button" class="chip" data-invr="' + r + '" aria-pressed="' + (r === invRole) + '">' + INV_ROLE_CHIP[r] + "</button>"; }).join("");
+    $("inv-gen").textContent = "Crea les que falten (" + missing.length + ")";
+    $("inv-gen").disabled = invBusy || !missing.length;
+    $("inv-print-btn").disabled = invBusy || !active.length;
+    $("inv-renew-team").textContent = "♻️ Renova les caducades (" + plan.renew.length + ")";
+    $("inv-renew-team").disabled = invBusy || !(plan.renew.length + plan.drop.length);
+    function actions(i) {
+      return '<div class="row" style="margin-top:6px"><button class="btn ghost small" type="button" data-invshare="' + i.code + '">📤 Comparteix</button>' +
+        '<button class="btn danger small" type="button" data-invrev="' + i.code + '">Anul·la</button></div>';
+    }
+    var html = !sq ? '<div class="empty">Aquest equip encara no té plantilla a l\'app.</div>'
+      : !players.length ? '<div class="empty">La plantilla no té jugadors/es.</div>'
+      : players.map(function (m) {
+        var i = H.invOf(m, mine, invRole), st = i && H.invState(i, now);
+        return '<div class="item"><h4>' + esc(m.nom) + (i && H.invSoon(i, now) ? ' <span class="tag warn">caduca aviat</span>' : "") + "</h4>" +
+          '<div class="meta">' + esc(H.invStateText(i, now)) + (i ? " · " + esc(H.invFormat(i.code)) : "") + "</div>" + (st === "active" ? actions(i) : "") + "</div>";
+      }).join("");
+    // invitations of this kind for nobody in the squad any more (renamed, left the team…): they can still be cancelled
+    var others = mine.filter(function (i) { return i.rol === invRole && H.invState(i, now) === "active" && !players.some(function (m) { return H.invOf(m, [i], invRole); }); });
+    if (others.length) html += "<h3>Altres invitacions vigents (no són a la plantilla)</h3>" + others.map(function (i) {
+      return '<div class="item"><h4>' + esc(i.players.join(", ")) + '</h4><div class="meta">' + esc(H.invStateText(i, now)) + " · " + esc(H.invFormat(i.code)) + "</div>" + actions(i) + "</div>";
+    }).join("");
+    $("inv-list").innerHTML = html;
+  }
+  function invSetBusy(b) { invBusy = b; renderInvOverview(); if (invTeam != null) renderInvTeam(); }
+  /** creates one invitation (new random code; another one if that code exists already) */
+  function invCreate(team, role, players, nom, tries) {
+    var now = Date.now(), i = H.invNew(team, role, players, nom, now, invRandom()), doc = H.invDoc(i, S.uid), why = H.invCheck(i.code, doc, S.uid, now);
+    if (why) return Promise.reject(failure("INVALID_ARGUMENT (" + why + ")"));
+    return api("PATCH", H.INV.COLLECTION + "/" + i.code, { fields: H.invFields(i, S.uid) }, "currentDocument.exists=false").then(function () {
+      logWrite("create", H.INV.COLLECTION + "/" + i.code, { nom: i.nom }); return i;
+    }, function (e) {
+      if (!tries && /ALREADY_EXISTS|FAILED_PRECONDITION/.test(e.code || "")) return invCreate(team, role, players, nom, 1);
+      throw e;
+    });
+  }
+  $("inv-overview").onclick = function (ev) { var b = ev.target.closest("button[data-invt]"); if (b) invOpenTeam(b.getAttribute("data-invt")); };
+  $("inv-teams").onclick = function (ev) { var b = ev.target.closest("button[data-invc]"); if (b) invOpenTeam(b.getAttribute("data-invc")); };
+  $("inv-roles").onclick = function (ev) {
+    var b = ev.target.closest("button[data-invr]"); if (!b) return;
+    invRole = b.getAttribute("data-invr"); setMsg($("inv-msg"), ""); renderInvTeam();
+  };
+  $("inv-reload").onclick = function () { setMsg($("inv-msg"), ""); setMsg($("inv-glob-msg"), ""); loadInvitations(); };
+  $("inv-gen").onclick = function () {
+    var t = invTeam, role = invRole, msg = $("inv-msg"), miss = H.invMissing(invSquads[t], invAll.filter(function (i) { return i.team === t; }), Date.now(), role), n = 0, fails = [];
+    if (!miss.length || invBusy) return;
+    invSetBusy(true); setMsg(msg, "Creant…");
+    series(miss, function (m) {
+      var player = H.invSquadName(m);
+      return invCreate(t, role, [player], H.invSuggestedName(role, player)).then(function (i) { invAll.push(i); n++; }, function (e) { fails.push(m.nom + ": " + errOf(e)); });
+    }).then(function () {
+      invSetBusy(false);
+      setMsg(msg, n + " invitacions noves." + (fails.length ? " No s'han pogut crear: " + fails.join("; ") : ""), fails.length ? "err" : "ok");
+    });
+  };
+  /** "Renova les caducades": the unused ones that expired or expire within 5 days, made again (new code, 30 days); then the old one is deleted */
+  function invRenew(team) {
+    var plan = H.invRenewalPlan(invAll, Date.now(), team), msg = $("inv-msg"), done = 0, dropped = 0, skipped = 0, fails = [];
+    if (invBusy || !(plan.renew.length + plan.drop.length)) return;
+    var where = team == null ? "de tot el club" : "de " + teamName(team);
+    if (!confirm("Es renovaran " + plan.renew.length + " invitacions " + where + " que ningú no ha fet servir i que han caducat o caduquen d'aquí a 5 dies: " +
+      "cadascuna tindrà un codi nou, vàlid 30 dies, i l'antic deixarà de funcionar." +
+      (plan.drop.length ? " També s'esborraran " + plan.drop.length + " de repetides (aquells jugadors/es ja en tenen una altra)." : "") +
+      " Les targetes o missatges que ja hàgiu donat amb els codis antics no serviran: caldrà donar els nous.")) return;
+    invSetBusy(true); setMsg(team == null ? $("inv-glob-msg") : msg, "Renovant…");
+    function fresh(i) {  // read it again: if someone used it in the meantime, leave it alone
+      return fsGet(H.INV.COLLECTION + "/" + i.code).then(function (x) { var p = H.invParse(x); return p && p.usos === 0 ? p : null; },
+        function (e) { if (e.code === "NOT_FOUND") return null; throw e; });
+    }
+    function forget(i) { invAll = invAll.filter(function (x) { return x.code !== i.code; }); }
+    series(plan.renew, function (old) {
+      return fresh(old).then(function (p) {
+        if (!p) { skipped++; return; }
+        return invCreate(p.team, p.rol, p.players, p.nom.length >= 2 ? p.nom : H.invSuggestedName(p.rol, p.players[0])).then(function (i) {
+          invAll.push(i);
+          return fsDelete(H.INV.COLLECTION + "/" + old.code, old.nom).then(function () { forget(old); done++; });
+        });
+      }).catch(function (e) { fails.push(old.players.join(", ") + ": " + errOf(e)); });
+    }).then(function () {
+      return series(plan.drop, function (old) {
+        return fresh(old).then(function (p) {
+          if (!p) { skipped++; return; }
+          return fsDelete(H.INV.COLLECTION + "/" + old.code, old.nom).then(function () { forget(old); dropped++; });
+        }).catch(function (e) { fails.push(old.players.join(", ") + ": " + errOf(e)); });
+      });
+    }).then(function () {
+      invSetBusy(false); loadInvitations();   // what is really there now (uses made meanwhile included)
+      setMsg(team == null ? $("inv-glob-msg") : msg, done + " invitacions renovades" + (dropped ? ", " + dropped + " de repetides esborrades" : "") +
+        (skipped ? ", " + skipped + " ja s'han fet servir o no hi són (no s'han tocat)" : "") + "." +
+        (fails.length ? " Errors: " + fails.join("; ") : ""), fails.length ? "err" : "ok");
+    });
+  }
+  $("inv-renew-all").onclick = function () { invRenew(null); };
+  $("inv-renew-team").onclick = function () { invRenew(invTeam); };
+  $("inv-list").onclick = function (ev) {
+    var b = ev.target.closest("button[data-invshare],button[data-invrev]"); if (!b) return;
+    var code = b.getAttribute("data-invshare") || b.getAttribute("data-invrev"), i = invAll.filter(function (x) { return x.code === code; })[0];
+    if (!i) return;
+    if (b.hasAttribute("data-invshare")) { invShare(i); return; }
+    if (invBusy || !confirm("Vols anul·lar la invitació? Ningú més podrà entrar amb la invitació de " + i.players.join(", ") +
+      ". Qui ja hi ha entrat continua dins (ho pots treure a «Jugadors/es i famílies»).")) return;
+    b.disabled = true;
+    fsDelete(H.INV.COLLECTION + "/" + i.code, i.nom).then(function () {
+      invAll = invAll.filter(function (x) { return x.code !== i.code; }); renderInvOverview(); renderInvTeam(); toast("Invitació anul·lada.");
+    }, function (e) { b.disabled = false; toast(errOf(e), true); });
+  };
+  /** the app's shareOne: the system share sheet when there is one, else the text to the clipboard */
+  function invShare(i) {
+    var text = H.invShareText(invTeamName(i.team), i);
+    if (navigator.share) {
+      navigator.share({ text: text }).catch(function (e) { if (!e || e.name !== "AbortError") copyText(text, "Invitació copiada: enganxa-la al WhatsApp o al correu."); });
+    } else copyText(text, "Invitació copiada: enganxa-la al WhatsApp o al correu.");
+  }
+  // ---- printable cards (InvitationSheet.pdf: 8 per A4, QR + who it is for + code + how to use it)
+  function loadQr() {
+    if (window.QRCode) return Promise.resolve();
+    if (qrLoading) return qrLoading;
+    qrLoading = new Promise(function (ok, ko) {
+      var s = document.createElement("script");
+      s.src = QR_SRC; s.integrity = QR_SRI; s.crossOrigin = "anonymous";
+      s.onload = function () { if (window.QRCode) ok(); else { qrLoading = null; ko(failure("QR")); } };
+      s.onerror = function () { qrLoading = null; ko(failure("NETWORK")); };
+      document.head.appendChild(s);
+    });
+    return qrLoading;
+  }
+  function qrSvg(text) {
+    var box = document.createElement("div");
+    var q = new window.QRCode(box, { text: text, width: 66, height: 66, correctLevel: window.QRCode.CorrectLevel.M });
+    var m = q._oQRCode, n = m.getModuleCount(), qz = 2;
+    return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="' + (-qz) + " " + (-qz) + " " + (n + 2 * qz) + " " + (n + 2 * qz) + '" shape-rendering="crispEdges" role="img" aria-label="QR">' +
+      '<rect x="' + (-qz) + '" y="' + (-qz) + '" width="' + (n + 2 * qz) + '" height="' + (n + 2 * qz) + '" fill="#fff"/>' +
+      '<path fill="#000" d="' + H.qrPath(n, function (r, c) { return m.isDark(r, c); }) + '"/></svg>';
+  }
+  function invCardsHtml(team, cards) {
+    var tn = esc(invTeamName(team));
+    return H.invPages(cards).map(function (page) {
+      return '<div class="ppage">' + page.map(function (c) {
+        var i = c.inv;
+        return '<div class="pcard"><div class="ptop">' + qrSvg(H.invUrl(i.code)) + "<div><b>Club Vòlei Santpedor</b><b>" + tn + "</b>" +
+          '<div class="pname">' + esc(c.name) + "</div><div>" + (i.rol === H.INV.PLAYER ? "Invitació per a la jugadora o el jugador" : "Invitació per a la família") + "</div>" +
+          '<div class="pcode">' + esc(H.invFormat(i.code)) + "</div></div></div>" +
+          '<div class="pfoot">Escaneja el QR amb la càmera del mòbil, o bé<br>a l\'app: Club › El meu equip › «Tinc un codi».<br>' +
+          "Vàlida fins al " + esc(H.invUntil(i.expira)) + " · fins a " + i.max + " dispositius.</div></div>";
+      }).join("") + "</div>";
+    }).join("");
+  }
+  $("inv-print-btn").onclick = function () {
+    var t = invTeam, cards = H.invCards(t, invRole, invSquads[t], invAll, Date.now()), b = $("inv-print-btn");
+    if (!cards.length) return;
+    b.disabled = true;
+    loadQr().then(function () {
+      $("inv-print").innerHTML = invCardsHtml(t, cards);
+      document.body.classList.add("inv-printing");
+      window.print();
+    }).catch(function (e) { toast(e.code === "QR" ? "No s'ha pogut carregar el generador de QR." : errOf(e), true); })
+      .then(function () { b.disabled = invBusy; });
+  };
+  window.addEventListener("afterprint", function () { document.body.classList.remove("inv-printing"); });
 
   // =====================================================================
   // start: resume a session if a refresh token is stored

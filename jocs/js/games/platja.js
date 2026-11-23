@@ -26,6 +26,11 @@
     JUMP_G: 3.6,
     MY_SPIKE: 0.5,    // flight time of the player's spikes
     SET_POINTS: 5,
+    LEGEND_SET_POINTS: 7,
+    /** The Pili Llegenda plays the first set like the normal Pili plays the set 1 + this. */
+    LEGEND_BOOST: 2,
+    /** The Pili Llegenda tries to spike at least this often. */
+    LEGEND_SPIKE: 0.45,
     POINT_PAUSE: 1.1,
     SET_PAUSE: 2.0
   };
@@ -38,9 +43,15 @@
     return ext({
       ball: ball(0.25, 0, 0, 0), px: B.ME_HOME, pJump: 0, pVy: 0, cx: B.PILI_HOME, cJump: 0, cVy: 0,
       me: 0, pili: 0, set: 1, score: 0, lastTouch: null, touches: 0, cpuGoal: B.PILI_HOME, cpuDelay: 0,
-      cpuSpike: false, pause: 0, pointTo: null, setWon: false, server: "ME", over: false
+      cpuSpike: false, pause: 0, pointTo: null, setWon: false, server: "ME", over: false,
+      // secret version "Final contra la Pili Llegenda": quicker, she spikes from the first set, sets to 7
+      legend: false
     }, p || {});
   };
+  /** Level of the rival: the set, a few sets ahead against the Pili Llegenda. */
+  B.level = function (s) { return s.legend ? s.set + B.LEGEND_BOOST : s.set; };
+  /** Points to win (or lose) a set. */
+  B.setPoints = function (s) { return s.legend ? B.LEGEND_SET_POINTS : B.SET_POINTS; };
   B.inPlay = function (s) { return s.pause <= 0 && !s.over; };
 
   // ---- the Pili gets better every set
@@ -54,6 +65,8 @@
   /** Chance that she aims away from the player instead of anywhere. */
   B.aimChance = function (set) { return Math.min(0.85, 0.2 + lvl(set) * 0.16); };
   B.spikeChance = function (set) { return Math.min(0.75, lvl(set) * 0.18); };
+  /** Her spike chance in a game: the Pili Llegenda always spikes a lot. */
+  B.spikeChanceOf = function (s) { return s.legend ? Math.max(B.LEGEND_SPIKE, B.spikeChance(B.level(s))) : B.spikeChance(s.set); };
   /** How high her normal hits rise over the contact: lower (quicker) every set. */
   B.piliLift = function (set) { return Math.max(0.08, 0.42 - lvl(set) * 0.085); };
   /** Flight time of her spikes. */
@@ -127,27 +140,27 @@
   /** Where the Pili sends the ball: sometimes a mistake, else away from the player or anywhere. */
   B.piliTarget = function (s, rnd, mistakes) {
     if (mistakes === undefined) mistakes = true;
-    if (mistakes && rnd() < B.errorChance(s.set)) {
+    if (mistakes && rnd() < B.errorChance(B.level(s))) {
       return rnd() < 0.5 ? -0.03 - rnd() * 0.08 : 0.52 + rnd() * 0.04;
     }
-    if (rnd() < B.aimChance(s.set)) return s.px < 0.25 ? 0.39 + rnd() * 0.07 : 0.04 + rnd() * 0.07;
+    if (rnd() < B.aimChance(B.level(s))) return s.px < 0.25 ? 0.39 + rnd() * 0.07 : 0.04 + rnd() * 0.07;
     return 0.06 + rnd() * 0.38;
   };
   B.piliHit = function (s, b, rnd) {
     var tx = B.piliTarget(s, rnd);
     var spike = s.cJump > 0.03 && b.y > B.NET_H;
-    return spike ? B.drive(b.x, b.y, tx, B.piliSpike(s.set)) : B.launch(b.x, b.y, tx, Math.max(b.y + B.piliLift(s.set), B.NET_H + 0.1));
+    return spike ? B.drive(b.x, b.y, tx, B.piliSpike(B.level(s))) : B.launch(b.x, b.y, tx, Math.max(b.y + B.piliLift(B.level(s)), B.NET_H + 0.1));
   };
   /** The Pili guesses where the ball comes down (with an error) and starts walking after her reaction time. */
   B.plan = function (s, rnd) {
     var land = B.landingX(s.ball, B.BODY_H);
-    var e = (rnd() * 2 - 1) * B.misjudge(s.set);
-    return ext(s, { cpuGoal: clamp(land + e, B.NET_X + NET_GAP, 1.02), cpuDelay: B.reaction(s.set),
-      cpuSpike: rnd() < B.spikeChance(s.set) && land < 0.85 });
+    var e = (rnd() * 2 - 1) * B.misjudge(B.level(s));
+    return ext(s, { cpuGoal: clamp(land + e, B.NET_X + NET_GAP, 1.02), cpuDelay: B.reaction(B.level(s)),
+      cpuSpike: rnd() < B.spikeChanceOf(s) && land < 0.85 });
   };
 
   // ---- game flow
-  B.start = function (rnd) { return B.serve(B.state(), rnd); };
+  B.start = function (rnd, legend) { return B.serve(B.state({ legend: !!legend }), rnd); };
 
   /** The server serves: an easy ball to the other side. */
   B.serve = function (s, rnd) {
@@ -165,8 +178,8 @@
     var me = s.me + (to === "ME" ? 1 : 0);
     var pili = s.pili + (to === "PILI" ? 1 : 0);
     var base = ext(s, { me: me, pili: pili, pointTo: to, server: to, pause: B.POINT_PAUSE, lastTouch: null });
-    if (me >= B.SET_POINTS) return ext(base, { score: s.score + 1, setWon: true, pause: B.SET_PAUSE });
-    if (pili >= B.SET_POINTS) return ext(base, { over: true });
+    if (me >= B.setPoints(s)) return ext(base, { score: s.score + 1, setWon: true, pause: B.SET_PAUSE });
+    if (pili >= B.setPoints(s)) return ext(base, { over: true });
     return base;
   }
 
@@ -206,7 +219,7 @@
     if (jump && s.pJump <= 0) { pj = 0.001; pv = B.JUMP_V; }
     // the Pili
     var delay = Math.max(0, s.cpuDelay - dt);
-    var cx = delay <= 0 ? clamp(towards(s.cx, s.cpuGoal, B.cpuSpeed(s.set) * dt), B.NET_X + NET_GAP, 1.02) : s.cx;
+    var cx = delay <= 0 ? clamp(towards(s.cx, s.cpuGoal, B.cpuSpeed(B.level(s)) * dt), B.NET_X + NET_GAP, 1.02) : s.cx;
     r = jumpStep(s.cJump, s.cVy, dt); cj = r[0]; cv = r[1];
     var b0 = s.ball;
     var above = b0.y - B.BODY_H;
@@ -327,7 +340,7 @@
     // the Pili
     var pr = 0.062 * k;
     var mood = st.pointTo === "PILI" ? "cheer" : (st.pointTo === "ME" ? "sad" : (st.cJump > 0 ? "happy" : "focus"));
-    if (VSPG.drawPili) VSPG.drawPili(c, V.x(st.cx, w), V.y(st.cJump, w, h) - pr * 1.24, pr, { mood: mood });
+    if (VSPG.drawPili) VSPG.drawPili(c, V.x(st.cx, w), V.y(st.cJump, w, h) - pr * 1.24, pr, { mood: mood, style: st.legend ? "legend" : undefined });
     // ball shadow, ball (yellow and blue beach ball) and a marker when it is above the screen
     var b = st.ball, bx = V.x(b.x, w), by = V.y(b.y, w, h), br = B.BALL_R * k;
     var shade = clamp(1 - b.y / 1.2, 0.15, 0.6);
@@ -374,7 +387,9 @@
     var ctx = cv.getContext("2d");
     var W = 0, H = 0;
     var rnd = api.rnd;
-    var state = B.start(rnd);
+    // secret version "Final contra la Pili Llegenda" (llegenda)
+    var legend = !!(api.mode && api.mode.secret === "llegenda");
+    var state = B.start(rnd, legend);
     var playing = true, alive = true, raf = 0, last = -1, lastScore = -1;
     var dragX = null, jumpReq = false;
     // pointer: the first finger drags (or taps to jump), any other finger jumps

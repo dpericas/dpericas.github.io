@@ -70,7 +70,10 @@
 
   /** x where a shot from the contact point to (x, y) crosses the net. */
   L.crossing = function (ballX, x, y) { return ballX + (x - ballX) * (L.CONTACT_Y - L.NET_Y) / (L.CONTACT_Y - y); };
-  L.blocked = function (s, cross) { return Math.abs(cross - s.blockX) <= L.blockWidth(s.blockers) / 2 + L.BALL_R; };
+  L.blocked = function (s, cross) {
+    if (L.triple(s)) return s.wall.some(function (x) { return Math.abs(cross - x) <= L.BLOCKER_W / 2 + L.BALL_R; });
+    return Math.abs(cross - s.blockX) <= L.blockWidth(s.blockers) / 2 + L.BALL_R;
+  };
   L.outside = function (x, y) { return x < L.COURT_L || x > L.COURT_R || y < L.COURT_TOP; };
 
   /** Result of hitting towards (x, y) now (the point must be on the rival side). */
@@ -100,10 +103,14 @@
   L.step = function (s, dt, rnd) {
     if (s.pause > 0) {
       var pause = s.pause - dt;
-      return (pause <= 0 && !L.over(s)) ? L.rally(s, rnd) : ext(s, { pause: Math.max(0, pause) });
+      if (pause <= 0 && !L.over(s)) {
+        var r = L.rally(s, rnd);
+        return L.triple(s) ? ext(r, { wallV: wallVelocities(r.score, rnd) }) : r;
+      }
+      return ext(s, { pause: Math.max(0, pause) });
     }
     if (L.over(s)) return s;
-    var moved = ext(moveBlock(s, dt, rnd), { t: s.t + dt });
+    var moved = ext(L.triple(s) ? L.moveWall(s, dt) : moveBlock(s, dt, rnd), { t: s.t + dt });
     return (moved.t - moved.peak > L.window(s.score)) ? resolve(moved, "LATE", moved.ballX, L.CONTACT_Y) : moved;
   };
 
@@ -126,6 +133,42 @@
     return L.SETTER_X + (s.ballX - L.SETTER_X) * clamp(t / s.peak, 0, 1);
   };
 
+  // ------------------------------------------------ secret version: Triple bloqueig (triple)
+  // s.wall: the centres of the three rival blockers, each one walking on its own along the net at
+  // s.wallV (field widths/s). No wall = the normal block (blockX, blockers).
+  L.TRIPLE = 3;
+  var WALL_MIN = L.COURT_L + L.BLOCKER_W / 2, WALL_MAX = L.COURT_R - L.BLOCKER_W / 2;
+  L.triple = function (s) { return !!(s.wall && s.wall.length); };
+  /** Speed of the three blockers: quicker with the score. */
+  L.wallSpeed = function (score) { return 0.18 + Math.min(score, CAP) * 0.009; };
+  /** Each set the blockers change pace and way: 60-140% of wallSpeed, random direction. */
+  function wallVelocities(score, rnd) {
+    var out = [];
+    for (var i = 0; i < L.TRIPLE; i++) {
+      var v = L.wallSpeed(score) * (0.6 + rnd() * 0.8);
+      out.push(rnd() < 0.5 ? v : -v);
+    }
+    return out;
+  }
+  /** The triple game: three blockers spread along the net. */
+  L.startTriple = function (rnd) { return ext(L.start(rnd), { wall: [0.25, 0.5, 0.75], wallV: wallVelocities(0, rnd) }); };
+  /** The three blockers walk and bounce on the sidelines. */
+  L.moveWall = function (s, dt) {
+    var xs = [], vs = [];
+    for (var i = 0; i < s.wall.length; i++) {
+      var x = s.wall[i] + s.wallV[i] * dt, v = s.wallV[i];
+      if (x < WALL_MIN) { x = WALL_MIN + (WALL_MIN - x); v = Math.abs(v); }
+      if (x > WALL_MAX) { x = WALL_MAX - (x - WALL_MAX); v = -Math.abs(v); }
+      xs.push(clamp(x, WALL_MIN, WALL_MAX)); vs.push(v);
+    }
+    return ext(s, { wall: xs, wallV: vs });
+  };
+  /** Largest free stretch of the net between the blockers (and the sidelines), where a ball fits. */
+  L.widestGap = function (s) {
+    var edges = s.wall.slice().sort(function (a, b) { return a - b; }), prev = L.COURT_L, best = 0;
+    edges.forEach(function (x) { best = Math.max(best, x - L.BLOCKER_W / 2 - prev); prev = Math.max(prev, x + L.BLOCKER_W / 2); });
+    return Math.max(best, L.COURT_R - prev);
+  };
   VSPG.logic.rematada = L;
 
   // ------------------------------------------------------------------ drawing (Spike.kt)
@@ -180,8 +223,11 @@
   function drawBlock(c, st, w, h, u) {
     var net = L.NET_Y * h, bw = L.BLOCKER_W * w;
     var left = (st.blockX - L.blockWidth(st.blockers) / 2) * w;
-    for (var i = 0; i < st.blockers; i++) {
-      var cx = left + bw * (i + 0.5), body = bw * 0.62, top = net - h * 0.15;
+    var centres = [];
+    if (L.triple(st)) st.wall.forEach(function (x) { centres.push(x * w); });
+    else for (var j = 0; j < st.blockers; j++) centres.push(left + bw * (j + 0.5));
+    for (var i = 0; i < centres.length; i++) {
+      var cx = centres[i], body = bw * 0.62, top = net - h * 0.15;
       line(c, SKIN, cx - body * 0.4, top + 6 * u, cx - body * 0.35, net - h * 0.215, body * 0.22, true);
       line(c, SKIN, cx + body * 0.4, top + 6 * u, cx + body * 0.35, net - h * 0.215, body * 0.22, true);
       c.fillStyle = RIVAL; rrect(c, cx - body / 2, top, body, h * 0.13, body / 3); c.fill();
@@ -269,7 +315,9 @@
     var ctx = cv.getContext("2d");
     var W = 0, H = 0;
     var rnd = api.rnd;
-    var state = L.start(rnd);
+    // secret version "Triple bloqueig": three blockers that move on their own
+    var triple = !!(api.mode && api.mode.secret === "triple");
+    var state = triple ? L.startTriple(rnd) : L.start(rnd);
     var playing = true, alive = true, raf = 0, last = -1, lastScore = -1, lastLives = -1;
 
     function resize() {

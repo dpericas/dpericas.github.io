@@ -136,7 +136,9 @@
 
   L.state = function (p) {
     return ext({ phase: "AIM", aimPhase: 0, powerPhase: 0, aim: 0, power: 0, target: L.target(0.5, 0.6, 0.18, 0.16),
-      t: 0, landX: 0.5, landD: 0.5, result: null, pause: 0, score: 0, lives: L.LIVES }, p || {});
+      t: 0, landX: 0.5, landD: 0.5, result: null, pause: 0, score: 0, lives: L.LIVES,
+      // secret version "Servei amb vent": the wind of this serve, added to where the ball lands (0 = no wind)
+      windX: 0, windD: 0, windy: false }, p || {});
   };
   L.over = function (s) { return s.lives <= 0; };
   /** Current arrow value, -1 (left) .. 1 (right). */
@@ -199,8 +201,8 @@
     if (s.phase === "AIM") return ext(s, { phase: "POWER", aim: L.tri(s.aimPhase), powerPhase: 0 });
     if (s.phase === "POWER") {
       var p = L.saw(s.powerPhase);
-      var x = L.landX(s.aim, s.score);
-      var d = L.landD(p, s.score);
+      var x = L.landX(s.aim, s.score) + (s.windX || 0);
+      var d = L.landD(p, s.score) + (s.windD || 0);
       return ext(s, { phase: "FLIGHT", power: p, t: 0, landX: x, landD: d, result: L.judge(x, d, s.target) });
     }
     return s;
@@ -232,8 +234,11 @@
         var p = s.pause - dt;
         if (p > 0 || L.over(s)) return ext(s, { pause: Math.max(0, p) });
         var aimPhase = rnd() * 4;
-        return ext(s, { phase: "AIM", pause: 0, t: 0, result: null, aimPhase: aimPhase, powerPhase: 0,
+        var nx = ext(s, { phase: "AIM", pause: 0, t: 0, result: null, aimPhase: aimPhase, powerPhase: 0,
           target: L.newTarget(s.score, rnd) });
+        if (!s.windy) return nx;
+        var wn = L.newWind(nx.score, rnd);
+        return ext(nx, { windX: wn.x, windD: wn.d });
     }
   };
 
@@ -246,6 +251,23 @@
     var peak = s.landD < 0 ? 0.25 : 0.55;
     var z = 0.25 * (1 - t) + 4 * peak * t * (1 - t);
     return { x: x, d: d, z: z };
+  };
+  // ------------------------------------------------ secret version: Servei amb vent (vent)
+  /** Share of the wind that moves the depth (a serve is pushed more sideways than long or short). */
+  L.WIND_DEPTH = 0.6;
+  /** Strongest wind: a bit stronger with the score (court units the landing point moves). */
+  L.maxWind = function (score) { return 0.16 + lvl(score) * 0.14; };
+  /** A random wind: any direction, strength between a third and all of maxWind; depth moves less. */
+  L.newWind = function (score, rnd) {
+    var angle = rnd() * 2 * Math.PI;
+    var strength = L.maxWind(score) * (0.35 + rnd() * 0.65);
+    return { x: Math.cos(angle) * strength, d: Math.sin(angle) * strength * L.WIND_DEPTH };
+  };
+  /** The windy game: like start plus the first wind. */
+  L.startWindy = function (rnd) {
+    var s = ext(L.start(rnd), { windy: true });
+    var wn = L.newWind(0, rnd);
+    return ext(s, { windX: wn.x, windD: wn.d });
   };
   VSPG.logic.servei = L;
 
@@ -368,13 +390,49 @@
     gk.pili(c, gx, gy - b.z * h * 0.5 * sc, r0 * sc, mood, "champion");
     if (ballFirst) drawNet(c, v);
     drawPowerBar(c, st, w, h);
+    if (st.windy) drawWind(c, st, w, h);
   }
+
+  /** Secret version (Servei amb vent): a dial at the top left with an arrow towards where the wind blows, as long as it is strong. */
+  function drawWind(c, st, w, h) {
+    var r = w * 0.11, cx = w * 0.035 + r, cy = h * 0.035 + r;
+    gk.circle(c, cx, cy, r, "rgba(0,0,0,0.35)");
+    gk.circle(c, cx, cy, r, "rgba(255,255,255,0.8)", gk.px(3));
+    // screen: wind x to the right, deeper (into the rival court) upwards; depth is scaled back to a full turn
+    var dx = st.windX, dy = -st.windD / L.WIND_DEPTH;
+    var len = Math.sqrt(dx * dx + dy * dy);
+    if (len < 1e-4) return;
+    var top = L.maxWind(40);
+    var k = clamp(len / top, 0.25, 1) * r * 0.85;
+    var ux = dx / len, uy = dy / len, color = "#81D4FA";
+    gk.line(c, cx - ux * k, cy - uy * k, cx + ux * k, cy + uy * k, color, r * 0.16, true);
+    var tx = cx + ux * k, ty = cy + uy * k, head = r * 0.38;
+    c.beginPath();
+    c.moveTo(tx + ux * head * 0.4, ty + uy * head * 0.4);
+    c.lineTo(tx - ux * head * 0.6 - uy * head * 0.55, ty - uy * head * 0.6 + ux * head * 0.55);
+    c.lineTo(tx - ux * head * 0.6 + uy * head * 0.55, ty - uy * head * 0.6 - ux * head * 0.55);
+    c.closePath(); c.fillStyle = color; c.fill();
+    // strength in bars (1-3) under the dial
+    var bars = L.windBars(st);
+    for (var i = 0; i < 3; i++) {
+      var bw = r * 0.3, bx = cx - r * 0.55 + i * r * 0.4, bh = r * (0.18 + i * 0.12);
+      c.fillStyle = i < bars ? color : "rgba(255,255,255,0.25)";
+      c.fillRect(bx, cy + r * 1.45 - bh, bw, bh);
+    }
+  }
+  /** Strength bars (1-3) of the wind dial. */
+  L.windBars = function (st) {
+    var dx = st.windX, dy = -st.windD / L.WIND_DEPTH, len = Math.sqrt(dx * dx + dy * dy), top = L.maxWind(40);
+    return len < top * 0.45 ? 1 : len < top * 0.75 ? 2 : 3;
+  };
 
   // ------------------------------------------------------------------ game
   function start(stage, api) {
     var offs = [], rnd = api.rnd, playing = true, clock = 0;
     var S = gk.surface(stage, function () { draw(); });
-    var state = L.start(rnd);
+    // secret version "Servei amb vent": a wind on every serve
+    var windy = !!(api.mode && api.mode.secret === "vent");
+    var state = windy ? L.startWindy(rnd) : L.start(rnd);
     api.setScore(0); api.setLives(L.LIVES);
 
     function draw() {

@@ -158,30 +158,42 @@
   }
 
   /**
-   * Shows game [id] in [root]. mode: {variant, daily}. onBack: back to the hub. A game whose
-   * module is not loaded shows "Aviat!"; a locked one says what opens it.
+   * Shows game [id] in [root]. mode: {variant, daily, weekly, secret}. onBack: back to the hub. A game
+   * whose module is not loaded shows "Aviat!"; a locked one says what opens it.
+   *   weekly: the secret weekly challenge (secret.js): this week's game, twist and seed.
+   *   secret: a game of the secret path (its field; [id] is ignored): a new game "sg_*" or a normal
+   *     game with its twist (api.mode.secret), with its own bests, stars and rewards (VSPG.secret.finish).
    */
   VSPG.openGame = function (root, id, mode, onBack) {
     VSPG.stopGame();
+    var SEC = VSPG.secret;
+    var sec = mode && mode.secret && SEC ? SEC.game(mode.secret) : null;
+    if (sec) id = sec.module;
     var info = P.game(id);
     var def = VSPG.games.get(id);
     var today = P.today();
     var bests = P.bests();
-    var daily = !!(mode && mode.daily) && P.daily.game(today) === id;
+    var challenge = !sec && mode && mode.weekly && SEC ? SEC.challenge(today) : null;
+    var weekly = !!challenge && challenge.game === id;
+    var daily = !sec && !weekly && !!(mode && mode.daily) && P.daily.game(today) === id;
     var variant = (mode && mode.variant) || "NORMAL";
-    if (daily || !P.variantUnlocked(variant, id, bests)) variant = "NORMAL";
+    if (weekly) variant = challenge.variant;   // the week's twist, unlocked or not (as the app)
+    else if (sec || daily || !P.variantUnlocked(variant, id, bests)) variant = "NORMAL";
     var v = P.variant(variant);
-    var m = { variant: variant, seed: daily ? P.daily.seed(today) : null, daily: daily };
-    var title = info ? info.title : (def && def.title) || id;
+    var m = { variant: variant, seed: daily ? P.daily.seed(today) : weekly ? SEC.seed(today) : null, daily: daily, weekly: weekly,
+      secret: sec ? sec.field : null };
+    var title = sec ? sec.title : info ? info.title : (def && def.title) || id;
     var night = variant === "NIT", mirror = variant === "MIRALL";
+    function bestNow() { return sec ? SEC.best(sec.field) : P.best(id); }
+    var tag = sec ? t("sec.team_tag", SEC.teamName(sec)) : weekly ? t("sec.weekly_tag") : daily ? t("fr.daily_tag") : "";
 
     root.innerHTML =
-      '<div class="jg-game' + (night ? " night" : "") + '">' +
+      '<div class="jg-game' + (night ? " night" : "") + (sec ? " secret" : "") + '">' +
       '<div class="jg-top"><button class="jg-back" type="button" aria-label="' + esc(t("fr.back")) + '">←</button>' +
-      '<div class="jg-ttl"><b>' + (variant !== "NORMAL" ? v.emoji + " " : "") + esc(title) + "</b>" +
-      (daily ? '<span class="jg-tag">' + esc(t("fr.daily_tag")) + "</span>" : "") + "</div>" +
+      '<div class="jg-ttl"><b>' + (sec ? sec.emoji + " " : variant !== "NORMAL" ? v.emoji + " " : "") + esc(title) + "</b>" +
+      (tag ? '<span class="jg-tag">' + esc(tag) + "</span>" : "") + "</div>" +
       '<span class="jg-livesbox"></span><span class="jg-score" aria-live="polite" hidden></span>' +
-      '<span class="jg-best">' + th("fr.best", "<b>" + P.best(id) + "</b>") + "</span></div>" +
+      '<span class="jg-best">' + th("fr.best", "<b>" + bestNow() + "</b>") + "</span></div>" +
       '<div class="jg-field"><div class="jg-stagebox"></div>' + (night ? '<div class="jg-night" aria-hidden="true"></div>' : "") +
       '<div class="jg-panel-wrap"></div></div></div>';
     var game = root.querySelector(".jg-game");
@@ -236,16 +248,26 @@
         '<button type="button" class="jg-btn primary jg-go">' + esc(t("fr.back_games")) + "</button>", mood).querySelector(".jg-go").onclick = onBack;
     }
     // not available
+    // a secret game is only played from the secret path (#secret=<field>), never as a normal one
+    if ((mode && mode.secret && !sec) || (!sec && /^sg_/.test(id || ""))) { backPanel(t("fr.soon"), t("fr.soon_text"), "wink"); return; }
     if (!def) { backPanel(t("fr.soon"), t("fr.soon_text"), "wink"); return; }
-    if (id === "temporada" && !P.seasonOpen(today)) { backPanel(t("fr.not_yet"), t("hub.season_off"), "sleep"); return; }
-    if (!daily && !P.unlocked(id, bests)) { backPanel(t("fr.not_yet"), t("hub.locked_need", P.title(P.requirement(id))), "focus"); return; }
+    if (sec) {
+      var sb = SEC.bests(), si = SEC.GAMES.indexOf(sec);
+      if (!SEC.open(sec, sb)) { backPanel(t("fr.not_yet"), t("sec.locked", SEC.GAMES[si - 1].title), "focus"); return; }
+    } else {
+      if (id === "temporada" && !P.seasonOpen(today)) { backPanel(t("fr.not_yet"), t("hub.season_off"), "sleep"); return; }
+      if (!daily && !weekly && !P.unlocked(id, bests)) { backPanel(t("fr.not_yet"), t("hub.locked_need", P.title(P.requirement(id))), "focus"); return; }
+    }
 
-    var initialLives = Math.max(0, def.lives | 0);
+    // lives: a number, or a function of the mode (a secret version may play with other lives)
+    var initialLives = Math.max(0, (typeof def.lives === "function" ? def.lives(m) : def.lives) | 0);
+    var help = sec ? sec.help : (def.help || "");
     lives.set(initialLives, initialLives);
 
     function startPanel() {
-      var p = panel("<p>" + esc(def.help || "") + "</p>" +
+      var p = panel("<p>" + esc(help) + "</p>" +
         (daily ? '<p class="jg-small">' + th("fr.daily_same", "<b>" + P.dailyBest(today) + "</b>") + "</p>" : "") +
+        (weekly ? '<p class="jg-small">' + esc(t("sec.best", SEC.weeklyBest(today))) + "</p>" : "") +
         '<button type="button" class="jg-btn primary jg-play">' + esc(t("fr.play")) + "</button>", "happy");
       p.querySelector(".jg-play").onclick = play;
       try { p.querySelector(".jg-play").focus(); } catch (e) {}
@@ -263,7 +285,7 @@
       p.querySelector(".jg-play").onclick = play;
       var sh = p.querySelector(".jg-share");
       if (sh) sh.onclick = function () {
-        VSPG.share(t("fr.share_text", score, title, VSPG.SITE_URL));
+        VSPG.share(sec ? t("sec.share_text", score, title, VSPG.SITE_URL) : t("fr.share_text", score, title, VSPG.SITE_URL));
       };
     }
 
@@ -284,10 +306,10 @@
       var api = {
         /** true while the pause overlay is shown: the game loops must not advance (nor their timers). */
         paused: false,
-        mode: { variant: m.variant, seed: m.seed, daily: m.daily },
+        mode: { variant: m.variant, seed: m.seed, daily: m.daily, weekly: m.weekly, secret: m.secret },
         rnd: P.mulberry32(m.seed != null ? m.seed : P.randomSeed()),
         speed: v.speed,
-        best: P.best(id),
+        best: bestNow(),
         colors: VSPG.COLORS,
         setScore: function (n) { if (current === c && c.run === run) scoreEl.textContent = String(n); },
         setLives: function (n) { if (current === c && c.run === run) lives.set(n); },
@@ -305,9 +327,9 @@
           run.ended = true;
           api.paused = false;
           closeOverlay();
-          score = P.cap(id, score);
-          var r = P.finish(id, score, m);
-          bestEl.textContent = P.best(id);
+          score = sec ? SEC.cap(sec.field, score) : P.cap(id, score);
+          var r = sec ? SEC.finish(sec.field, score) : P.finish(id, score, m);
+          bestEl.textContent = bestNow();
           scoreEl.textContent = String(score);
           setTimeout(function () { stopRun({ run: run }); }, 0);
           overPanel(score, r);
@@ -338,18 +360,20 @@
     }
 
     /** The first time a game is opened in this browser: how to play it, then straight to the game. */
+    // a secret path game has its own tutorial (key jocs_tut_sg_<field>)
+    var tutKey = sec ? "sg_" + sec.field : id;
     function tutorial() {
-      var g = VSPG.GESTURES[id] || ["👆", "tut.answer"];
+      var g = sec ? [sec.emoji, null] : (VSPG.GESTURES[id] || ["👆", "tut.answer"]);
       panelWrap.hidden = true;
       overlay('<h3 class="jg-ov-title">' + esc(t("fr.tut_title")) + "</h3>" +
-        '<p class="jg-ov-gesture" aria-hidden="true">' + g[0] + '</p><p class="jg-ov-ghint">' + esc(t(g[1])) + "</p>" +
-        '<p class="jg-ov-help">' + esc(def.help || "") + "</p>", "wink", t("fr.go"), function () {
-        VSPG.markTutorial(id);
+        '<p class="jg-ov-gesture" aria-hidden="true">' + g[0] + '</p><p class="jg-ov-ghint">' + esc(sec ? sec.gesture : t(g[1])) + "</p>" +
+        '<p class="jg-ov-help">' + esc(help) + "</p>", "wink", t("fr.go"), function () {
+        VSPG.markTutorial(tutKey);
         play();
       });
     }
 
-    if (VSPG.tutorialSeen(id)) startPanel(); else tutorial();
+    if (VSPG.tutorialSeen(tutKey)) startPanel(); else tutorial();
     return game;
   };
 })();

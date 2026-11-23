@@ -6,7 +6,8 @@
  *     mood:  "happy" | "focus" | "wink" | "sad" | "cheer" | "wow" | "sleep"   (default "happy")
  *     rot:   radians, the whole drawing turns around (x, y)
  *     style: "green" (default) | "spiker" (headband) | "stripes" | "champion" (arms, shoes, stars)
- *     prop:  festivity costume: "santa" | "bunny" | "mask" | "rose" | "chestnuts" | "party" | "sparkler" | "senyera" | "glasses"
+ *            | "legend" (golden champion: the Pili Llegenda of the secret path)
+ *     prop:  festivity costume: "santa" | "bunny" | "mask" | "rose" | "chestnuts" | "party" | "sparkler" | "senyera" | "glasses" | "crown" (secret room)
  *     shadow: true draws the shadow under her (mascot use, not for a flying ball)
  *   VSPG.setupCanvas(canvas, w, h) -> ctx scaled for devicePixelRatio (CSS px units)
  *   VSPG.piliWidget(el, size, opts) -> { set(opts), stop() }: an animated Pili (bounce + blink) in el
@@ -17,13 +18,14 @@
 
   var GREEN = "#1E8C34", BRIGHT = "#3CC24A", DARK = "#1C211E", ACCENT = "#B9F6C0", W = "#FFFFFF";
   var INK = "#263238", PINK = "rgba(244,143,177,0.75)", PINK_SOLID = "#F48FB1", TONGUE = "#EF6F8A";
-  var GOLD = "#FCDD09", RED = "#C8102E";
+  var GOLD = "#FCDD09", RED = "#C8102E", LEGEND = "#FFC107";
 
   var PANELS = {
     green: [[W, GREEN], [DARK, W], [W]],
     stripes: [[GREEN, DARK], [DARK, GREEN], [W]],
     champion: [[GREEN, DARK], [DARK, GREEN], [W]],
-    spiker: [[GREEN, W], [W, DARK], [W]]
+    spiker: [[GREEN, W], [W, DARK], [W]],
+    legend: [[LEGEND, DARK], [DARK, LEGEND], [W]]
   };
 
   /** Festivity (VSPG.festivityOn) -> costume (PiliLook.propFor). */
@@ -77,7 +79,8 @@
 
     // --- behind the ball
     if (opts.shadow) oval(100, 194, 52, 7, "rgba(0,0,0,0.12)");
-    if (style === "champion") {
+    var champ = style === "champion" || style === "legend";
+    if (champ) {
       line([30, 118, 12, 96, 16, 70], 7); line([170, 118, 188, 96, 184, 70], 7);
       [16, 184].forEach(function (hx) { circle(hx, 66, 8, W); circle(hx, 66, 8, INK, 4); });
     }
@@ -100,7 +103,7 @@
     var seams = [90, 210, 330].map(function (a) { return a + rot; });
     function p(a, d) { return [100 + d * Math.cos(rad(a)), 100 + d * Math.sin(rad(a))]; }
     var panels = PANELS[style];
-    var seamColor = (style === "stripes" || style === "champion") ? W : INK;
+    var seamColor = style === "stripes" ? W : (style === "champion" ? W : INK);
     ctx.save();
     ctx.beginPath(); ctx.arc(100, 100, 80, 0, Math.PI * 2); ctx.clip();
     for (var k = 0; k < 3; k++) {
@@ -202,6 +205,12 @@
       ctx.fillStyle = GOLD; ctx.fillRect(168, 92, 40, 28);
       ctx.fillStyle = RED; for (var m = 0; m < 4; m++) ctx.fillRect(168, 95 + m * 6.6, 40, 3.3);
       ctx.lineWidth = 2; ctx.strokeStyle = INK; ctx.strokeRect(168, 92, 40, 28);
+    } else if (prop === "crown") {
+      // golden crown with three points and green gems (Pili.kt PiliProp.CROWN)
+      filled([62, 40, 56, 2, 80, 22, 100, -12, 120, 22, 144, 2, 138, 40, 62, 40], LEGEND);
+      line([62, 40, 56, 2, 80, 22, 100, -12, 120, 22, 144, 2, 138, 40, 62, 40], 3);
+      ctx.fillStyle = "#FFA000"; ctx.fillRect(62, 32, 76, 8);
+      [78, 100, 122].forEach(function (gx) { circle(gx, 30, 4.5, BRIGHT); });
     } else if (prop === "glasses") {
       circle(78, 112, 16, INK, 4); circle(122, 112, 16, INK, 4);
       seg(94, 110, 106, 110, 4, INK, true); seg(62, 108, 44, 102, 4); seg(138, 108, 156, 102, 4);
@@ -209,11 +218,12 @@
     }
 
     // --- in front of the ball
-    if (style === "champion") {
+    if (champ) {
+      var sc = style === "legend" ? GOLD : BRIGHT;
       seg(84, 176, 80, 194, 7); seg(116, 176, 120, 194, 7);
       filled([66, 196, 66, 186, 80, 188, 90, 198, 80, 199, 66, 196], GREEN);
       filled([134, 196, 134, 186, 120, 188, 110, 198, 120, 199, 134, 196], GREEN);
-      star(30, 28, 11, BRIGHT); star(172, 30, 9, BRIGHT); star(18, 150, 7, BRIGHT);
+      star(30, 28, 11, sc); star(172, 30, 9, sc); star(18, 150, 7, sc);
     } else if (style === "spiker" && (!prop || prop === "rose" || prop === "chestnuts" || prop === "sparkler" || prop === "senyera")) {
       rotateAbout(-8, 100, 60, function () {
         for (var b = 0; b < 9; b++) { ctx.fillStyle = b % 2 === 0 ? GREEN : DARK; ctx.fillRect(34 + b * 132 / 9, 52, 132 / 9 + 0.4, 15); }

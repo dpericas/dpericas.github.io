@@ -233,8 +233,15 @@
   P.COUNTER = {
     GAMES: "partides", DAILY: "diaris", NIGHT_GAMES: "nit_hora", VARIANT_NIT: "var_nit", VARIANT_TURBO: "var_turbo",
     VARIANT_MIRALL: "var_mirall", LIVES_FOLLOWED: "directes", CLAPS: "aplaudiments", DRUMS: "tabals",
-    SEASON_PRIZES: "temporada", PET_FED: "pili_menjar", PET_TICKLES: "pili_pessigolles"
+    SEASON_PRIZES: "temporada", PET_FED: "pili_menjar", PET_TICKLES: "pili_pessigolles",
+    // the secret room (7 taps on the crest, secret.js / SecretRoom.kt)
+    SECRET_DOOR: "escut_secret", CLUB_CODES: "codis_club", WEEKLY: "repte_secret",
+    SECRET_PATH: "cami_secret", SECRET_GOLD: "cami_secret_or"
   };
+  /** Secret codes of the app's "follow a live match" dialog (LiveEggs): only the app gives them. */
+  P.SECRET_CODES = ["codi_santpedor", "codi_ace", "codi_bloc", "codi_2014"];
+  /** Games finished at each hour of the day ("hora_0".."hora_23"): the secret statistics. */
+  P.hourKey = function (h) { h = Math.floor(Number(h) || 0); return "hora_" + Math.max(0, Math.min(23, h)); };
   var C = P.COUNTER;
 
   P.MEDALS = [
@@ -262,7 +269,13 @@
     { id: "TURBO", emoji: "⚡", secret: true },
     { id: "CLAPPER", emoji: "👏", secret: true },
     { id: "DRUMMER", emoji: "🥁", secret: true },
-    { id: "FRIEND", emoji: "🍎", secret: true }
+    { id: "FRIEND", emoji: "🍎", secret: true },
+    { id: "CODEBREAKER", emoji: "🔐", secret: true },
+    { id: "SECRET_DOOR", emoji: "🛡️", secret: true },
+    { id: "CLUB_CODE", emoji: "🔑", secret: true },
+    { id: "WEEKLY", emoji: "🗝️", secret: true },
+    { id: "SECRET_PATH", emoji: "🗺️", secret: true },
+    { id: "SECRET_GOLD", emoji: "👑", secret: true }
   ];
   P.MEDALS.forEach(function (m) { m.title = t("medal." + m.id); m.desc = t("medal." + m.id + ".d"); });
   P.medal = function (id) { for (var i = 0; i < P.MEDALS.length; i++) if (P.MEDALS[i].id === id) return P.MEDALS[i]; return null; };
@@ -298,6 +311,12 @@
       case "CLAPPER": return count(C.CLAPS) >= 50;
       case "DRUMMER": return count(C.DRUMS) >= 20;
       case "FRIEND": return count(C.PET_FED) >= 20;
+      case "CODEBREAKER": return P.SECRET_CODES.every(function (k) { return count(k) >= 1; });
+      case "SECRET_DOOR": return count(C.SECRET_DOOR) >= 1;
+      case "CLUB_CODE": return count(C.CLUB_CODES) >= 1;
+      case "WEEKLY": return count(C.WEEKLY) >= 3;
+      case "SECRET_PATH": return count(C.SECRET_PATH) >= 1;
+      case "SECRET_GOLD": return count(C.SECRET_GOLD) >= 1;
     }
     return false;
   };
@@ -370,11 +389,34 @@
     { id: "FESTA", color: "#C62828" }
   ];
   P.ALBUM_KINDS.forEach(function (k) { k.title = t("kind." + k.id); });
+  /**
+   * Special stickers (AlbumCatalog special = true, after the festive ones in the app's order): given
+   * only by their own easter egg — the app's Reis and birthday, the secret room (the crest, the club
+   * codes) and the secret path (one per team). Never drawn as a reward, not part of the regular album.
+   */
+  function sp(id, emoji) { var c = cr(id, emoji, "FESTA"); c.special = true; return c; }
+  P.SPECIAL = [
+    sp("reis_regal", "🎁"), sp("aniversari_app", "🎂"),
+    sp("escut_secret", "🛡️"),
+    sp("codi_pavello", "🏟️"), sp("codi_xarxes", "📸"), sp("codi_derbi", "🔥"), sp("codi_gala", "🌟"), sp("codi_festa", "🎉"),
+    sp("sec_runner", "🏃"), sp("sec_malabars", "🤹"), sp("sec_ritme", "🥁"), sp("sec_cegues", "🙈"), sp("sec_memoria_gran", "🃏"),
+    sp("sec_vent", "🌬️"), sp("sec_senyals", "🟨"), sp("sec_trenca", "🧱"), sp("sec_libero", "🦸"), sp("sec_triple", "🚧"),
+    sp("sec_forat", "🎯"), sp("sec_llegenda", "👑"),
+    sp("codi_campions", "🏆")
+  ];
   P.REGULAR = P.ALBUM.filter(function (c) { return !c.festivity; });
-  P.cromo = function (id) { for (var i = 0; i < P.ALBUM.length; i++) if (P.ALBUM[i].id === id) return P.ALBUM[i]; return null; };
-  P.cromoNumber = function (c) { return P.ALBUM.indexOf(c) + 1; };
+  /** Festive and special stickers (the album's last section). */
+  P.EXTRA = P.ALBUM.filter(function (c) { return c.festivity; }).concat(P.SPECIAL);
+  P.cromo = function (id) {
+    for (var i = 0; i < P.ALBUM.length; i++) if (P.ALBUM[i].id === id) return P.ALBUM[i];
+    return P.special(id);
+  };
+  /** A special sticker by id (AlbumCatalog.special), or null. */
+  P.special = function (id) { for (var i = 0; i < P.SPECIAL.length; i++) if (P.SPECIAL[i].id === id) return P.SPECIAL[i]; return null; };
+  P.cromoNumber = function (c) { var i = P.ALBUM.indexOf(c); return i >= 0 ? i + 1 : P.ALBUM.length + P.SPECIAL.indexOf(c) + 1; };
   P.ownedRegular = function (owned) { return P.REGULAR.filter(function (c) { return (owned[c.id] || 0) > 0; }).length; };
-  P.ownedFestive = function (owned) { return P.ALBUM.filter(function (c) { return c.festivity && (owned[c.id] || 0) > 0; }).length; };
+  /** Different festive and special stickers owned. */
+  P.ownedFestive = function (owned) { return P.EXTRA.filter(function (c) { return (owned[c.id] || 0) > 0; }).length; };
   function pick(list, rnd) { return list[Math.floor(rnd() * list.length) % list.length]; }
   /**
    * Album.draw: a sticker for a reward, preferably one not owned yet (3 of every 4 times), never a
@@ -697,7 +739,7 @@
    * GameScores.finish: keeps the record, gives the rewards (a sticker per new star, medals, newly
    * opened games), trains the Pili pet, records the daily challenge. Returns the result
    * {game, score, record, newStars, stars, medals: [ids], cromos: [cromo], opened: [ids], dailyBest}.
-   * mode: {variant, seed, daily}; opts (tests): {today, rnd, hour, now}.
+   * mode: {variant, seed, daily, weekly}; opts (tests): {today, rnd, hour, now}.
    */
   P.finish = function (g, score, mode, opts) {
     mode = mode || {}; opts = opts || {};
@@ -705,8 +747,9 @@
     var today = opts.today || P.today(), rnd = opts.rnd || Math.random;
     var hour = opts.hour != null ? opts.hour : P.now().getHours();
     var before = P.bests();
-    // the daily challenge may be a game still locked in the path: then it only counts for the day
-    var counts = !(mode.daily && !P.unlocked(g, before));
+    // the daily challenge (or the secret weekly one) may be a game still locked in the path: then it
+    // only counts for the day / the week
+    var counts = !((mode.daily || mode.weekly) && !P.unlocked(g, before));
     var record = counts ? P.submit(g, score) : false;
     if (counts) P.recordMonth(g, score);
     var after = P.bests();
@@ -716,6 +759,11 @@
     else if (mode.variant === "TURBO") P.inc(C.VARIANT_TURBO);
     else if (mode.variant === "MIRALL") P.inc(C.VARIANT_MIRALL);
     if (hour < 5) P.inc(C.NIGHT_GAMES);
+    P.inc(P.hourKey(hour));
+    if (mode.weekly) {
+      P.inc(C.WEEKLY);
+      if (VSPG.secret) VSPG.secret.weeklyScore(score, today);
+    }
     var dailyBest = false;
     if (mode.daily && score > 0) {
       dailyBest = P.recordDaily(score, today);
@@ -752,6 +800,10 @@
     if (!r) return out;
     if (r.newStars > 0) out.push(t("rew.stars", r.newStars, r.stars));
     (r.opened || []).forEach(function (g) { out.push(t("rew.opened", P.title(g))); });
+    (r.secretOpened || []).forEach(function (f) {
+      var sg = VSPG.secret && VSPG.secret.game(f);
+      if (sg) out.push(t("rew.opened", sg.emoji + " " + sg.title));
+    });
     (r.medals || []).forEach(function (m) { var x = P.medal(m); if (x) out.push(t("rew.medal", x.emoji + " " + x.title)); });
     (r.cromos || []).forEach(function (c) { out.push(t("rew.cromo", c.emoji + " " + c.title)); });
     if (r.dailyBest) out.push(t("rew.daily"));
@@ -790,6 +842,10 @@
     // monthly ranking: only when something was played this month
     var mb = P.monthBests();
     if (Object.keys(mb).length) { data.mes = P.month(); data.m = mb; }
+    // the secret room: this week's secret challenge (sec, sec_set), the Pili's run (runner) and the
+    // secret path (map "s"), as GameScores.upload of the app
+    var sf = VSPG.secret ? VSPG.secret.boardFields() : {};
+    Object.keys(sf).forEach(function (k) { data[k] = sf[k]; });
     data.updated = P.now().toISOString();
     return data;
   };

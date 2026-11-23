@@ -155,18 +155,69 @@
     var up = Math.sqrt(2 * L.gravity(h, touches) * h * 0.42);
     return { x: b.x, y: b.y, vy: -up, vx: (dx / r) * w * 0.9 + b.vx * 0.3 };
   };
+  // ------------------------------------------------------------------ secret version «Malabars» (SecretVersionsA.kt MalabarsLogic)
+  /** Toquets with a second ball at SECOND_AT touches and a third at THIRD_AT; any ball down = game over. */
+  var M = { SECOND_AT: 5, THIRD_AT: 15, MAX_BALLS: 3 };
+  M.ballsFor = function (touches) { return touches >= M.THIRD_AT ? 3 : touches >= M.SECOND_AT ? 2 : 1; };
+  /** Difficulty handed to the physics: gravity grows half as fast as in Toquets. */
+  M.pace = function (touches) { return Math.floor(touches / 2); };
+  M.start = function (w, h) { return [L.start(w, h)]; };
+  /** A new ball, still, near the top, at the lane (¼, ½, ¾ of the width) farthest from the balls in play. */
+  M.spawn = function (balls, w, h) {
+    var lanes = [0.25, 0.5, 0.75].map(function (f) { return f * w; }), x = w / 2, bestD = -1;
+    lanes.forEach(function (lane) {
+      var d = Infinity;
+      balls.forEach(function (b) { d = Math.min(d, Math.abs(b.x - lane)); });
+      if (d > bestD) { bestD = d; x = lane; }
+    });
+    return { x: x, y: h * 0.15, vx: 0, vy: 0 };
+  };
+  /** Advances every ball; null as soon as one reaches the floor. */
+  M.step = function (balls, dt, w, h, touches) {
+    var out = [];
+    for (var i = 0; i < balls.length; i++) {
+      var n = L.step(balls[i], dt, w, h, M.pace(touches));
+      if (n === null) return null;
+      out.push(n);
+    }
+    return out;
+  };
+  /** A tap: kicks the nearest ball within reach (null if it misses all); a new ball enters at SECOND_AT / THIRD_AT. */
+  M.kick = function (balls, tapX, tapY, w, h, touches) {
+    var order = balls.map(function (b, i) { return i; }).sort(function (a, b) {
+      function d2(k) { var dx = balls[k].x - tapX, dy = balls[k].y - tapY; return dx * dx + dy * dy; }
+      return d2(a) - d2(b);
+    });
+    for (var j = 0; j < order.length; j++) {
+      var i = order[j];
+      var kicked = L.kick(balls[i], tapX, tapY, w, h, M.pace(touches));
+      if (!kicked) continue;
+      var next = balls.slice();
+      next[i] = kicked;
+      while (next.length < Math.min(M.MAX_BALLS, M.ballsFor(touches + 1))) next.push(M.spawn(next, w, h));
+      return next;
+    }
+    return null;
+  };
+  /** The balls of Malabars, each its own look (the app: GREEN, CLASSIC, SENYERA). */
+  M.STYLES = ["green", "stripes", "champion"];
+  L.malabars = M;
   VSPG.logic.toquets = L;
 
   // ------------------------------------------------------------------ game
   function start(stage, api) {
     var offs = [];
     var ball = null, touches = 0, playing = true;
+    // "Malabars" of the secret path: up to three balls at once
+    var juggle = !!(api.mode && api.mode.secret === "malabars"), balls = [];
+    function scale(b, ow, oh, w, h) { return { x: b.x * w / ow, y: b.y * h / oh, vx: b.vx * w / ow, vy: b.vy * h / oh }; }
     var S = gk.surface(stage, function (ow, oh, w, h) {
       // keep the ball at the same place of the (resized) field
-      if (ball) ball = { x: ball.x * w / ow, y: ball.y * h / oh, vx: ball.vx * w / ow, vy: ball.vy * h / oh };
+      if (ball) ball = scale(ball, ow, oh, w, h);
+      balls = balls.map(function (b) { return scale(b, ow, oh, w, h); });
       draw();
     });
-    ball = L.start(S.w, S.h);
+    if (juggle) balls = M.start(S.w, S.h); else ball = L.start(S.w, S.h);
     api.setScore(0);
 
     function draw() {
@@ -178,11 +229,22 @@
       c.fillRect(0, h - gk.px(6), w, gk.px(6));
       if (ball) gk.pili(c, ball.x, ball.y, L.radius(w), playing ? "focus" : "sad",
         touches >= L.SPIKER_FROM ? "spiker" : "green");
+      balls.forEach(function (b, i) { gk.pili(c, b.x, b.y, L.radius(w), playing ? "focus" : "sad", M.STYLES[i % M.STYLES.length]); });
     }
 
     function frame(dt) {
       S.fit();
-      if (playing && ball) {
+      if (playing && juggle && balls.length) {
+        var nb = M.step(balls, dt, S.w, S.h, touches);
+        if (nb === null) {
+          playing = false;
+          stopLoop();
+          draw();
+          api.end(touches);
+          return;
+        }
+        balls = nb;
+      } else if (playing && ball) {
         var next = L.step(ball, dt, S.w, S.h, touches);
         if (next === null) {
           playing = false;
@@ -198,6 +260,13 @@
 
     gk.on(offs, S.el, "pointerdown", function (ev) {
       ev.preventDefault();
+      if (juggle) {
+        if (!playing || !balls.length) return;
+        var q = api.point(ev, S.el);
+        var kb = M.kick(balls, q.x, q.y, S.w, S.h, touches);
+        if (kb) { balls = kb; touches++; api.setScore(touches); api.haptic(10); }
+        return;
+      }
       if (!playing || !ball) return;
       var p = api.point(ev, S.el);
       var k = L.kick(ball, p.x, p.y, S.w, S.h, touches);
@@ -219,7 +288,7 @@
         S.destroy();
       },
       /** For tests. */
-      state: function () { return { ball: ball, touches: touches, playing: playing, w: S.w, h: S.h }; }
+      state: function () { return { ball: ball, balls: balls, touches: touches, playing: playing, w: S.w, h: S.h }; }
     };
   }
 

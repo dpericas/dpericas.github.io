@@ -193,12 +193,28 @@
     }
     return ext(s, { balls: balls, score: score, lives: Math.max(0, lives), nextServe: next });
   };
+  // ------------------------------------------------------------------ secret version «Recepció a cegues» (SecretVersionsA.kt CeguesLogic)
+  /** Past the net (NET of the height) the ball fades out in FADE_RADII radii; only its shadow is left. */
+  var CG = { NET: 0.33, FADE_RADII: 2 };
+  CG.netY = function (h) { return h * CG.NET; };
+  /** Opacity of the ball: 1 above the net, fading to 0 just below it; received balls always 1. */
+  CG.ballAlpha = function (b, w, h) {
+    if (b.received) return 1;
+    var past = b.y - CG.netY(h);
+    if (past <= 0) return 1;
+    return clamp(1 - past / (L.radius(w) * CG.FADE_RADII), 0, 1);
+  };
+  /** Size (0.35…1) and darkness of the shadow: it grows as the ball comes down to the forearms. */
+  CG.shadowScale = function (b, h) { return 0.35 + 0.65 * clamp(b.y / L.paddleY(h), 0, 1); };
+  L.cegues = CG;
   VSPG.logic.recepcio = L;
 
   // ------------------------------------------------------------------ game
   function start(stage, api) {
     var offs = [], rnd = api.rnd;
     var playing = true, pressed = false;
+    // "Recepció a cegues" of the secret path: the ball vanishes past the net, only its shadow is left
+    var blind = !!(api.mode && api.mode.secret === "cegues");
     var S = gk.surface(stage, function (ow, oh, w, h) {
       // keep the balls and the forearms at the same place of the (resized) field
       var fx = w / ow, fy = h / oh;
@@ -220,10 +236,28 @@
       gk.text(c, api, w, String(state.score), w / 2, 24, 110, "rgba(255,255,255,0.25)", "center", "top");
       // court: floor line and attack line
       c.fillStyle = "rgba(255,255,255,0.15)"; c.fillRect(0, h - gk.px(6), w, gk.px(6));
-      c.fillStyle = "rgba(255,255,255,0.08)"; c.fillRect(0, h * 0.33, w, gk.px(3));
+      if (blind) {
+        // the net: white band with a mesh
+        var ny = CG.netY(h), nh = r * 0.6;
+        c.fillStyle = "rgba(255,255,255,0.10)"; c.fillRect(0, ny - nh, w, nh);
+        for (var mx = 0; mx <= w; mx += r * 0.5) gk.line(c, mx, ny - nh, mx, ny, "rgba(255,255,255,0.18)", gk.px(1.5));
+        c.fillStyle = "rgba(255,255,255,0.7)"; c.fillRect(0, ny - nh, w, gk.px(4));
+        // the shadows on the floor, under the balls: bigger and darker as they come down
+        state.balls.forEach(function (sb) {
+          if (sb.received) return;
+          var sk = CG.shadowScale(sb, h), sw = r * 2.2 * sk, sh = r * 0.7 * sk;
+          c.beginPath(); c.ellipse(sb.x, h * 0.965, sw / 2, sh / 2, 0, 0, Math.PI * 2);
+          c.fillStyle = "rgba(0,0,0," + (0.25 + 0.4 * sk) + ")"; c.fill();
+        });
+      } else { c.fillStyle = "rgba(255,255,255,0.08)"; c.fillRect(0, h * 0.33, w, gk.px(3)); }
       for (var i = 0; i < state.balls.length; i++) {
         var b = state.balls[i];
-        if (b.received) {
+        var alpha = blind ? CG.ballAlpha(b, w, h) : 1;
+        if (alpha <= 0) continue;
+        if (alpha < 1) {
+          // fading out just past the net
+          c.save(); c.globalAlpha = alpha; gk.pili(c, b.x, b.y, r, "focus", "green"); c.restore();
+        } else if (b.received) {
           var k = clamp(b.age / L.FADE, 0, 1);
           gk.circle(c, b.x, b.y, r * (1 + k * 1.8), gk.rgba(C.accent, 1 - k), r * 0.18);
           gk.pili(c, b.x, b.y, r * (1 - k * 0.7), "happy", "green");

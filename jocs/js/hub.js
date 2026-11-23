@@ -4,6 +4,7 @@
  * save / restore the progress with a code (docs/jocs_progres.md).
  * Navigation with the URL hash so the browser back button works:
  *   (empty) hub · #joc=servei[&v=TURBO][&diari=1] · #ranking[=<game>|avui|lliga] · #medalles · #album · #pili
+ *   the secret room (7 taps on the crest, secret.js): #sala · #setmanal (weekly challenge) · #secret=<field> (secret path)
  */
 (function () {
   "use strict";
@@ -40,7 +41,23 @@
     VSPG.stopGame();
     clearTimers();
     if (!("ranking" in q)) rankCache = null;
-    document.body.classList.toggle("in-game", "joc" in q);
+    var S = VSPG.secret;
+    document.body.classList.toggle("in-game", "joc" in q || "secret" in q || "setmanal" in q);
+    if ("secret" in q && S) {
+      var sg = S.game(q.secret);
+      document.title = t("hub.doc_title", sg ? sg.title : q.secret);
+      VSPG.openGame(root, null, { secret: q.secret }, hub.back);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if ("setmanal" in q && S) {
+      var ch = S.challenge(P.today());
+      document.title = t("hub.doc_title", t("sec.weekly_title"));
+      VSPG.openGame(root, ch.game, { weekly: true }, hub.back);
+      window.scrollTo(0, 0);
+      return;
+    }
+    if ("sala" in q && S) { S.renderRoom(root, true); return; }
     if ("joc" in q) {
       document.title = t("hub.doc_title", P.title(q.joc));
       VSPG.openGame(root, q.joc, { variant: q.v || "NORMAL", daily: q.diari === "1" }, hub.back);
@@ -62,6 +79,7 @@
     window.scrollTo(0, 0);
     return root.querySelector(".jg-wrap");
   }
+  hub.page = page;
 
   function stars(n) { return "★★★★★".slice(0, n) + "☆☆☆☆☆".slice(0, P.MAX_STARS_PER_GAME - n); }
 
@@ -94,6 +112,7 @@
     var dGame = P.daily.game(today), dBest = P.dailyBest(today), streak = P.streak(today);
     var unseen = P.unseenMedals(), nick = P.nickname();
     var html = '<div class="jg-page"><header class="jg-head"><a class="jg-back" href="../#club" aria-label="' + esc(t("hub.back_site")) + '">←</a>' +
+      '<button type="button" class="jg-crest" id="jg-crest" aria-label="' + esc(t("sec.crest")) + '"><img src="../live/logo.jpg" alt=""></button>' +
       "<h1>" + esc(t("hub.title")) + '</h1><span class="jg-total">' + esc(t("hub.stars", P.totalStars(bests), P.maxStars())) + "</span></header>" +
       '<div class="jg-wrap">' +
       '<div class="jg-hero"><div class="jg-hero-pili"></div><p>' + esc(t("hub.intro")) + "</p></div>" +
@@ -132,8 +151,21 @@
     VSP.each("[data-go]", function (b) { b.onclick = function () { hub.go(b.getAttribute("data-go")); }; }, root);
     VSP.$("jg-daily-play").onclick = function () { hub.go("joc=" + dGame + "&diari=1"); };
     VSP.$("jg-nick-edit").onclick = function () { nicknameDialog(renderHub); };
+    VSP.$("jg-crest").onclick = crestTap;
     bindSaveBox();
     VSP.each("[data-lang]", function (b) { b.onclick = function () { setLang(b.getAttribute("data-lang")); }; }, root);
+  }
+
+  /** 7 taps on the crest (less than 1.5 s apart): the secret room (ClubHeader of the app). */
+  var crestTaps = 0, crestLast = 0;
+  function crestTap() {
+    var S = VSPG.secret, now = Date.now();
+    if (!S) return;
+    crestTaps = now - crestLast < S.TAP_GAP_MS ? crestTaps + 1 : 1;
+    crestLast = now;
+    var left = S.CREST_TAPS - crestTaps;
+    if (left <= 0) { crestTaps = 0; hub.go("sala"); return; }
+    if (left <= 3) VSPG.toast(VSPG.tn("sec.taps_left", left));
   }
 
   /** The language of the games (same choice as the club web: localStorage "lang"; Catalan by default). */
@@ -342,6 +374,7 @@
     return '<div class="jg-rrow' + (me ? " me" : "") + '"><span class="jg-pos">' + medal(pos) + '</span><span class="grow jg-rname">' +
       esc(e.name) + (me ? " " + esc(t("rank.you")) : "") + '</span><b class="jg-rscore">' + e.score + "</b></div>";
   }
+  hub.rankList = rankList;
   function rankList(ranked, uid, empty) {
     if (!ranked.length) return '<div class="jg-center"><div class="jg-empty-pili"></div><p>' + esc(empty) + "</p></div>";
     var mine = P.position(ranked, uid);
@@ -410,12 +443,13 @@
 
   function renderAlbum() {
     var owned = P.album();
-    var festive = P.ALBUM.filter(function (c) { return c.festivity; });
+    var festive = P.EXTRA;   // festive and special stickers (AlbumCatalog.EXTRA)
     function card(c) {
       var n = P.cromoNumber(c), count = owned[c.id] || 0;
       if (count <= 0) return '<div class="jg-cromo missing" aria-label="' + esc(t("alb.missing", n)) + '"><span class="q">?</span><small>#' + n + "</small></div>";
       var kind = P.ALBUM_KINDS.filter(function (k) { return k.id === c.kind; })[0];
-      var bg = c.festivity ? "linear-gradient(" + P.FESTIVITIES[c.festivity].colors[0] + "," + P.FESTIVITIES[c.festivity].colors[1] + ")"
+      var bg = c.special ? "linear-gradient(#FFC107,#1C211E)"
+        : c.festivity ? "linear-gradient(" + P.FESTIVITIES[c.festivity].colors[0] + "," + P.FESTIVITIES[c.festivity].colors[1] + ")"
         : "linear-gradient(" + kind.color + "," + kind.color + "b3)";
       return '<div class="jg-cromo" style="background:' + bg + '"><small class="n">#' + n + "</small>" + (count > 1 ? '<span class="dup">×' + count + "</span>" : "") +
         '<span class="e" aria-hidden="true">' + c.emoji + "</span><b>" + esc(c.title) + "</b></div>";
@@ -539,6 +573,7 @@
       P.sync.sync().catch(function () {});
     }
     P.dropUnapprovedTeam();   // left the team (👤 El meu equip): out of the league
+    if (VSPG.secret) VSPG.secret.recordOpen();   // the secret statistics: days the games were opened
     P.board.syncAsync(2000);
   };
 

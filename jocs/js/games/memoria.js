@@ -10,13 +10,20 @@
   var SECOND_COST = 5;
   var SIZES = {
     NORMAL: { id: "NORMAL", cols: 4, rows: 4, base: 1000, pairs: 8 },
-    KIDS: { id: "KIDS", cols: 3, rows: 4, base: 700, pairs: 6 }
+    KIDS: { id: "KIDS", cols: 3, rows: 4, base: 700, pairs: 6 },
+    /** Only in "Memòria gegant" of the secret path (memoria_gran): a perfect game (~24 moves) in a minute scores ~1000. */
+    BIG: { id: "BIG", cols: 5, rows: 6, base: 1800, pairs: 15 }
   };
   /* PiliStyle (the styles VSPG.drawPili draws), PiliMood and PiliProp (NONE, SANTA_HAT, BUNNY_EARS,
      CARNIVAL_MASK, ROSE, CHESTNUTS, PARTY_HAT, SPARKLER, SENYERA_FLAG, GLASSES). */
   var STYLES = ["green", "stripes", "champion", "spiker"];
   var MOODS = ["happy", "wink", "cheer", "focus", "sad", "wow", "sleep"];
   var PROPS = [null, "santa", "bunny", "mask", "rose", "chestnuts", "party", "sparkler", "senyera", "glasses"];
+  /* The big board (secret path) also uses the crown (PiliProp.CROWN): 11 props, every one worn twice at
+     most: once by a green Pili (FIRST_STYLES) and once by the golden one (the app's yellow / senyera family). */
+  var BIG_PROPS = PROPS.concat(["crown"]);
+  var FIRST_STYLES = ["green", "stripes", "champion", "spiker"];
+  var SECOND_STYLES = ["legend"];
 
   function score(size, moves, seconds) {
     return Math.max(0, size.base - MOVE_COST * moves - SECOND_COST * seconds);
@@ -40,9 +47,24 @@
     return props.map(function (p, i) { return { style: styles[i % styles.length], mood: moods[i % moods.length], prop: p }; });
   }
 
+  /** 11 < n ≤ 22 faces (MemoryLogic.manyFaces): the twins have the other family and a mood shifted by 3. */
+  function manyFaces(n, rnd) {
+    if (n < 1 || n > 2 * BIG_PROPS.length) throw new Error("faces: " + n);
+    var all = BIG_PROPS.length;
+    var props = shuffled(BIG_PROPS, rnd);
+    var moods = shuffled(MOODS, rnd);
+    var first = shuffled(FIRST_STYLES, rnd);
+    var second = shuffled(SECOND_STYLES, rnd);
+    var f = props.map(function (p, i) { return { style: first[i % first.length], mood: moods[i % moods.length], prop: p }; });
+    var twins = props.slice(0, Math.max(0, n - all)).map(function (p, i) {
+      return { style: second[i % second.length], mood: moods[(i + 3) % moods.length], prop: p };
+    });
+    return shuffled(f.concat(twins), rnd).slice(0, n);
+  }
+
   /** A new shuffled board, all cards face down. */
   function deal(size, rnd) {
-    var f = faces(size.pairs, rnd);
+    var f = size.pairs > PROPS.length ? manyFaces(size.pairs, rnd) : faces(size.pairs, rnd);
     var idx = [];
     for (var k = 0; k < 2; k++) for (var i = 0; i < f.length; i++) idx.push(i);
     var cards = shuffled(idx, rnd).map(function (face) { return { face: face, up: false, matched: false }; });
@@ -177,7 +199,8 @@
     var hudMoves = null, hudTime = null, grid = null;
 
     api.setScore(0);
-    menu();
+    // "Memòria gegant" of the secret path: only the big board, straight away
+    if (api.mode && api.mode.secret === "memoria_gran") play(SIZES.BIG); else menu();
 
     function menu() {
       root.innerHTML = "";
@@ -239,8 +262,9 @@
     /** Cards of ratio 0.8 that fit the stage (max 480 px wide like the app). */
     function layout() {
       if (!size || !grid) return;
-      var gap = 8;
-      var W = Math.min(480, (root.clientWidth || stage.clientWidth || 320) - 32);
+      var big = size.id === "BIG", gap = big ? 6 : 8;
+      grid.style.gap = gap + "px";
+      var W = Math.min(big ? 400 : 480, (root.clientWidth || stage.clientWidth || 320) - 32);
       var H = (root.clientHeight || stage.clientHeight || 480) - 40 - 28 - 10;
       var cw = (W - gap * (size.cols - 1)) / size.cols;
       var chMax = (H - gap * (size.rows - 1)) / size.rows;
@@ -329,7 +353,7 @@
     action: false,
     start: start,
     logic: { SIZES: SIZES, MOVE_COST: MOVE_COST, SECOND_COST: SECOND_COST, score: score, faces: faces, deal: deal,
-      flip: flip, settle: settle, done: done, waiting: waiting, shuffled: shuffled }
+      flip: flip, settle: settle, done: done, waiting: waiting, shuffled: shuffled, manyFaces: manyFaces, BIG_PROPS: BIG_PROPS }
   };
   if (VSPG.games && typeof VSPG.games.register === "function") VSPG.games.register(def);
 })();
