@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   function ext(s, p) { var o = {}, k; for (k in s) o[k] = s[k]; for (k in p) o[k] = p[k]; return o; }
@@ -131,8 +132,8 @@
   var SKIN = "#E8B98A", RIVAL = "#C62828", HAIR = "#3E2723", BAD = "#FF8A80";
   var GREEN = "#1E8C34", DARK = "#1C211E", ACCENT = "#B9F6C0";
   var TEXTS = {
-    PERFECT: ["Perfecta! +2", ACCENT], KILL: ["Punt! +1", "#fff"], BLOCKED: ["Bloquejada!", BAD],
-    OUT: ["Fora!", BAD], EARLY: ["Massa d'hora!", BAD], LATE: ["Massa tard!", BAD]
+    PERFECT: [tr("spk.perfect"), ACCENT], KILL: [tr("spk.kill"), "#fff"], BLOCKED: [tr("spk.blocked"), BAD],
+    OUT: [tr("spk.out"), BAD], EARLY: [tr("spk.early"), BAD], LATE: [tr("spk.late"), BAD]
   };
 
   function rrect(c, x, y, w, h, r) {
@@ -286,6 +287,7 @@
 
     function frame(now) {
       if (!alive) return;
+      if (api.paused) { last = -1; raf = requestAnimationFrame(frame); return; }   // pause overlay: nothing advances
       if (last < 0) last = now;
       var dt = Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
       last = now;
@@ -344,10 +346,9 @@
 
   VSPG.games.register({
     id: "rematada",
-    title: "Rematada",
+    title: tr("game.rematada"),
     emoji: "💥",
-    help: "La col·locadora aixeca la pilota. Quan arribi al cercle, toca el camp rival on vols rematar: busca el forat del bloqueig! " +
-      "Punt = +1, al moment perfecte = +2. Bloquejada, fora o a destemps: perds una vida.",
+    help: tr("help.rematada"),
     lives: L.LIVES,
     action: true,
     start: start

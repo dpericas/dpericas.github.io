@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   // ------------------------------------------------------------------ shared drawing kit
@@ -50,14 +51,18 @@
       return o;
     };
 
-    /** requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed. Returns stop(). */
+    /**
+     * requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed.
+     * While api.paused (frame.js pause overlay) nothing advances and the time restarts on resume. Returns stop().
+     */
     K.loop = function (api, frame) {
       var raf = 0, last = -1, alive = true;
       function tick(now) {
         if (!alive) return;
+        raf = window.requestAnimationFrame(tick);
+        if (api.paused) { last = -1; return; }
         var dt = last < 0 ? 0 : Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
         last = now;
-        raf = window.requestAnimationFrame(tick);
         frame(dt);
       }
       raf = window.requestAnimationFrame(tick);
@@ -285,9 +290,9 @@
 
   VSPG.games.register({
     id: "recepcio",
-    title: "Recepció",
+    title: tr("game.recepcio"),
     emoji: "🙌",
-    help: "Arrossega el dit per moure els braços i rep les pilotes. Cada cop serveixen més fort. Si se t'escapen 3, s'acaba!",
+    help: tr("help.recepcio"),
     lives: L.LIVES,
     action: true,
     start: start

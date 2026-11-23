@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   // ------------------------------------------------------------------ shared drawing kit
@@ -50,14 +51,18 @@
       return o;
     };
 
-    /** requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed. Returns stop(). */
+    /**
+     * requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed.
+     * While api.paused (frame.js pause overlay) nothing advances and the time restarts on resume. Returns stop().
+     */
     K.loop = function (api, frame) {
       var raf = 0, last = -1, alive = true;
       function tick(now) {
         if (!alive) return;
+        raf = window.requestAnimationFrame(tick);
+        if (api.paused) { last = -1; return; }
         var dt = last < 0 ? 0 : Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
         last = now;
-        raf = window.requestAnimationFrame(tick);
         frame(dt);
       }
       raf = window.requestAnimationFrame(tick);
@@ -246,7 +251,7 @@
 
   // ------------------------------------------------------------------ drawing
   var FLOOR = "#D9894A", OUT = "#8C5530";
-  var LABELS = { ACE: ["ACE! +2", gk.C.accent], IN: ["Dins! +1", "#FFFFFF"], NET: ["A la xarxa!", gk.C.bad], OUT: ["Fora!", gk.C.bad] };
+  var LABELS = { ACE: [tr("srv.ace"), gk.C.accent], IN: [tr("srv.in"), "#FFFFFF"], NET: [tr("srv.net"), gk.C.bad], OUT: [tr("srv.out"), gk.C.bad] };
 
   /** Perspective of Servei: the rival court seen from behind the server. */
   function View(w, h) {
@@ -378,7 +383,7 @@
       gk.text(c, api, w, String(st.score), 16, h - 8, 64, "rgba(255,255,255,0.3)", "left", "bottom");
       if (playing && (st.phase === "AIM" || st.phase === "POWER")) {
         c.save(); c.shadowColor = "rgba(0,0,0,0.5)"; c.shadowBlur = 4;
-        gk.text(c, api, w, st.phase === "AIM" ? "Toca per apuntar" : "Toca per la potència", w / 2, h - 16, 16, "#FFFFFF", "center", "bottom");
+        gk.text(c, api, w, st.phase === "AIM" ? tr("srv.tap_aim") : tr("srv.tap_power"), w / 2, h - 16, 16, "#FFFFFF", "center", "bottom");
         c.restore();
       } else if (playing && st.phase === "RESULT" && st.result) {
         var lb = LABELS[st.result];
@@ -433,10 +438,9 @@
 
   VSPG.games.register({
     id: "servei",
-    title: "Servei",
+    title: tr("game.servei"),
     emoji: "🎯",
-    help: "Toca per fixar la direcció i torna a tocar per fixar la potència. A la zona brillant: ace (+2). " +
-      "Dins del camp: +1. A la xarxa o fora: perds una vida.",
+    help: tr("help.servei"),
     lives: L.LIVES,
     action: true,
     start: start

@@ -650,6 +650,9 @@
   VSP.pages.invitacio = { tab: "club", render: function (arg, el, title) {
     title(VSP.t("inv.title"));
     var inv = null, name = M.name(), busy = true, error = "", done = false;
+    // Android without the app (a verified App Link would have opened it): suggest installing it first, so
+    // the same QR opens there and no device of the invitation is spent on the browser. iPhone / computer: web.
+    var android = /Android/i.test(navigator.userAgent || ""), webChosen = !android;
     function draw() {
       var h = "<section>";
       if (busy && !inv) h += '<p class="meta">' + esc(VSP.t("common.loading")) + "</p>";
@@ -657,6 +660,13 @@
       if (done) {
         h += '<p class="ok" role="status"><b>' + esc(VSP.t("inv.done", VSP.teamName(inv.team))) + "</b></p>" +
           '<div class="row"><a class="btn primary" href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a></div>";
+      } else if (inv && !webChosen) {
+        h += "<p>" + esc(VSP.t(inv.rol === "jugador" ? "inv.what_player" : "inv.what_family", VSP.teamName(inv.team), inv.jugadors.join(", "))) + "</p>" +
+          "<h3>" + esc(VSP.t("inv.android_title")) + "</h3><p>" + esc(VSP.t("inv.android_text")) + "</p>" +
+          '<div class="row"><a class="btn primary" id="inv-install" href="app/">📲 ' + esc(VSP.t("inv.install")) + "</a></div>" +
+          '<div class="row"><a class="btn ghost small" id="inv-open-app" href="invitacio/#' + esc(inv.code) + '">' + esc(VSP.t("inv.have_app")) + "</a>" +
+          '<button type="button" class="btn ghost small" id="inv-web">' + esc(VSP.t("inv.continue_web")) + "</button></div>" +
+          '<p class="meta">' + esc(VSP.t("inv.web_note")) + "</p>";
       } else if (inv) {
         h += "<p>" + esc(VSP.t(inv.rol === "jugador" ? "inv.what_player" : "inv.what_family", VSP.teamName(inv.team), inv.jugadors.join(", "))) + "</p>" +
           '<div class="form"><label>' + esc(VSP.t("mem.name")) + '<input id="inv-name" maxlength="60" autocomplete="name" value="' + esc(name || inv.nom) + '"></label>' +
@@ -667,6 +677,7 @@
         h += '<div class="row"><a class="btn ghost" href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a></div>";
       }
       el.innerHTML = h + "</section>";
+      if ($("inv-web")) $("inv-web").onclick = function () { webChosen = true; draw(); };
       if ($("inv-name")) $("inv-name").oninput = function () { name = this.value; };
       if ($("inv-accept")) $("inv-accept").onclick = function () {
         if (!name) name = inv.nom;
@@ -679,6 +690,11 @@
     M.peekInvite(arg).then(function (i) { inv = i; busy = false; draw(); },
       function (e) { busy = false; error = (e && e.msg) || VSP.errText(e); draw(); });
   } };
+
+  // ---------- Club tab: «Vull provar el vòlei» only for whoever is not in a team yet (as in the app)
+  function tryLink() { var a = document.getElementById("try-link"); if (a) a.hidden = M.requested().length > 0; }
+  tryLink();
+  if (VSP.on) VSP.on("member", tryLink);
 
   // ---------- vinc / no vinc inside a published call-up
   VSP.rsvpSection = function (m, c, el) {

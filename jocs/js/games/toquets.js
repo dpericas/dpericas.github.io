@@ -50,14 +50,18 @@
       return o;
     };
 
-    /** requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed. Returns stop(). */
+    /**
+     * requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed.
+     * While api.paused (frame.js pause overlay) nothing advances and the time restarts on resume. Returns stop().
+     */
     K.loop = function (api, frame) {
       var raf = 0, last = -1, alive = true;
       function tick(now) {
         if (!alive) return;
+        raf = window.requestAnimationFrame(tick);
+        if (api.paused) { last = -1; return; }
         var dt = last < 0 ? 0 : Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
         last = now;
-        raf = window.requestAnimationFrame(tick);
         frame(dt);
       }
       raf = window.requestAnimationFrame(tick);
@@ -116,6 +120,7 @@
   })();
 
   var gk = VSPG.gk;
+  var tr = VSPG.t || function (k) { return k; };
 
   // ------------------------------------------------------------------ pure logic (GamePhysics)
   // Units: px of the play field, seconds. A ball is { x, y, vx, vy }.
@@ -220,9 +225,9 @@
 
   VSPG.games.register({
     id: "toquets",
-    title: "Toquets",
+    title: tr("game.toquets"),
     emoji: "🏐",
-    help: "Toca la pilota per mantenir-la a l'aire. Com més toquets, més de pressa cau!",
+    help: tr("help.toquets"),
     lives: 0,
     action: true,
     start: start

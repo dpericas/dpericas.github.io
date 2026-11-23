@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   // ------------------------------------------------------------------ shared drawing kit
@@ -50,14 +51,18 @@
       return o;
     };
 
-    /** requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed. Returns stop(). */
+    /**
+     * requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed.
+     * While api.paused (frame.js pause overlay) nothing advances and the time restarts on resume. Returns stop().
+     */
     K.loop = function (api, frame) {
       var raf = 0, last = -1, alive = true;
       function tick(now) {
         if (!alive) return;
+        raf = window.requestAnimationFrame(tick);
+        if (api.paused) { last = -1; return; }
         var dt = last < 0 ? 0 : Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
         last = now;
-        raf = window.requestAnimationFrame(tick);
         frame(dt);
       }
       raf = window.requestAnimationFrame(tick);
@@ -192,8 +197,8 @@
     }
   };
   var LABELS = {
-    PERFECT: ["Perfecte! +2", gk.C.accent], GOOD: ["Bon bloqueig! +1", "#FFFFFF"],
-    EARLY: ["Massa d'hora!", gk.C.bad], LATE: ["Massa tard!", gk.C.bad]
+    PERFECT: [tr("blk.perfect"), gk.C.accent], GOOD: [tr("blk.good"), "#FFFFFF"],
+    EARLY: [tr("blk.early"), gk.C.bad], LATE: [tr("blk.late"), gk.C.bad]
   };
 
   // ------------------------------------------------------------------ game
@@ -289,10 +294,9 @@
 
   VSPG.games.register({
     id: "bloqueig",
-    title: "Bloqueig",
+    title: tr("game.bloqueig"),
     emoji: "✋",
-    help: "Toca la pantalla per saltar quan la pilota entri a la zona groga de la xarxa. Perfecte = +2, bé = +1. " +
-      "Si saltes massa d'hora o massa tard, perds una vida.",
+    help: tr("help.bloqueig"),
     lives: L.LIVES,
     action: true,
     start: start

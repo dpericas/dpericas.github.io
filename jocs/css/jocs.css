@@ -196,3 +196,20 @@ body.in-game { overflow:hidden; overscroll-behavior:none; }
 
 #toast { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(24px + env(safe-area-inset-bottom)); background:#111; color:#fff;
   padding:10px 16px; border-radius:12px; font-size:14px; z-index:80; max-width:calc(100% - 32px); box-shadow:0 4px 16px rgba(0,0,0,.4); }
+/* overlays over the play field: pause and first-play tutorial (frame.js) */
+.jg-overlay { position:absolute; inset:0; z-index:10; display:flex; align-items:center; justify-content:center; padding:16px; overflow:auto;
+  background:rgba(13,59,30,.92); }
+.jg-ov-box { max-width:400px; width:100%; text-align:center; display:flex; flex-direction:column; align-items:center; gap:8px; }
+.jg-ov-box p { margin:0; }
+.jg-ov-title { margin:0; font-size:26px; font-weight:900; }
+.jg-ov-gesture { font-size:44px; line-height:1.2; }
+.jg-ov-ghint { font-weight:800; color:var(--jg-accent); font-size:17px; }
+.jg-ov-help { font-size:15px; opacity:.92; }
+.jg-ov-go { min-width:180px; font-size:20px; min-height:56px; }
+.jg-langs { display:flex; gap:6px; justify-content:center; flex-wrap:wrap; margin-top:10px; }
+.jg-langs .jg-btn.on { background:var(--jg-accent); color:#000; }
+.jg-rank-toggle { display:flex; gap:6px; margin:4px 0 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .jg-bar i { transition:none; }
+  .vg-mem-in { transition:none !important; }
+}

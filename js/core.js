@@ -5,7 +5,7 @@
   "use strict";
   // js/i18n.js (loaded before, on the translated pages) may have made VSP already
   var VSP = window.VSP = window.VSP || {};
-  // pages without js/i18n.js (live/, jocs/: Catalan only) do not use the texts of this file
+  // pages without js/i18n.js (live/: Catalan only; jocs/ has its own jocs/js/i18n.js) do not use the texts of this file
   if (!VSP.t) { VSP.t = function (k) { return k; }; VSP.tn = function (k) { return k; }; VSP.lang = "ca"; }
 
   VSP.FIREBASE_PROJECT = "volei-santpedor-eaa1d";
@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v19";
+  VSP.WEB_VERSION = "vsp-v21";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }

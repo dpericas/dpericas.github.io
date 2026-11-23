@@ -244,7 +244,7 @@
     var c = document.createElement("canvas");
     c.className = "pili-canvas";
     c.setAttribute("role", "img");
-    c.setAttribute("aria-label", opts.label || "La Pili, la mascota del club");
+    c.setAttribute("aria-label", opts.label || (VSPG.t ? VSPG.t("pili.aria") : "La Pili"));
     el.appendChild(c);
     var ctx = VSPG.setupCanvas(c, size, size);
     var t0 = Date.now(), nextBlink = t0 + 2500 + Math.random() * 3000, raf = 0, alive = true;

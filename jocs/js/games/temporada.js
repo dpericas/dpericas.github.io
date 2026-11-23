@@ -4,30 +4,33 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
 
   // ------------------------------------------------------------------ festivities (season/Festivities.kt)
   var FEST_ORDER = ["NADAL", "CARNAVAL", "PASQUA", "SANT_JORDI", "FESTA_MAJOR", "SANT_JOAN", "DIADA", "CASTANYADA"];
   var FEST = {
-    NADAL: { title: "Nadal", emoji: "❄️", colors: ["#B71C1C", "#1B5E20"], prop: "santa" },
-    CARNAVAL: { title: "Carnaval", emoji: "🎭", colors: ["#6A1B9A", "#F57C00"], prop: "mask" },
-    PASQUA: { title: "Setmana Santa", emoji: "🐰", colors: ["#8E24AA", "#FFB300"], prop: "bunny" },
-    SANT_JORDI: { title: "Sant Jordi", emoji: "🌹", colors: ["#C62828", "#F9A825"], prop: "rose" },
-    FESTA_MAJOR: { title: "Festa Major de Santpedor", emoji: "🎉", colors: ["#1E8C34", "#C8102E"], prop: "party" },
-    SANT_JOAN: { title: "Sant Joan", emoji: "🎆", colors: ["#E65100", "#1A237E"], prop: "sparkler" },
-    DIADA: { title: "Diada", emoji: "🎗️", colors: ["#FCD116", "#C8102E"], prop: "senyera" },
-    CASTANYADA: { title: "Castanyada", emoji: "🌰", colors: ["#6D4C41", "#EF6C00"], prop: "chestnuts" }
+    NADAL: { emoji: "❄️", colors: ["#B71C1C", "#1B5E20"], prop: "santa" },
+    CARNAVAL: { emoji: "🎭", colors: ["#6A1B9A", "#F57C00"], prop: "mask" },
+    PASQUA: { emoji: "🐰", colors: ["#8E24AA", "#FFB300"], prop: "bunny" },
+    SANT_JORDI: { emoji: "🌹", colors: ["#C62828", "#F9A825"], prop: "rose" },
+    FESTA_MAJOR: { emoji: "🎉", colors: ["#1E8C34", "#C8102E"], prop: "party" },
+    SANT_JOAN: { emoji: "🎆", colors: ["#E65100", "#1A237E"], prop: "sparkler" },
+    DIADA: { emoji: "🎗️", colors: ["#FCD116", "#C8102E"], prop: "senyera" },
+    CASTANYADA: { emoji: "🌰", colors: ["#6D4C41", "#EF6C00"], prop: "chestnuts" }
   };
 
-  /* SeasonalGame.theme + the "when" texts (strings_season.xml) and the album prizes (AlbumCatalog). */
+  FEST_ORDER.forEach(function (k) { FEST[k].title = tr("fest." + k); });
+
+  /* SeasonalGame.theme + the "when" texts (strings_season.xml) and the album prizes (AlbumCatalog ids). */
   var THEMES = {
-    NADAL: { good: ["🎁", "⭐", "🍬", "🎄"], bad: ["❄️"], when: "7 de desembre – 7 de gener", prize: ["🍫 Torrons de Nadal", "🪵 El Tió"] },
-    CARNAVAL: { good: ["🎭", "🎊", "🍬", "🎉"], bad: ["🌧️"], when: "Dijous Gras – Dimecres de Cendra", prize: ["🎭 Disfressa de Carnaval"] },
-    PASQUA: { good: ["🥚", "🐣", "🍫", "🐰"], bad: ["🐝"], when: "Diumenge de Rams – Dilluns de Pasqua", prize: ["🥚 La mona de Pasqua"] },
-    SANT_JORDI: { good: ["🌹", "📚", "🌹", "📖"], bad: ["🔥"], when: "23 d'abril", prize: ["🌹 La rosa de Sant Jordi", "📚 El llibre de Sant Jordi"] },
-    FESTA_MAJOR: { good: ["🎉", "🎶", "🍭", "🎈"], bad: ["🧨"], when: "Al voltant del segon diumenge de juny", prize: ["🎆 Festa Major de Santpedor"] },
-    SANT_JOAN: { good: ["✨", "🍰", "🎇", "⭐"], bad: ["🧨"], when: "23 i 24 de juny", prize: ["🔥 La revetlla de Sant Joan"] },
-    DIADA: { good: ["⭐", "🎗️", "🏐", "🎵"], bad: ["🌧️"], when: "11 de setembre", prize: ["🎗️ L'Onze de Setembre"] },
-    CASTANYADA: { good: ["🌰", "🍠", "🍂", "🌰"], bad: ["🔥"], when: "30 d'octubre – 1 de novembre", prize: ["🌰 Castanyes calentes"] }
+    NADAL: { good: ["🎁", "⭐", "🍬", "🎄"], bad: ["❄️"], when: tr("fest.when.NADAL"), prize: ["nadal_torro", "nadal_tio"] },
+    CARNAVAL: { good: ["🎭", "🎊", "🍬", "🎉"], bad: ["🌧️"], when: tr("fest.when.CARNAVAL"), prize: ["carnaval_disfressa"] },
+    PASQUA: { good: ["🥚", "🐣", "🍫", "🐰"], bad: ["🐝"], when: tr("fest.when.PASQUA"), prize: ["pasqua_mona"] },
+    SANT_JORDI: { good: ["🌹", "📚", "🌹", "📖"], bad: ["🔥"], when: tr("fest.when.SANT_JORDI"), prize: ["sant_jordi_rosa", "sant_jordi_llibre"] },
+    FESTA_MAJOR: { good: ["🎉", "🎶", "🍭", "🎈"], bad: ["🧨"], when: tr("fest.when.FESTA_MAJOR"), prize: ["festa_major_santpedor"] },
+    SANT_JOAN: { good: ["✨", "🍰", "🎇", "⭐"], bad: ["🧨"], when: tr("fest.when.SANT_JOAN"), prize: ["sant_joan_revetlla"] },
+    DIADA: { good: ["⭐", "🎗️", "🏐", "🎵"], bad: ["🌧️"], when: tr("fest.when.DIADA"), prize: ["diada_onze"] },
+    CASTANYADA: { good: ["🌰", "🍠", "🍂", "🌰"], bad: ["🔥"], when: tr("fest.when.CASTANYADA"), prize: ["castanyada_castanyes"] }
   };
 
   function ymd(y, m, d) { return y * 10000 + m * 100 + d; }
@@ -200,7 +203,12 @@
     list.forEach(function (x) { if (out.indexOf(x) < 0) out.push(x); });
     return out;
   }
-  function itemsText(t) { return "Atrapa " + distinct(t.good).join(" ") + " · esquiva " + t.bad.join(" "); }
+  function itemsText(t) { return tr("sea.items", distinct(t.good).join(" "), t.bad.join(" ")); }
+  /** "🍫 La Pili i els torrons": the album sticker a festivity gives (emoji + title in the chosen language). */
+  function prizeText(id) {
+    var c = VSPG.progress && VSPG.progress.cromo ? VSPG.progress.cromo(id) : null;
+    return c ? c.emoji + " " + c.title : tr("cromo." + id);
+  }
 
   /** No festivity today: the message and what every festivity brings. */
   function seasonOff(stage) {
@@ -214,8 +222,8 @@
     ctx.scale(dpr, dpr);
     drawPili(ctx, 55, 55, 46, "sleep");
     col.appendChild(c);
-    col.appendChild(el("div", "vg-sea-msg", "🔒 Torna-hi per una festa (Castanyada, Nadal, Carnestoltes, Sant Jordi, Sant Joan…)"));
-    col.appendChild(el("div", "vg-sea-h", "Festes amb joc"));
+    col.appendChild(el("div", "vg-sea-msg", tr("hub.season_off")));
+    col.appendChild(el("div", "vg-sea-h", tr("sea.list_title")));
     FEST_ORDER.forEach(function (k) {
       var f = FEST[k], t = THEMES[k];
       var row = el("div", "vg-sea-row");
@@ -226,7 +234,7 @@
       txt.appendChild(el("b", null, f.title));
       txt.appendChild(el("div", "w", t.when));
       txt.appendChild(el("div", "i", itemsText(t)));
-      if (t.prize.length) txt.appendChild(el("div", "p", "Premi: " + t.prize.join(" · ")));
+      if (t.prize.length) txt.appendChild(el("div", "p", tr("sea.prize", t.prize.map(prizeText).join(" · "))));
       row.appendChild(txt);
       col.appendChild(row);
     });
@@ -281,6 +289,7 @@
 
     function frame(now) {
       if (stopped) return;
+      if (api.paused) { last = 0; raf = requestAnimationFrame(frame); return; }   // pause overlay: nothing falls
       var dt = last ? Math.min((now - last) / 1000, 0.033) * (api.speed || 1) : 0;
       last = now;
       if (playing) {
@@ -387,15 +396,14 @@
 
   function helpText() {
     var k = today();
-    if (!k) return "🔒 Torna-hi per una festa (Castanyada, Nadal, Carnestoltes, Sant Jordi, Sant Joan…)";
+    if (!k) return tr("hub.season_off");
     var t = THEMES[k];
-    return "Avui és " + FEST[k].title + "! Arrossega la Pili per atrapar " + distinct(t.good).join(" ") +
-      " i esquiva " + t.bad.join(" ") + ". Tens 3 vides!";
+    return tr("sea.help", tr("sea.today", FEST[k].title), distinct(t.good).join(" "), t.bad.join(" "));
   }
 
   var def = {
     id: "temporada",
-    title: "Joc de temporada",
+    title: tr("game.temporada"),
     emoji: "🎉",
     help: helpText(),
     lives: LIVES,

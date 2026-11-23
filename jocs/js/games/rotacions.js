@@ -10,6 +10,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   function ext(s, p) { var o = {}, k; for (k in s) o[k] = s[k]; for (k in p) o[k] = p[k]; return o; }
@@ -329,41 +330,35 @@
   // half court drawing: margin around the 9 × 9 m court and room for the server behind the end line
   var M = 0.5, CW = 9 + 2 * M, CH = M + 9 + 1.6, JERSEY_R = 0.5;
 
-  function cops(n) { return n + (n === 1 ? " cop" : " cops"); }
+  var trn = VSPG.tn || function (k) { return k; };
   function prompt(p) {
     switch (p.kind) {
-      case "PLACE": return p.rotations === 0 ? "Toca un jugador i després la zona on comença el set." :
-        "L'equip ja ha rotat " + cops(p.rotations) + ". Toca un jugador i després la zona on és ara.";
-      case "WHO_SERVES": return "El teu equip guanya el punt. Qui serveix ara? Toca'l.";
-      case "ROTATE": return "Si l'equip rota " + cops(p.rotations) + ", qui quedarà a la zona " + p.askZone + "? Toca'l.";
-      case "LEGAL": return "És legal aquesta formació en el moment del servei?";
-      default: return "Hi ha una falta de posició. Toca un jugador mal col·locat.";
+      case "PLACE": return p.rotations === 0 ? tr("rot.q_place") : trn("rot.q_place_rot", p.rotations);
+      case "WHO_SERVES": return tr("rot.q_serves");
+      case "ROTATE": return trn("rot.q_rotate", p.rotations, p.askZone);
+      case "LEGAL": return tr("rot.q_legal");
+      default: return tr("rot.q_out");
     }
   }
   function faultText(p, f) {
     var lb = function (z) { return R.label(p.zones[z - 1]); };
-    if (f.type === "depth") return lb(f.back) + " (zona " + f.back + ") ha d'estar més lluny de la xarxa que " + lb(f.front) +
-      " (zona " + f.front + "), o com a mínim a la mateixa alçada.";
-    if (f.type === "side") return lb(f.left) + " (zona " + f.left + ") ha d'estar més a l'esquerra que " + lb(f.right) +
-      " (zona " + f.right + "), o com a mínim a la mateixa línia.";
-    if (f.type === "liberoFront") return "El líbero (" + lb(f.zone) + ") només pot substituir jugadors del fons: no pot ser a la zona " + f.zone + ".";
-    return "El líbero no pot servir (regla 19.3.1.3).";
+    if (f.type === "depth") return tr("rot.f_depth", lb(f.back), f.back, lb(f.front), f.front);
+    if (f.type === "side") return tr("rot.f_side", lb(f.left), f.left, lb(f.right), f.right);
+    if (f.type === "liberoFront") return tr("rot.f_libero_front", lb(f.zone), f.zone);
+    return tr("rot.f_libero_serve");
   }
   function explain(p, right) {
     var lines = [];
     if (p.kind === "PLACE") {
-      if (right) lines.push("Ben col·locat! 🎉");
-      lines.push("Zones: 4-3-2 a la xarxa (d'esquerra a dreta) i 5-6-1 al fons. Qui és a la zona 1 serveix.");
-      if (p.rotations > 0) lines.push("Cada rotació, tothom avança una zona en sentit horari: 2→1, 1→6, 6→5, 5→4, 4→3 i 3→2.");
+      if (right) lines.push(tr("rot.placed"));
+      lines.push(tr("rot.e_zones"));
+      if (p.rotations > 0) lines.push(tr("rot.e_place_rot"));
     } else if (p.kind === "WHO_SERVES") {
-      lines.push(p.serving ? "Si guanya el punt l'equip que serveix, torna a servir el mateix jugador: " + R.label(p.zones[0]) + "." :
-        "Si guanya l'equip que rep, rota en sentit horari: " + R.label(p.zones[1]) + " passa de la zona 2 a la 1 i serveix.");
+      lines.push(p.serving ? tr("rot.e_serves_srv", R.label(p.zones[0])) : tr("rot.e_serves_rcv", R.label(p.zones[1])));
     } else if (p.kind === "ROTATE") {
-      lines.push("Cada rotació és un pas en sentit horari (2→1, 1→6, 6→5, 5→4, 4→3, 3→2): ara és " + R.label(p.zones[R.answer(p)[0]]) + ".");
+      lines.push(tr("rot.e_rotate", R.label(p.zones[R.answer(p)[0]])));
     } else if (!p.faults.length) {
-      lines.push(p.serving ?
-        "Legal! Des del 2025 (regla 7.4) l'equip que serveix es pot col·locar on vulgui dins del seu camp; només l'equip que rep ha de respectar l'ordre de rotació." :
-        "Tot correcte: cada jugador del fons és més lluny de la xarxa que el seu company de davant, i cada fila està en ordre d'esquerra a dreta. Estar a la mateixa alçada també és legal.");
+      lines.push(p.serving ? tr("rot.e_legal_srv") : tr("rot.e_legal_rcv"));
     } else p.faults.forEach(function (f) { lines.push(faultText(p, f)); });
     return lines;
   }
@@ -422,7 +417,7 @@
     // the net
     c.fillStyle = "#000"; c.fillRect(X(-0.35), Y(-0.4), 9.7 * s, 0.4 * s);
     c.fillStyle = "#fff"; c.fillRect(X(-0.35), Y(-0.4), 9.7 * s, 0.08 * s);
-    centred(c, "XARXA", X(4.5), Y(-0.18), 0.26 * s, "#fff", true);
+    centred(c, tr("rot.net"), X(4.5), Y(-0.18), 0.26 * s, "#fff", true);
 
     var r = JERSEY_R * s, z, i;
     if (p.kind === "PLACE") {
@@ -523,7 +518,7 @@
           ui.placed[sel] = zone; ui.selected = null; hint = null;
           if (placedCount() === 6) { close(true); return; }
         } else {
-          hint = R.label(p.zones[sel]) + " no va a aquesta zona: va a la zona " + target + ".";
+          hint = tr("rot.wrong_zone", R.label(p.zones[sel]), target);
           mistake();
           if (lives <= 0) { ui.answered = true; ui.right = false; }
         }
@@ -561,13 +556,13 @@
       if (court) court.removeEventListener("pointerdown", onCourtDown);
       root.innerHTML = "";
       var row = el("div", "display:flex;width:100%;align-items:center;max-width:440px");
-      row.appendChild(el("div", "flex:1;text-align:left;color:" + ACCENT + ";font-weight:bold", "Nivell " + (p.level + 1)));
-      if (p.kind !== "PLACE") row.appendChild(el("div", "font-size:13px", p.serving ? "🏐 El teu equip serveix" : "🙌 El teu equip rep"));
+      row.appendChild(el("div", "flex:1;text-align:left;color:" + ACCENT + ";font-weight:bold", tr("rot.level", p.level + 1)));
+      if (p.kind !== "PLACE") row.appendChild(el("div", "font-size:13px", p.serving ? tr("rot.serving") : tr("rot.receiving")));
       root.appendChild(row);
       root.appendChild(el("div", "font-weight:bold;font-size:17px;max-width:440px", prompt(p)));
       if (p.kind === "PLACE") {
         var sheet = p.zones.map(function (pl, i) { return R.roman(i) + " " + R.label(pl); }).join(" · ");
-        root.appendChild(el("div", "color:" + ACCENT + ";font-size:13px;max-width:440px", "Acta (inici del set): " + sheet));
+        root.appendChild(el("div", "color:" + ACCENT + ";font-size:13px;max-width:440px", tr("rot.lineup", sheet)));
       }
       court = el("canvas", "display:block;touch-action:none;-webkit-tap-highlight-color:transparent;flex:none");
       court.addEventListener("pointerdown", onCourtDown);
@@ -592,7 +587,7 @@
       if (hint) root.appendChild(el("div", "color:" + YELLOW + ";font-size:14px;max-width:440px", hint));
       if (p.kind === "LEGAL" && !ui.answered) {
         var bar = el("div", "display:flex;gap:12px");
-        var yes = button("✅ Legal", ACCENT, "#000"), no = button("❌ Falta", "#fff", "#000");
+        var yes = button(tr("rot.yes"), ACCENT, "#000"), no = button(tr("rot.no"), "#fff", "#000");
         yes.addEventListener("click", function () { if (!ui.answered) { ui.chosen = 1; close(R.isLegal(p)); } });
         no.addEventListener("click", function () { if (!ui.answered) { ui.chosen = 0; close(!R.isLegal(p)); } });
         bar.appendChild(yes); bar.appendChild(no);
@@ -607,16 +602,16 @@
         fb.appendChild(pc);
         var col = el("div", "padding-left:8px;flex:1;display:flex;flex-direction:column;gap:4px");
         if (p.kind !== "PLACE" || !ui.right) col.appendChild(el("div", "font-weight:bold;color:" + (ui.right ? ACCENT : YELLOW),
-          ui.right ? "Correcte! 🎉" : "Ui! No és això 😅"));
+          ui.right ? tr("rot.ok") : tr("rot.ko")));
         explain(p, ui.right).forEach(function (t) { col.appendChild(el("div", "font-size:14px", t)); });
         fb.appendChild(col);
         root.appendChild(fb);
-        var nx = button("Següent", ACCENT, "#000");
+        var nx = button(tr("rot.next"), ACCENT, "#000");
         nx.addEventListener("click", next);
         root.appendChild(nx);
       }
       root.appendChild(el("div", "color:rgba(255,255,255,0.7);font-size:12px;max-width:440px",
-        "S col·locador · O opòsit · OH receptor · MB central · L líbero"));
+        tr("rot.legend")));
       root.scrollTop = top;
     }
 
@@ -647,11 +642,12 @@
 
   VSPG.games.register({
     id: "rotacions",
-    title: "Rotacions",
+    title: tr("game.rotacions"),
     emoji: "🔄",
-    help: "Aprèn les rotacions! Col·loca l'equip, endevina qui serveix i caça les faltes de posició. Tres errors i s'acaba.",
+    help: tr("help.rotacions"),
     lives: R.LIVES,
     action: false,
+    pausable: false,   // turn-based: nothing runs while the page is hidden
     start: start
   });
 })();

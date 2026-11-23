@@ -3,6 +3,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
 
   // ------------------------------------------------------------------ logic (MemoryLogic)
   var MOVE_COST = 20;
@@ -185,11 +186,11 @@
       col.style.marginBottom = "auto";
       var box = el("div", "vg-box");
       box.appendChild(pili(110, "wink", "green", "glasses"));
-      box.appendChild(el("div", null, "Gira les cartes de dues en dues i troba les parelles. Com menys moviments i més ràpid, més punts!"));
-      var b1 = el("button", "vg-btn", "Juga (4×4)");
+      box.appendChild(el("div", null, tr("help.memoria")));
+      var b1 = el("button", "vg-btn", tr("mem.normal"));
       b1.type = "button"; b1.setAttribute("data-size", "NORMAL");
       b1.addEventListener("click", function () { play(SIZES.NORMAL); });
-      var b2 = el("button", "vg-btn ghost", "Fàcil per als petits (3×4)");
+      var b2 = el("button", "vg-btn ghost", tr("mem.kids"));
       b2.type = "button"; b2.setAttribute("data-size", "KIDS");
       b2.addEventListener("click", function () { play(SIZES.KIDS); });
       box.appendChild(b1);
@@ -255,13 +256,13 @@
     }
 
     function render() {
-      hudMoves.textContent = "Moviments: " + state.moves;
+      hudMoves.textContent = tr("mem.moves", state.moves);
       hudTime.textContent = "⏱ " + Math.floor(seconds / 60) + ":" + pad2(seconds % 60);
       views.forEach(function (v, i) {
         var c = state.cards[i];
         var up = c.up || c.matched;
         v.card.className = "vg-mem-card" + (up ? " up" : "") + (c.matched ? " matched" : "");
-        v.card.setAttribute("aria-label", up ? "Carta girada" : "Carta tapada");
+        v.card.setAttribute("aria-label", up ? tr("mem.card_up") : tr("mem.card_down"));
       });
     }
 
@@ -291,6 +292,7 @@
     // the clock runs from the first card turned until the last pair
     function tick(now) {
       if (stopped) return;
+      if (api.paused) { last = 0; raf = requestAnimationFrame(tick); return; }   // pause overlay: the clock stops
       var dt = last ? Math.min((now - last) / 1000, 0.25) : 0;
       last = now;
       if (started && !over) {
@@ -320,9 +322,9 @@
 
   var def = {
     id: "memoria",
-    title: "Memory de la Pili",
+    title: tr("game.memoria"),
     emoji: "🃏",
-    help: "Gira les cartes de dues en dues i troba les parelles. Com menys moviments i més ràpid, més punts!",
+    help: tr("help.memoria"),
     lives: 0,
     action: false,
     start: start,

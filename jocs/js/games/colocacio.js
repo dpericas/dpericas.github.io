@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   // ------------------------------------------------------------------ shared drawing kit
@@ -50,14 +51,18 @@
       return o;
     };
 
-    /** requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed. Returns stop(). */
+    /**
+     * requestAnimationFrame loop: frame(dt) with dt in s, capped at 0.033 and multiplied by api.speed.
+     * While api.paused (frame.js pause overlay) nothing advances and the time restarts on resume. Returns stop().
+     */
     K.loop = function (api, frame) {
       var raf = 0, last = -1, alive = true;
       function tick(now) {
         if (!alive) return;
+        raf = window.requestAnimationFrame(tick);
+        if (api.paused) { last = -1; return; }
         var dt = last < 0 ? 0 : Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
         last = now;
-        raf = window.requestAnimationFrame(tick);
         frame(dt);
       }
       raf = window.requestAnimationFrame(tick);
@@ -218,8 +223,8 @@
   // ------------------------------------------------------------------ drawing
   var FLOOR = "#D9894A", RIVAL = "#C62828";
   var LABELS = {
-    PERFECT: ["Perfecta! +2", gk.C.accent], GOOD: ["Bona! +1", "#FFFFFF"], BLOCKED: ["Bloquejada!", gk.C.bad],
-    EARLY: ["Massa aviat!", gk.C.bad], LATE: ["Massa tard!", gk.C.bad]
+    PERFECT: [tr("set.perfect"), gk.C.accent], GOOD: [tr("set.good"), "#FFFFFF"], BLOCKED: [tr("set.blocked"), gk.C.bad],
+    EARLY: [tr("set.early"), gk.C.bad], LATE: [tr("set.late"), gk.C.bad]
   };
   function lerp(a, b, k) { return a + (b - a) * k; }
 
@@ -389,10 +394,9 @@
 
   VSPG.games.register({
     id: "colocacio",
-    title: "Col·locació",
+    title: tr("game.colocacio"),
     emoji: "🤲",
-    help: "Ets la col·locadora! Quan la pilota arribi a les mans (el cercle es tanca), toca l'esquerra, el centre o la dreta " +
-      "per passar-la a una atacant lliure (cercle verd), no a la bloquejada (vermell). Bona: +1. Perfecta: +2.",
+    help: tr("help.colocacio"),
     lives: L.LIVES,
     action: true,
     start: start

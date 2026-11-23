@@ -4,6 +4,7 @@
 (function () {
   "use strict";
   var VSPG = window.VSPG = window.VSPG || {};
+  var tr = VSPG.t || function (k) { return k; };
   VSPG.logic = VSPG.logic || {};
 
   function ext(s, p) { var o = {}, k; for (k in s) o[k] = s[k]; for (k in p) o[k] = p[k]; return o; }
@@ -349,18 +350,18 @@
     c.textAlign = "center"; c.textBaseline = "top";
     c.fillStyle = DARK;
     c.font = "bold 16px " + FONT;
-    c.fillText("Set " + st.set, w / 2, 8);
+    c.fillText(tr("bch.set", st.set), w / 2, 8);
     c.font = "900 26px " + FONT;
-    c.fillText("Tu " + st.me + " – " + st.pili + " Pili", w / 2, 28);
+    c.fillText(tr("bch.board", st.me, st.pili), w / 2, 28);
     if (st.pause > 0 && st.pointTo) {
-      var t, col;
-      if (st.setWon) { t = "Set per a tu! 🏆"; col = GREEN; }
-      else if (st.over) { t = "La Pili guanya el set"; col = RED; }
-      else if (st.pointTo === "ME") { t = "Punt!"; col = GREEN; }
-      else { t = "Punt de la Pili"; col = RED; }
+      var msg, col;
+      if (st.setWon) { msg = tr("bch.set_won"); col = GREEN; }
+      else if (st.over) { msg = tr("bch.set_lost"); col = RED; }
+      else if (st.pointTo === "ME") { msg = tr("bch.point"); col = GREEN; }
+      else { msg = tr("bch.point_pili"); col = RED; }
       c.textBaseline = "middle";
       c.font = "900 30px " + FONT;
-      c.fillStyle = col; c.fillText(t, w / 2, h / 2 - 60);
+      c.fillStyle = col; c.fillText(msg, w / 2, h / 2 - 60);
     }
   }
 
@@ -399,6 +400,7 @@
 
     function frame(now) {
       if (!alive) return;
+      if (api.paused) { last = -1; raf = requestAnimationFrame(frame); return; }   // pause overlay: nothing advances
       if (last < 0) last = now;
       var dt = Math.min(Math.max(0, (now - last) / 1000), 0.033) * (api.speed || 1);
       last = now;
@@ -473,10 +475,9 @@
 
   VSPG.games.register({
     id: "platja",
-    title: "Platja contra la Pili",
+    title: tr("game.platja"),
     emoji: "🏖️",
-    help: "Arrossega per moure't i toca per saltar. La pilota rebota sola: si et toca pel davant va llarga, si et toca pel darrere va curta. " +
-      "Salta per rematar! Sets a 5 punts: guanya sets seguits; si la Pili en guanya un, s'acaba.",
+    help: tr("help.platja"),
     lives: 0,
     action: true,
     start: start

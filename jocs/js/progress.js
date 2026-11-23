@@ -10,47 +10,52 @@
   var VSPG = window.VSPG = window.VSPG || {};
   var VSP = window.VSP;
   var P = VSPG.progress = {};
+  /** Texts in the chosen language (jocs/js/i18n.js, loaded before). */
+  var t = VSPG.t || function (k) { return k; };
 
   // ---------------------------------------------------------------- catalogue
 
   /** The games, in the order of the app's Game enum (ranking tabs). id = Game.field. */
   P.GAMES = [
-    { id: "toquets", title: "Toquets", emoji: "🏐" },
-    { id: "recepcio", title: "Recepció", emoji: "🙌" },
-    { id: "bloqueig", title: "Bloqueig", emoji: "✋" },
-    { id: "quiz", title: "Quiz del vòlei", emoji: "🧠" },
-    { id: "memoria", title: "Memory de la Pili", emoji: "🃏" },
-    { id: "servei", title: "Servei", emoji: "🎯" },
-    { id: "colocacio", title: "Col·locació", emoji: "🤲" },
-    { id: "rematada", title: "Rematada", emoji: "💥" },
-    { id: "platja", title: "Platja contra la Pili", emoji: "🏖️" },
-    { id: "rotacions", title: "Rotacions", emoji: "🔄" },
-    { id: "arbitre", title: "Carnet d'àrbitre", emoji: "🟨" },
-    { id: "temporada", title: "Joc de temporada", emoji: "🎉" }
+    { id: "toquets", emoji: "🏐" },
+    { id: "recepcio", emoji: "🙌" },
+    { id: "bloqueig", emoji: "✋" },
+    { id: "quiz", emoji: "🧠" },
+    { id: "memoria", emoji: "🃏" },
+    { id: "servei", emoji: "🎯" },
+    { id: "colocacio", emoji: "🤲" },
+    { id: "rematada", emoji: "💥" },
+    { id: "platja", emoji: "🏖️" },
+    { id: "rotacions", emoji: "🔄" },
+    { id: "arbitre", emoji: "🟨" },
+    { id: "temporada", emoji: "🎉" }
   ];
+  P.GAMES.forEach(function (g) { g.title = t("game." + g.id); });
   P.IDS = P.GAMES.map(function (g) { return g.id; });
   P.game = function (id) { for (var i = 0; i < P.GAMES.length; i++) if (P.GAMES[i].id === id) return P.GAMES[i]; return null; };
   P.title = function (id) { var g = P.game(id); return g ? g.title : id; };
 
   P.STAGES = [
-    { game: "toquets", category: "Escola", emoji: "🏐" },
-    { game: "recepcio", category: "Aleví", emoji: "🙌" },
-    { game: "servei", category: "Infantil", emoji: "🎯" },
-    { game: "colocacio", category: "Cadet", emoji: "🤲" },
-    { game: "bloqueig", category: "Juvenil", emoji: "✋" },
-    { game: "rematada", category: "Sènior", emoji: "💥" },
-    { game: "rotacions", category: "Entrenador/a", emoji: "🔄" },
-    { game: "platja", category: "Màsters", emoji: "🏖️" }
+    { game: "toquets", emoji: "🏐" },
+    { game: "recepcio", emoji: "🙌" },
+    { game: "servei", emoji: "🎯" },
+    { game: "colocacio", emoji: "🤲" },
+    { game: "bloqueig", emoji: "✋" },
+    { game: "rematada", emoji: "💥" },
+    { game: "rotacions", emoji: "🔄" },
+    { game: "platja", emoji: "🏖️" }
   ];
+  P.STAGES.forEach(function (st) { st.category = t("stage." + st.game); });
   /** Real-time games: they have variants and take turns as the daily challenge. */
   P.ACTION = ["toquets", "recepcio", "servei", "colocacio", "bloqueig", "rematada", "platja"];
 
   P.VARIANTS = [
-    { id: "NORMAL", speed: 1, emoji: "🏐", title: "Normal" },
-    { id: "NIT", speed: 1, emoji: "🌙", title: "De nit" },
-    { id: "TURBO", speed: 1.35, emoji: "⚡", title: "Turbo" },
-    { id: "MIRALL", speed: 1, emoji: "🪞", title: "Mirall" }
+    { id: "NORMAL", speed: 1, emoji: "🏐" },
+    { id: "NIT", speed: 1, emoji: "🌙" },
+    { id: "TURBO", speed: 1.35, emoji: "⚡" },
+    { id: "MIRALL", speed: 1, emoji: "🪞" }
   ];
+  P.VARIANTS.forEach(function (v) { v.title = t("var." + v.id); });
   P.variant = function (id) { for (var i = 0; i < P.VARIANTS.length; i++) if (P.VARIANTS[i].id === id) return P.VARIANTS[i]; return P.VARIANTS[0]; };
 
   P.REFEREE_PERFECT = 110;
@@ -75,6 +80,21 @@
   P.TOP = 20;
 
   P.clampScore = function (v) { v = Math.floor(Number(v) || 0); return Math.max(0, Math.min(P.MAX_SCORE, v)); };
+  /**
+   * Anti-cheat caps per field of the leaderboard document jocs/{uid}: the Firestore rules reject a
+   * document above them, so every score is clamped before it is stored or uploaded (same table in the app).
+   */
+  P.CAPS = {
+    toquets: 600, recepcio: 450, servei: 450, colocacio: 450, bloqueig: 450, rematada: 450,
+    platja: 60, rotacions: 120, quiz: 200, memoria: 1000, arbitre: 110, temporada: 500,
+    diari: 1000, punts: 3000
+  };
+  /** [v] clamped to 0..cap of [field] (0..MAX_SCORE for a field without a cap). */
+  P.cap = function (field, v) {
+    v = P.clampScore(v);
+    var c = Object.prototype.hasOwnProperty.call(P.CAPS, field) ? P.CAPS[field] : null;
+    return c === null ? v : Math.min(c, v);
+  };
 
   // ---------------------------------------------------------------- dates (local calendar day)
 
@@ -108,15 +128,16 @@
   // ---------------------------------------------------------------- festivities (season/Festivities.kt)
 
   P.FESTIVITIES = {
-    NADAL: { title: "Nadal", emojis: ["❄️", "🎄", "⭐", "🎁", "❄️", "🏐"], colors: ["#B71C1C", "#1B5E20"] },
-    CARNAVAL: { title: "Carnestoltes", emojis: ["🎭", "🎉", "🎊", "🤡", "🏐"], colors: ["#6A1B9A", "#F57C00"] },
-    PASQUA: { title: "Setmana Santa", emojis: ["🐰", "🥚", "🐣", "🍫", "🐇", "🏐"], colors: ["#8E24AA", "#FFB300"] },
-    SANT_JORDI: { title: "Sant Jordi", emojis: ["🌹", "📚", "🐉", "🌹", "🏐"], colors: ["#C62828", "#F9A825"] },
-    FESTA_MAJOR: { title: "Festa Major de Santpedor", emojis: ["🎉", "🎆", "🎊", "🥁", "🎶", "🏐"], colors: ["#1E8C34", "#C8102E"] },
-    SANT_JOAN: { title: "Sant Joan", emojis: ["🎆", "🔥", "🎇", "✨", "🏐"], colors: ["#E65100", "#1A237E"] },
-    DIADA: { title: "la Diada", emojis: ["🎗️", "⭐", "🟨", "🟥", "🏐"], colors: ["#FCD116", "#C8102E"] },
-    CASTANYADA: { title: "la Castanyada", emojis: ["🌰", "🍂", "🍠", "🍁", "🌰", "🏐"], colors: ["#6D4C41", "#EF6C00"] }
+    NADAL: { emojis: ["❄️", "🎄", "⭐", "🎁", "❄️", "🏐"], colors: ["#B71C1C", "#1B5E20"] },
+    CARNAVAL: { emojis: ["🎭", "🎉", "🎊", "🤡", "🏐"], colors: ["#6A1B9A", "#F57C00"] },
+    PASQUA: { emojis: ["🐰", "🥚", "🐣", "🍫", "🐇", "🏐"], colors: ["#8E24AA", "#FFB300"] },
+    SANT_JORDI: { emojis: ["🌹", "📚", "🐉", "🌹", "🏐"], colors: ["#C62828", "#F9A825"] },
+    FESTA_MAJOR: { emojis: ["🎉", "🎆", "🎊", "🥁", "🎶", "🏐"], colors: ["#1E8C34", "#C8102E"] },
+    SANT_JOAN: { emojis: ["🎆", "🔥", "🎇", "✨", "🏐"], colors: ["#E65100", "#1A237E"] },
+    DIADA: { emojis: ["🎗️", "⭐", "🟨", "🟥", "🏐"], colors: ["#FCD116", "#C8102E"] },
+    CASTANYADA: { emojis: ["🌰", "🍂", "🍠", "🍁", "🌰", "🏐"], colors: ["#6D4C41", "#EF6C00"] }
   };
+  Object.keys(P.FESTIVITIES).forEach(function (k) { P.FESTIVITIES[k].title = t("fest." + k); });
   /** Easter Sunday (anonymous Gregorian algorithm) as "YYYY-MM-DD". */
   P.easter = function (year) {
     var a = year % 19, b = Math.floor(year / 100), c = year % 100, d = Math.floor(b / 4), e = b % 4;
@@ -217,32 +238,33 @@
   var C = P.COUNTER;
 
   P.MEDALS = [
-    { id: "FIRST_STAR", emoji: "⭐", secret: false, title: "Primera estrella", desc: "Aconsegueix la teva primera ⭐." },
-    { id: "STARS_10", emoji: "🌟", secret: false, title: "Deu estrelles", desc: "Arriba a 10 ⭐." },
-    { id: "STARS_25", emoji: "💫", secret: false, title: "Constel·lació", desc: "Arriba a 25 ⭐." },
-    { id: "STARS_50", emoji: "🌌", secret: false, title: "Galàxia", desc: "Arriba a 50 ⭐." },
-    { id: "PATH_DONE", emoji: "🗺️", secret: false, title: "Camí complet", desc: "Almenys dues ⭐ a totes les etapes del camí." },
-    { id: "PATH_GOLD", emoji: "🏆", secret: false, title: "Llegenda del club", desc: "Cinc ⭐ a totes les etapes del camí." },
-    { id: "DAILY_FIRST", emoji: "📅", secret: false, title: "Repte acceptat", desc: "Juga el repte del dia." },
-    { id: "STREAK_3", emoji: "🔥", secret: false, title: "Ratxa de 3", desc: "Repte del dia 3 dies seguits." },
-    { id: "STREAK_7", emoji: "☄️", secret: false, title: "Setmana perfecta", desc: "Repte del dia 7 dies seguits." },
-    { id: "GAMES_100", emoji: "💯", secret: false, title: "Cent partides", desc: "Juga 100 partides." },
-    { id: "ALBUM_10", emoji: "📒", secret: false, title: "Col·leccionista", desc: "Aconsegueix 10 cromos diferents." },
-    { id: "ALBUM_FULL", emoji: "📚", secret: false, title: "Àlbum complet", desc: "Tots els cromos de l'àlbum (sense els de festa)." },
-    { id: "PET_5", emoji: "🐣", secret: false, title: "La Pili creix", desc: "La teva Pili arriba al nivell 5." },
-    { id: "QUIZ_TOP", emoji: "🧠", secret: false, title: "Cervell de vòlei", desc: "Cinc ⭐ al quiz." },
-    { id: "REFEREE", emoji: "🟨", secret: false, title: "Àrbitre internacional", desc: "Treu el carnet d'àrbitre més alt." },
-    { id: "BEACH", emoji: "🏖️", secret: false, title: "Reina de la platja", desc: "Cinc ⭐ a la platja contra la Pili." },
-    { id: "TEAM", emoji: "🤝", secret: false, title: "Esperit d'equip", desc: "Tria el teu equip a la lliga." },
-    { id: "FAN", emoji: "📡", secret: false, title: "Afició fidel", desc: "Segueix 10 partits en directe." },
-    { id: "FESTIVE", emoji: "🎉", secret: false, title: "Festa major", desc: "Guanya un premi en un joc de temporada." },
-    { id: "OWL", emoji: "🦉", secret: true, title: "Mussol", desc: "Juga quan tothom dorm…" },
-    { id: "MIRROR", emoji: "🪞", secret: true, title: "Al revés", desc: "Juga en mode mirall." },
-    { id: "TURBO", emoji: "⚡", secret: true, title: "Llampec", desc: "Juga 5 partides en turbo." },
-    { id: "CLAPPER", emoji: "👏", secret: true, title: "Mans de foc", desc: "Aplaudeix 50 vegades en directes." },
-    { id: "DRUMMER", emoji: "🥁", secret: true, title: "Timbaler/a", desc: "Toca el tabal 20 vegades." },
-    { id: "FRIEND", emoji: "🍎", secret: true, title: "Millor amic de la Pili", desc: "Dona-li menjar 20 vegades." }
+    { id: "FIRST_STAR", emoji: "⭐", secret: false },
+    { id: "STARS_10", emoji: "🌟", secret: false },
+    { id: "STARS_25", emoji: "💫", secret: false },
+    { id: "STARS_50", emoji: "🌌", secret: false },
+    { id: "PATH_DONE", emoji: "🗺️", secret: false },
+    { id: "PATH_GOLD", emoji: "🏆", secret: false },
+    { id: "DAILY_FIRST", emoji: "📅", secret: false },
+    { id: "STREAK_3", emoji: "🔥", secret: false },
+    { id: "STREAK_7", emoji: "☄️", secret: false },
+    { id: "GAMES_100", emoji: "💯", secret: false },
+    { id: "ALBUM_10", emoji: "📒", secret: false },
+    { id: "ALBUM_FULL", emoji: "📚", secret: false },
+    { id: "PET_5", emoji: "🐣", secret: false },
+    { id: "QUIZ_TOP", emoji: "🧠", secret: false },
+    { id: "REFEREE", emoji: "🟨", secret: false },
+    { id: "BEACH", emoji: "🏖️", secret: false },
+    { id: "TEAM", emoji: "🤝", secret: false },
+    { id: "FAN", emoji: "📡", secret: false },
+    { id: "FESTIVE", emoji: "🎉", secret: false },
+    { id: "OWL", emoji: "🦉", secret: true },
+    { id: "MIRROR", emoji: "🪞", secret: true },
+    { id: "TURBO", emoji: "⚡", secret: true },
+    { id: "CLAPPER", emoji: "👏", secret: true },
+    { id: "DRUMMER", emoji: "🥁", secret: true },
+    { id: "FRIEND", emoji: "🍎", secret: true }
   ];
+  P.MEDALS.forEach(function (m) { m.title = t("medal." + m.id); m.desc = t("medal." + m.id + ".d"); });
   P.medal = function (id) { for (var i = 0; i < P.MEDALS.length; i++) if (P.MEDALS[i].id === id) return P.MEDALS[i]; return null; };
   P.medalOrder = function (id) { for (var i = 0; i < P.MEDALS.length; i++) if (P.MEDALS[i].id === id) return i; return 999; };
 
@@ -283,70 +305,71 @@
 
   // ---------------------------------------------------------------- sticker album (AlbumCatalog.kt: ids NEVER change)
 
-  function cr(id, emoji, kind, title, fest) { return { id: id, emoji: emoji, kind: kind, title: title, festivity: fest || null }; }
+  function cr(id, emoji, kind, fest) { return { id: id, emoji: emoji, kind: kind, title: t("cromo." + id), festivity: fest || null }; }
   P.ALBUM = [
-    cr("pili_verda", "🏐", "PILI", "La Pili verda"),
-    cr("pili_ratlles", "🎽", "PILI", "La Pili de ratlles"),
-    cr("pili_campiona", "🏆", "PILI", "La Pili campiona"),
-    cr("pili_rematadora", "🦸", "PILI", "La Pili rematadora"),
-    cr("pili_ulleres", "🕶️", "PILI", "La Pili amb ulleres"),
-    cr("pili_ullet", "😉", "PILI", "La Pili picant l'ullet"),
-    cr("pili_dormilega", "😴", "PILI", "La Pili dormilega"),
-    cr("club_2014", "🎂", "CLUB", "Fundat el 15 de juliol de 2014"),
-    cr("club_colors", "💚", "CLUB", "Verd i negre"),
-    cr("club_santpedor", "📍", "CLUB", "Santpedor (Bages)"),
-    cr("club_pavello", "🏟️", "CLUB", "El pavelló de casa"),
-    cr("club_senior_femeni", "👩", "CLUB", "Sènior Femení"),
-    cr("club_senior_masculi", "👨", "CLUB", "Sènior Masculí"),
-    cr("club_masters", "🧓", "CLUB", "Màsters Mixt"),
-    cr("club_juvenil", "🧑", "CLUB", "Juvenil"),
-    cr("club_cadet", "🧒", "CLUB", "Cadet"),
-    cr("club_infantil", "👧", "CLUB", "Infantil"),
-    cr("club_alevi", "👦", "CLUB", "Aleví"),
-    cr("club_escola", "🐣", "CLUB", "Escola"),
-    cr("club_aficio", "📣", "CLUB", "L'afició"),
-    cr("club_tabal", "🥁", "CLUB", "El tabal"),
-    cr("club_cotxes", "🚗", "CLUB", "Anem a jugar fora!"),
-    cr("volei_libero", "🟨", "VOLEI", "Líbero"),
-    cr("volei_collocador", "🤲", "VOLEI", "Col·locador/a"),
-    cr("volei_central", "🧱", "VOLEI", "Central"),
-    cr("volei_receptor", "🙌", "VOLEI", "Receptor/a atacant"),
-    cr("volei_oposat", "💪", "VOLEI", "Oposat/da"),
-    cr("volei_servei", "🎯", "VOLEI", "Servei"),
-    cr("volei_servei_salt", "🚀", "VOLEI", "Servei en salt"),
-    cr("volei_recepcio", "🛡️", "VOLEI", "Recepció"),
-    cr("volei_collocacio", "👐", "VOLEI", "Col·locació"),
-    cr("volei_rematada", "⚡", "VOLEI", "Rematada"),
-    cr("volei_bloqueig", "✋", "VOLEI", "Bloqueig"),
-    cr("volei_defensa", "🤸", "VOLEI", "Defensa"),
-    cr("volei_rotacio", "🔄", "VOLEI", "Rotació"),
-    cr("volei_temps_mort", "⏱️", "VOLEI", "Temps mort"),
-    cr("volei_punt_set", "🏁", "VOLEI", "Punt de set"),
-    cr("pavello_xarxa", "🥅", "PAVELLO", "La xarxa"),
-    cr("pavello_carro", "🛒", "PAVELLO", "El carro de pilotes"),
-    cr("pavello_marcador", "🔢", "PAVELLO", "El marcador"),
-    cr("pavello_banqueta", "🪑", "PAVELLO", "La banqueta"),
-    cr("pavello_arbitre", "🟥", "PAVELLO", "L'àrbitre"),
-    cr("pavello_aigua", "💧", "PAVELLO", "L'ampolla d'aigua"),
-    cr("pavello_vestidor", "👟", "PAVELLO", "El vestidor"),
-    cr("pavello_pista", "📐", "PAVELLO", "La pista de 9 × 18 m"),
-    cr("nadal_torro", "🍫", "FESTA", "Torrons de Nadal", "NADAL"),
-    cr("nadal_tio", "🪵", "FESTA", "El Tió", "NADAL"),
-    cr("carnaval_disfressa", "🎭", "FESTA", "Disfressa de Carnaval", "CARNAVAL"),
-    cr("pasqua_mona", "🥚", "FESTA", "La mona de Pasqua", "PASQUA"),
-    cr("sant_jordi_rosa", "🌹", "FESTA", "La rosa de Sant Jordi", "SANT_JORDI"),
-    cr("sant_jordi_llibre", "📚", "FESTA", "El llibre de Sant Jordi", "SANT_JORDI"),
-    cr("festa_major_santpedor", "🎆", "FESTA", "Festa Major de Santpedor", "FESTA_MAJOR"),
-    cr("sant_joan_revetlla", "🔥", "FESTA", "La revetlla de Sant Joan", "SANT_JOAN"),
-    cr("diada_onze", "🎗️", "FESTA", "L'Onze de Setembre", "DIADA"),
-    cr("castanyada_castanyes", "🌰", "FESTA", "Castanyes calentes", "CASTANYADA"),
-    cr("castanyada_moniato", "🍠", "FESTA", "Moniatos al forn", "CASTANYADA")
+    cr("pili_verda", "🏐", "PILI"),
+    cr("pili_ratlles", "🎽", "PILI"),
+    cr("pili_campiona", "🏆", "PILI"),
+    cr("pili_rematadora", "🦸", "PILI"),
+    cr("pili_ulleres", "🕶️", "PILI"),
+    cr("pili_ullet", "😉", "PILI"),
+    cr("pili_dormilega", "😴", "PILI"),
+    cr("club_2014", "🎂", "CLUB"),
+    cr("club_colors", "💚", "CLUB"),
+    cr("club_santpedor", "📍", "CLUB"),
+    cr("club_pavello", "🏟️", "CLUB"),
+    cr("club_senior_femeni", "👩", "CLUB"),
+    cr("club_senior_masculi", "👨", "CLUB"),
+    cr("club_masters", "🧓", "CLUB"),
+    cr("club_juvenil", "🧑", "CLUB"),
+    cr("club_cadet", "🧒", "CLUB"),
+    cr("club_infantil", "👧", "CLUB"),
+    cr("club_alevi", "👦", "CLUB"),
+    cr("club_escola", "🐣", "CLUB"),
+    cr("club_aficio", "📣", "CLUB"),
+    cr("club_tabal", "🥁", "CLUB"),
+    cr("club_cotxes", "🚗", "CLUB"),
+    cr("volei_libero", "🟨", "VOLEI"),
+    cr("volei_collocador", "🤲", "VOLEI"),
+    cr("volei_central", "🧱", "VOLEI"),
+    cr("volei_receptor", "🙌", "VOLEI"),
+    cr("volei_oposat", "💪", "VOLEI"),
+    cr("volei_servei", "🎯", "VOLEI"),
+    cr("volei_servei_salt", "🚀", "VOLEI"),
+    cr("volei_recepcio", "🛡️", "VOLEI"),
+    cr("volei_collocacio", "👐", "VOLEI"),
+    cr("volei_rematada", "⚡", "VOLEI"),
+    cr("volei_bloqueig", "✋", "VOLEI"),
+    cr("volei_defensa", "🤸", "VOLEI"),
+    cr("volei_rotacio", "🔄", "VOLEI"),
+    cr("volei_temps_mort", "⏱️", "VOLEI"),
+    cr("volei_punt_set", "🏁", "VOLEI"),
+    cr("pavello_xarxa", "🥅", "PAVELLO"),
+    cr("pavello_carro", "🛒", "PAVELLO"),
+    cr("pavello_marcador", "🔢", "PAVELLO"),
+    cr("pavello_banqueta", "🪑", "PAVELLO"),
+    cr("pavello_arbitre", "🟥", "PAVELLO"),
+    cr("pavello_aigua", "💧", "PAVELLO"),
+    cr("pavello_vestidor", "👟", "PAVELLO"),
+    cr("pavello_pista", "📐", "PAVELLO"),
+    cr("nadal_torro", "🍫", "FESTA", "NADAL"),
+    cr("nadal_tio", "🪵", "FESTA", "NADAL"),
+    cr("carnaval_disfressa", "🎭", "FESTA", "CARNAVAL"),
+    cr("pasqua_mona", "🥚", "FESTA", "PASQUA"),
+    cr("sant_jordi_rosa", "🌹", "FESTA", "SANT_JORDI"),
+    cr("sant_jordi_llibre", "📚", "FESTA", "SANT_JORDI"),
+    cr("festa_major_santpedor", "🎆", "FESTA", "FESTA_MAJOR"),
+    cr("sant_joan_revetlla", "🔥", "FESTA", "SANT_JOAN"),
+    cr("diada_onze", "🎗️", "FESTA", "DIADA"),
+    cr("castanyada_castanyes", "🌰", "FESTA", "CASTANYADA"),
+    cr("castanyada_moniato", "🍠", "FESTA", "CASTANYADA")
   ];
   P.ALBUM_KINDS = [
-    { id: "PILI", title: "La Pili", color: "#3CC24A" }, { id: "CLUB", title: "El club", color: "#1C211E" },
-    { id: "VOLEI", title: "Vòlei", color: "#1E8C34" }, { id: "PAVELLO", title: "Al pavelló", color: "#37474F" },
-    { id: "FESTA", title: "Cromos de festa", color: "#C62828" }
+    { id: "PILI", color: "#3CC24A" }, { id: "CLUB", color: "#1C211E" },
+    { id: "VOLEI", color: "#1E8C34" }, { id: "PAVELLO", color: "#37474F" },
+    { id: "FESTA", color: "#C62828" }
   ];
+  P.ALBUM_KINDS.forEach(function (k) { k.title = t("kind." + k.id); });
   P.REGULAR = P.ALBUM.filter(function (c) { return !c.festivity; });
   P.cromo = function (id) { for (var i = 0; i < P.ALBUM.length; i++) if (P.ALBUM[i].id === id) return P.ALBUM[i]; return null; };
   P.cromoNumber = function (c) { return P.ALBUM.indexOf(c) + 1; };
@@ -438,10 +461,7 @@
     var bad = BAD.some(function (b) { return b.length <= 5 ? words.indexOf(b) >= 0 : joined.indexOf(b) >= 0; });
     return bad ? "NOT_ALLOWED" : null;
   };
-  P.NICK_TEXT = {
-    TOO_SHORT: "Massa curt (mínim 2 caràcters)", TOO_LONG: "Massa llarg (màxim 16 caràcters)",
-    NOT_ALLOWED: "Aquest àlies no està permès", HINT: "De 2 a 16 caràcters"
-  };
+  P.NICK_TEXT = { TOO_SHORT: t("nick.short"), TOO_LONG: t("nick.long"), NOT_ALLOWED: t("nick.bad"), HINT: t("nick.hint") };
   function cmpStr(a, b) { return a < b ? -1 : a > b ? 1 : 0; }
   function rankSort(a, b) { return (b.score - a.score) || cmpStr(a.updated, b.updated) || cmpStr(a.name.toLowerCase(), b.name.toLowerCase()); }
   /** LeaderboardLogic.rank: entries {uid, name, score, updated} with a score (> 0) in [field], best first. */
@@ -451,6 +471,16 @@
       var score = typeof d[field] === "number" ? Math.trunc(d[field]) : 0;
       if (typeof d.id !== "string" || name.length < P.MIN_NICK || score <= 0) return null;
       return { uid: d.id, name: name, score: P.clampScore(score), updated: typeof d.updated === "string" ? d.updated : "" };
+    }).filter(Boolean).sort(rankSort);
+  };
+  /** The monthly ranking of [field]: documents whose "mes" is [month] ("YYYY-MM"), by m[field], best first. */
+  P.monthRank = function (docs, field, month) {
+    return (docs || []).map(function (d) {
+      if (d.mes !== month || !d.m || typeof d.m !== "object") return null;
+      var name = typeof d.nom === "string" ? P.cleanNick(d.nom) : "";
+      var score = typeof d.m[field] === "number" ? Math.trunc(d.m[field]) : 0;
+      if (typeof d.id !== "string" || name.length < P.MIN_NICK || score <= 0) return null;
+      return { uid: d.id, name: name, score: P.cap(field, score), updated: typeof d.updated === "string" ? d.updated : "" };
     }).filter(Boolean).sort(rankSort);
   };
   /** 1-based position of [uid] in [ranked], or null. */
@@ -467,7 +497,7 @@
     (docs || []).forEach(function (d) {
       if (typeof d.equip !== "number") return;
       var t = Math.trunc(d.equip), pts = typeof d.punts === "number" ? Math.trunc(d.punts) : 0;
-      pts = Math.max(0, Math.min(P.MAX_SCORE, pts));
+      pts = P.cap("punts", pts);
       if (!by[t]) { by[t] = { team: t, points: 0, players: 0 }; order.push(t); }
       by[t].points += pts; by[t].players++;
     });
@@ -520,9 +550,9 @@
     return out;
   }
 
-  P.bests = function () { var b = intMap(get("bests", {})), out = {}; P.IDS.forEach(function (g) { out[g] = b[g] || 0; }); return out; };
+  P.bests = function () { var b = intMap(get("bests", {})), out = {}; P.IDS.forEach(function (g) { out[g] = P.cap(g, b[g] || 0); }); return out; };
   P.best = function (g) { return P.bests()[g] || 0; };
-  function setBest(g, v) { var b = intMap(get("bests", {})); b[g] = P.clampScore(v); set("bests", b); }
+  function setBest(g, v) { var b = intMap(get("bests", {})); b[g] = P.cap(g, v); set("bests", b); }
 
   P.counters = function () { return intMap(get("counters", {})); };
   P.count = function (k) { return P.counters()[k] || 0; };
@@ -539,13 +569,38 @@
   P.lastDaily = function () { var d = dailyState(); return d.date ? { date: d.date, best: d.best } : null; };
   /** Records a daily challenge game; true if it is today's best. */
   P.recordDaily = function (score, today) {
+    score = P.cap("diari", score);
     var d = dailyState(), limit = P.epochDay(today) - 60;
     if (d.days.indexOf(today) < 0) d.days.push(today);
     d.days = d.days.filter(function (x) { return P.validDay(x) && P.epochDay(x) >= limit; }).sort();
     var best = d.date === today ? d.best : 0, isBest = score > best;
-    if (isBest) { d.date = today; d.best = P.clampScore(score); }
+    if (isBest) { d.date = today; d.best = score; }
     set("daily", d);
     return isBest;
+  };
+
+  // ---------------------------------------------------------------- monthly bests (ranking «Aquest mes»)
+
+  /** Current month "YYYY-MM" (local time). */
+  P.month = function () { var d = P.now(); return d.getFullYear() + "-" + pad(d.getMonth() + 1); };
+  function monthState() { var o = get("month", {}) || {}; return { mes: typeof o.mes === "string" ? o.mes : null, m: intMap(o.m) }; }
+  /** This month's best of every game played this month ({} again when the month changes). */
+  P.monthBests = function () {
+    var s = monthState(), out = {};
+    if (s.mes !== P.month()) return out;
+    P.IDS.forEach(function (g) { var v = P.cap(g, s.m[g] || 0); if (v > 0) out[g] = v; });
+    return out;
+  };
+  /** Records a game of this month; true if it is a new monthly best (the leaderboard doc gets pending). */
+  P.recordMonth = function (g, score) {
+    score = P.cap(g, score);
+    if (score <= 0 || P.IDS.indexOf(g) < 0) return false;
+    var m = P.monthBests();
+    if (score <= (m[g] || 0)) return false;
+    m[g] = score;
+    set("month", { mes: P.month(), m: m });
+    P.markPending();
+    return true;
   };
 
   P.album = function () { var a = intMap(get("album", {})), out = {}; Object.keys(a).forEach(function (k) { if (a[k] > 0) out[k] = a[k]; }); return out; };
@@ -560,12 +615,35 @@
   P.petState = function (now) { return P.pet.decay(copyPet(get("pet", null)), now == null ? P.nowSec() : now); };
   P.savePet = function (s, check) { set("pet", copyPet(s)); if (check !== false) P.checkMedals(); };
 
-  P.team = function () { var t = get("team", null); return typeof t === "number" && isFinite(t) ? t : null; };
+  /** Teams where this browser is an approved member (localStorage "mem_approved", written by js/member.js). */
+  P.approvedTeams = function () {
+    var a = VSP.storeJson("mem_approved", undefined, []);
+    if (!Array.isArray(a)) return [];
+    return a.map(Number).filter(function (x) { return isFinite(x) && Math.trunc(x) === x; });
+  };
+  /** The league team: only a team where this browser is an approved member (otherwise null). */
+  P.team = function () {
+    var t = get("team", null);
+    if (typeof t !== "number" || !isFinite(t)) return null;
+    return P.approvedTeams().indexOf(t) >= 0 ? t : null;
+  };
+  /** A chosen team that is no longer approved is dropped (and the document re-uploaded without it). */
+  P.dropUnapprovedTeam = function () {
+    var t = get("team", null);
+    if (t === null || t === undefined || P.team() !== null) return false;
+    set("team", null);
+    P.markPending();
+    return true;
+  };
+  /** Chooses the league team (null = none); false if this browser is not an approved member of it. */
   P.setTeam = function (team) {
-    set("team", team === null || team === undefined || team === "" ? null : Number(team));
+    team = team === null || team === undefined || team === "" ? null : Number(team);
+    if (team !== null && P.approvedTeams().indexOf(team) < 0) return false;
+    set("team", team);
     P.checkMedals();
     P.markPending();
     VSPG.emit("progress");
+    return true;
   };
 
   P.nickname = function () { var n = get("nick", null); return typeof n === "string" && n.trim() ? n : null; };
@@ -623,12 +701,14 @@
    */
   P.finish = function (g, score, mode, opts) {
     mode = mode || {}; opts = opts || {};
-    score = P.clampScore(score);
+    score = P.cap(g, score);
     var today = opts.today || P.today(), rnd = opts.rnd || Math.random;
     var hour = opts.hour != null ? opts.hour : P.now().getHours();
     var before = P.bests();
     // the daily challenge may be a game still locked in the path: then it only counts for the day
-    var record = (mode.daily && !P.unlocked(g, before)) ? false : P.submit(g, score);
+    var counts = !(mode.daily && !P.unlocked(g, before));
+    var record = counts ? P.submit(g, score) : false;
+    if (counts) P.recordMonth(g, score);
     var after = P.bests();
     var newStars = Math.max(0, P.stars(g, after) - P.stars(g, before));
     P.inc(C.GAMES);
@@ -670,11 +750,11 @@
   P.rewardLines = function (r) {
     var out = [];
     if (!r) return out;
-    if (r.newStars > 0) out.push("+" + r.newStars + " ⭐ (ara " + r.stars + " de 5)");
-    (r.opened || []).forEach(function (g) { out.push("🔓 Desbloquejat: " + P.title(g)); });
-    (r.medals || []).forEach(function (m) { var x = P.medal(m); if (x) out.push("🏅 Medalla nova: " + x.emoji + " " + x.title); });
-    (r.cromos || []).forEach(function (c) { out.push("🃏 Cromo nou: " + c.emoji + " " + c.title); });
-    if (r.dailyBest) out.push("📅 Millor resultat d'avui!");
+    if (r.newStars > 0) out.push(t("rew.stars", r.newStars, r.stars));
+    (r.opened || []).forEach(function (g) { out.push(t("rew.opened", P.title(g))); });
+    (r.medals || []).forEach(function (m) { var x = P.medal(m); if (x) out.push(t("rew.medal", x.emoji + " " + x.title)); });
+    (r.cromos || []).forEach(function (c) { out.push(t("rew.cromo", c.emoji + " " + c.title)); });
+    if (r.dailyBest) out.push(t("rew.daily"));
     return out;
   };
 
@@ -701,12 +781,15 @@
   P.board.doc = function () {
     var nick = P.nickname(), bests = P.bests();
     var data = { nom: String(nick || "").slice(0, P.MAX_NICK) };
-    P.IDS.forEach(function (g) { data[g] = P.clampScore(bests[g]); });
-    var t = P.team();
+    P.IDS.forEach(function (g) { data[g] = P.cap(g, bests[g]); });
+    var t = P.team();   // only a team where this browser is an approved member
     if (t !== null) data.equip = Math.trunc(t);
-    data.punts = P.leaguePoints();
+    data.punts = P.cap("punts", P.leaguePoints());
     var ld = P.lastDaily();
-    if (ld) { data.diari_dia = ld.date; data.diari = P.clampScore(ld.best); }
+    if (ld) { data.diari_dia = ld.date; data.diari = P.cap("diari", ld.best); }
+    // monthly ranking: only when something was played this month
+    var mb = P.monthBests();
+    if (Object.keys(mb).length) { data.mes = P.month(); data.m = mb; }
     data.updated = P.now().toISOString();
     return data;
   };
@@ -719,7 +802,13 @@
       var uid = VSP.uid();
       if (!uid) throw new Error("sense sessió");
       set("pending", false);
-      return VSP.fs.set("jocs/" + uid, P.board.doc()).then(function () { return true; }, function (e) { set("pending", true); throw e; });
+      return VSP.fs.set("jocs/" + uid, P.board.doc()).then(function () { return true; }, function (e) {
+        // 403: the board hid this player (jocs_amagats/{uid}) or the rules rejected the document:
+        // retrying would fail the same way, so it is not pending any more and no error is shown
+        if (e && e.status === 403) return false;
+        set("pending", true);
+        throw e;
+      });
     });
     boardBusy.then(clear, clear);
     function clear() { boardBusy = null; }
@@ -894,7 +983,7 @@
     /** Writes [s] as the local progress (after a merge, so nothing is lost). */
     apply: function (s) {
       var b = intMap(get("bests", {}));
-      P.IDS.forEach(function (g) { if (s.bests[g] != null) b[g] = P.clampScore(s.bests[g]); });
+      P.IDS.forEach(function (g) { if (s.bests[g] != null) b[g] = P.cap(g, s.bests[g]); });
       set("bests", b);
       var album = {}; Object.keys(s.album).forEach(function (k) { if (s.album[k] > 0) album[k] = s.album[k]; });
       set("album", album);
@@ -909,7 +998,7 @@
       set("daily", d);
       set("festes", s.festes.slice());
       if (!P.nickname() && s.nom != null && P.nickError(s.nom) === null) set("nick", P.cleanNick(s.nom));
-      if (P.team() === null && s.equip != null) set("team", s.equip);
+      if (P.team() === null && s.equip != null && P.approvedTeams().indexOf(s.equip) >= 0) set("team", s.equip);
       var r = get("referee", {}) || {};
       Object.keys(s.referee).forEach(function (l) { r[l] = s.referee[l]; });
       set("referee", r);
@@ -930,7 +1019,7 @@
   }
   function upload(code, s) {
     var text = JSON.stringify(s);
-    if (text.length > P.snapshot.MAX_LENGTH) return Promise.reject(new Error("El progrés és massa gran per desar-lo."));
+    if (text.length > P.snapshot.MAX_LENGTH) { var big = new Error(t("sync.too_big")); big.code = "TOO_BIG"; return Promise.reject(big); }
     return VSP.token().then(function () {
       return VSP.fs.set("progres/" + code, { dades: text, owner: VSP.uid() || "", updated: P.now().toISOString() });
     });
