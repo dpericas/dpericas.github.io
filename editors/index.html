@@ -1400,6 +1400,7 @@
   }
   function signOut(why) {
     S.idToken = null; S.refresh = null; S.uid = null; S.me = null; S.exp = 0; storeRefresh();
+    try { localStorage.removeItem("vsp_editor_hint"); } catch (e) {}
     $("l-pass").value = "";
     screen("login");
     if (why) setMsg($("l-msg"), why, "err"); else setMsg($("l-msg"), "Has sortit.", "ok");
@@ -1497,6 +1498,8 @@
       var me = p.d; me.uid = S.uid;
       if (["admin", "junta", "entrenador"].indexOf(me.role) < 0) throw failure("NOT_FOUND");
       S.me = me; loaded = {}; members = {}; pending = {}; curTeam = null; notices = []; editing = null;
+      // display-only hint for the public web's "El meu equip" (role and teams, nothing secret)
+      ls("vsp_editor_hint", JSON.stringify({ role: me.role, teams: (me.teams || []).map(Number) }));
       $("n-form-sec").hidden = true; $("pend-total").innerHTML = ""; $("prop-total").innerHTML = "";
       resetExtras();
       $("u-name").textContent = H.editorName(me) || "Editor/a";

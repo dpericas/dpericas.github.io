@@ -3,7 +3,10 @@
  * Same data and rules as the Android app (voleimanager): docs/firestore.rules. */
 (function () {
   "use strict";
-  var VSP = window.VSP = {};
+  // js/i18n.js (loaded before, on the translated pages) may have made VSP already
+  var VSP = window.VSP = window.VSP || {};
+  // pages without js/i18n.js (live/, jocs/: Catalan only) do not use the texts of this file
+  if (!VSP.t) { VSP.t = function (k) { return k; }; VSP.tn = function (k) { return k; }; VSP.lang = "ca"; }
 
   VSP.FIREBASE_PROJECT = "volei-santpedor-eaa1d";
   VSP.FIREBASE_KEY = "AIzaSyAfdF-SxBI89qHnq_Ke2jCki_HnXosBxoY";
@@ -11,6 +14,8 @@
   VSP.CHANNEL = "vspclub-5pksq4432g";
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
+  /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
+  VSP.WEB_VERSION = "vsp-v15";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -36,6 +41,15 @@
   VSP.TEAM_ORDER = VSP.TEAMS.map(function (t) { return t.id; });
   VSP.team = function (id) { id = Number(id); for (var i = 0; i < VSP.TEAMS.length; i++) if (VSP.TEAMS[i].id === id) return VSP.TEAMS[i]; return null; };
   VSP.teamName = function (id) { var t = VSP.team(id); return t ? t.name : "Vòlei Santpedor"; };
+  /** The team's subtitle (category, "Equip V"…) in the chosen language; team names stay as they are. */
+  VSP.teamSub = function (t) {
+    var parts = { "4a Divisió": "teams.sub.4a", "3a Divisió": "teams.sub.3a", "Preferent": "teams.sub.pref", "No federat": "teams.sub.nofed", "categoria mixta": "teams.sub.mixed" };
+    return String((t && t.sub) || "").split(" · ").map(function (p) {
+      var m = /^Equip (\S+)$/.exec(p);
+      if (m) return VSP.t("teams.sub.team", m[1]);
+      return parts[p] ? VSP.t(parts[p]) : p;
+    }).join(" · ");
+  };
   /** Official page of a federated team (ClubConfig.teamUrl: the server redirects it to the results web). */
   VSP.teamUrl = function (id) {
     return "https://resultadosvoleibol.isquad.es/equipo.php?id_equipo=" + id + "&id_territorial=17&id_club=" + VSP.CLUB_ID + "&id_temp=" + VSP.SEASON;
@@ -66,15 +80,27 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return iso;
     return VSP.isoDay(new Date(+m[1], +m[2] - 1, +m[3] + n));
   };
-  var MONTHS = ["gener", "febrer", "març", "abril", "maig", "juny", "juliol", "agost", "setembre", "octubre", "novembre", "desembre"];
+  /** Training days as the club writes them (data: Catalan), Monday first. */
   VSP.DAYS = ["Dilluns", "Dimarts", "Dimecres", "Dijous", "Divendres", "Dissabte", "Diumenge"];
+  /** A training day of the data in the chosen language ("Dilluns" → "Lunes"); unknown text as it is. */
+  VSP.dayLabel = function (dia) {
+    var i = VSP.DAYS.indexOf(String(dia || "").trim());
+    return i < 0 ? dia : VSP.t("date.days_mon_first").split(",")[i];
+  };
+  /** Locale for Intl / toLocale…String in the chosen language. */
+  VSP.locale = function () { return { es: "es-ES", en: "en-GB" }[VSP.lang] || "ca-ES"; };
+  /** "dissabte 5 de desembre" / "sábado 5 de diciembre" / "Saturday 5 December" (+ year). */
   VSP.fmtDate = function (iso, withYear) {
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); if (!m) return "";
     var d = new Date(+m[1], +m[2] - 1, +m[3]);
-    var wd = ["diumenge", "dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte"][d.getDay()];
-    var mo = MONTHS[d.getMonth()];
+    var wd = VSP.t("date.weekdays").split(",")[d.getDay()];
+    var mo = VSP.t("date.months").split(",")[d.getMonth()];
+    if (VSP.lang === "en") return wd + " " + d.getDate() + " " + mo + (withYear ? " " + m[1] : "");
+    if (VSP.lang === "es") return wd + " " + d.getDate() + " de " + mo + (withYear ? " de " + m[1] : "");
     return wd + " " + d.getDate() + (/^[aeiou]/.test(mo) ? " d'" : " de ") + mo + (withYear ? " de " + m[1] : "");
   };
+  /** "18:30" in the chosen language. */
+  VSP.fmtTime = function (date) { return date.toLocaleTimeString(VSP.locale(), { hour: "2-digit", minute: "2-digit" }); };
   VSP.shortDate = function (iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? (+m[3]) + "/" + (+m[2]) : ""; };
   VSP.pretty = function (s) { s = String(s || "").toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); };
   VSP.chips = function (names) {
@@ -254,13 +280,13 @@
       });
     }
   };
-  /** Error text for the user (Catalan). */
+  /** Error text for the user (in the chosen language). */
   VSP.errText = function (e) {
     if (!e) return "";
-    if (e.status === 403) return "No tens permís per fer-ho.";
-    if (e.status === 404) return "No s'ha trobat.";
-    if (e instanceof TypeError || /fetch|network/i.test(e.message || "")) return "No s'ha pogut connectar. Torna-ho a provar.";
-    return "No s'ha pogut fer (" + (e.message || e) + ").";
+    if (e.status === 403) return VSP.t("err.403");
+    if (e.status === 404) return VSP.t("err.404");
+    if (e instanceof TypeError || /fetch|network/i.test(e.message || "")) return VSP.t("err.network");
+    return VSP.t("err.other", e.message || e);
   };
   /** Big base64 blobs (photos, PDF) by id. */
   VSP.blob = function (path, field) {
@@ -282,7 +308,7 @@
   };
 
   // ---------- tabs and pages (hash router: #equips, #inici, #agenda, #club, #<page>/<arg>)
-  VSP.TABS = ["equips", "inici", "agenda", "club"];
+  VSP.TABS = ["inici", "equips", "agenda", "club"];
   VSP.pages = {};
   VSP.currentTab = null;
   function showTab(tab) {
@@ -300,7 +326,7 @@
     if (VSP.pages[name]) {
       VSP.each("[data-tab]", function (el) { el.hidden = true; });
       page.hidden = false;
-      page.innerHTML = '<div class="page-head"><button class="back" id="page-back" aria-label="Enrere">←</button><h2 id="page-title"></h2></div><div id="page-body"><div class="empty">Carregant…</div></div>';
+      page.innerHTML = '<div class="page-head"><button class="back" id="page-back" aria-label="' + esc(VSP.t("common.back")) + '">←</button><h2 id="page-title"></h2></div><div id="page-body"><div class="empty">' + esc(VSP.t("common.loading")) + "</div></div>";
       $("page-back").onclick = VSP.back;
       VSP.each("nav.tabs button", function (b) { b.classList.toggle("on", b.getAttribute("data-go") === VSP.pages[name].tab); });
       window.scrollTo(0, 0);
@@ -313,7 +339,9 @@
     }
     page.hidden = true; page.innerHTML = "";
     document.title = "Club Vòlei Santpedor";
-    var tab = VSP.TABS.indexOf(h) >= 0 ? h : (VSP.store("tab") || "inici");
+    // no tab in the address: the last one used, or Inici when opening the web (⚙️ Preferències › start_tab)
+    var first = VSP.currentTab === null && VSP.store("start_tab") === "inici";
+    var tab = VSP.TABS.indexOf(h) >= 0 ? h : first ? "inici" : (VSP.store("tab") || "inici");
     if (VSP.TABS.indexOf(tab) < 0) tab = "inici";
     var changed = tab !== VSP.currentTab;
     showTab(tab);

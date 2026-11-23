@@ -13,16 +13,21 @@
   function paintTheme() {
     var b = $("theme"), dark = isDark();
     b.textContent = dark ? "☀️" : "🌙";
-    b.title = dark ? "Passa al tema clar" : "Passa al tema fosc";
+    b.title = VSP.t(dark ? "main.to_light" : "main.to_dark");
     b.setAttribute("aria-label", b.title);
   }
-  $("theme").onclick = function () {
-    var next = isDark() ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", next); VSP.store("theme", next);
+  /** "auto" (follows the device: nothing stored), "light" or "dark". */
+  VSP.themeMode = function () { var t = VSP.store("theme"); return t === "light" || t === "dark" ? t : "auto"; };
+  VSP.setTheme = function (mode) {
+    if (mode === "light" || mode === "dark") { document.documentElement.setAttribute("data-theme", mode); VSP.store("theme", mode); }
+    else { document.documentElement.removeAttribute("data-theme"); VSP.store("theme", null); }
     paintTheme();
+    VSP.emit("theme", VSP.themeMode());
   };
+  $("theme").onclick = function () { VSP.setTheme(isDark() ? "light" : "dark"); };
   paintTheme();
   if (window.matchMedia) { var mq = matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", paintTheme); }
+  $("prefs-btn").onclick = function () { if (location.hash === "#preferencies") VSP.route(); else VSP.go("#preferencies"); };
   $("year").textContent = new Date().getFullYear();
 
   // tabs
@@ -33,6 +38,7 @@
   // iPhone: install hint; Android-only parts hidden on iOS
   var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   var standalone = window.navigator.standalone === true || matchMedia("(display-mode: standalone)").matches;
+  VSP.isIOS = ios;
   if (ios) $("android-app").hidden = true;
   if (ios && !standalone && VSP.store("ios-install-closed") !== "1") $("ios-install").hidden = false;
   $("ios-close").onclick = function () { $("ios-install").hidden = true; VSP.store("ios-install-closed", "1"); };
@@ -57,7 +63,7 @@
     VSP.renderOrders();
     $("tips-link").hidden = !VSP.featureOn("consells");
     $("propose-link").hidden = !VSP.featureOn("fotos");
-    if (VSP.offline) VSP.toast("Sense connexió: es mostren les últimes dades desades.");
+    if (VSP.offline) VSP.toast(VSP.t("main.offline"));
     return d;
   }).catch(function (e) { if (window.console) console.error(e); });
   VSP.route();
@@ -75,6 +81,6 @@
   if (!ios) VSP.getJson("https://api.github.com/repos/dpericas/voleimanagerV/tags?per_page=100").then(function (tags) {
     var best = tags.map(function (t) { return t.name; }).filter(function (n) { return code(n) >= 0; })
       .sort(function (a, b) { return code(b) - code(a); })[0];
-    if (best) $("ver").textContent = "Versió " + best.replace(/^v/, "");
+    if (best) $("ver").textContent = VSP.t("main.version", best.replace(/^v/, ""));
   }).catch(function () {});
 })();

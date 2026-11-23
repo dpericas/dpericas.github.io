@@ -32,7 +32,7 @@
     return { id: friendlyId(o), team: Number(o.equip), date: o.data, time: o.hora || null,
       home: home ? club : rival, away: home ? rival : club, homeIsClub: home, played: has,
       hs: has ? (home ? sc : sr) : 0, as: has ? (home ? sr : sc) : 0, venue: String(o.lloc || "").trim(), address: String(o.adreca || "").trim(),
-      lat: null, lon: null, comp: o.competicio || "Amistós", round: Number(o.jornada || 0), friendly: true };
+      lat: null, lon: null, comp: o.competicio || VSP.t("ag.friendly"), round: Number(o.jornada || 0), friendly: true };
   }
   VSP.rival = function (m) { return m.homeIsClub ? m.away : m.home; };
 
@@ -116,23 +116,42 @@
     var conv = VSP.convocations[m.id];
     return '<a class="match" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '"><span class="t">' + esc(m.time || "--:--") + "</span>" +
       '<span class="teams">' + teams + "</span>" + (res || '<span class="go" aria-hidden="true">›</span>') +
-      '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + " · " + (m.homeIsClub ? "a casa" : "a fora") +
+      '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home_l" : "ag.away_l")) +
       (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") +
-      (m.round ? " · J" + m.round : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") +
-      (conv && !m.played ? ' · <b class="conv">📋 Convocatòria</b>' : "") + "</span></a>";
+      (m.round ? " · " + esc(VSP.t("ag.round_short", m.round)) : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") +
+      (conv && !m.played ? ' · <b class="conv">' + esc(VSP.t("ag.conv")) + "</b>" : "") + "</span></a>";
   };
 
   // ---------- agenda tab
-  var mode = "next", onlyMine = VSP.store("ag_mine") === "1", chosen = [];
+  /**
+   * ★ Els meus on or off when the Agenda opens: what the user chose in this session; else on when
+   * ⚙️ Preferències › "only my teams by default" (ag_mine_default) is on; else the last choice (ag_mine).
+   */
+  function session(k, v) {
+    try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) {}
+    return null;
+  }
+  function initialMine() {
+    var s = session("ag_mine");
+    if (s === "1" || s === "0") return s === "1";
+    return VSP.store("ag_mine_default") === "1" || VSP.store("ag_mine") === "1";
+  }
+  /** ⚙️ Preferències: changes the default and applies it now (forgets this session's choice). */
+  VSP.setAgendaMineDefault = function (on) {
+    VSP.store("ag_mine_default", on ? "1" : null);
+    session("ag_mine", null);
+    onlyMine = initialMine();
+    if (VSP.matches.length && $("agenda")) renderAgenda();
+  };
+  var mode = "next", onlyMine = initialMine(), chosen = [];
   try { chosen = JSON.parse(VSP.store("teams") || "[]").map(Number); } catch (e) { chosen = []; }
 
   VSP.renderAgendaTab = function () {
-    $("agenda-note").textContent = VSP.offline ? (VSP.cachedAt ? "Sense connexió: dades desades el " + VSP.fmtDate(VSP.isoDay(new Date(VSP.cachedAt))) + "." : "Sense connexió.") :
-      VSP.agendaUpdated ? "Actualitzat el " + VSP.fmtDate(VSP.agendaUpdated.slice(0, 10)) + " a les " +
-      new Date(VSP.agendaUpdated).toLocaleTimeString("ca-ES", { hour: "2-digit", minute: "2-digit" }) + "." : "";
+    $("agenda-note").textContent = VSP.offline ? (VSP.cachedAt ? VSP.t("ag.offline_saved", VSP.fmtDate(VSP.isoDay(new Date(VSP.cachedAt)))) : VSP.t("ag.offline")) :
+      VSP.agendaUpdated ? VSP.t("ag.updated", VSP.fmtDate(VSP.agendaUpdated.slice(0, 10)), VSP.fmtTime(new Date(VSP.agendaUpdated))) : "";
     var present = {};
     VSP.matches.forEach(function (m) { present[m.team] = 1; });
-    $("team-chips").innerHTML = '<button class="chip" data-team="all">Tots</button>' + VSP.TEAM_ORDER.filter(function (t) { return present[t]; })
+    $("team-chips").innerHTML = '<button class="chip" data-team="all">' + esc(VSP.t("ag.all")) + "</button>" + VSP.TEAM_ORDER.filter(function (t) { return present[t]; })
       .map(function (t) { return '<button class="chip" data-team="' + t + '">' + esc(VSP.teamName(t)) + "</button>"; }).join("");
     VSP.each("#team-chips button", function (b) {
       b.onclick = function () {
@@ -168,13 +187,13 @@
     VSP.sortMatches(list, mode === "played");
     if (mode === "played") list = list.slice(0, 60);
     if (!list.length) {
-      $("agenda").innerHTML = '<div class="empty">' + (VSP.matches.length ? (mode === "today" ? "Avui no hi ha partits." : "No hi ha partits per mostrar.") :
-        "Encara no hi ha l'agenda publicada. Es publica quan un entrenador o la junta actualitza l'agenda a l'app.") + "</div>";
+      $("agenda").innerHTML = '<div class="empty">' + esc(VSP.matches.length ? (mode === "today" ? VSP.t("ag.none_today") : VSP.t("ag.none")) :
+        VSP.t("ag.not_published")) + "</div>";
       return;
     }
     var html = "", day = "";
     list.forEach(function (m) {
-      if (m.date !== day) { day = m.date; html += '<div class="day-head">' + esc(m.date === t ? "Avui · " + VSP.fmtDate(m.date) : VSP.fmtDate(m.date)) + "</div>"; }
+      if (m.date !== day) { day = m.date; html += '<div class="day-head">' + esc(m.date === t ? VSP.t("ag.today_day", VSP.fmtDate(m.date)) : VSP.fmtDate(m.date)) + "</div>"; }
       html += VSP.matchRow(m);
     });
     $("agenda").innerHTML = html;
@@ -183,7 +202,7 @@
 
   VSP.initAgenda = function () {
     VSP.each("[data-mode]", function (b) { b.onclick = function () { mode = b.getAttribute("data-mode"); renderAgenda(); }; });
-    $("mine-chip").onclick = function () { onlyMine = !onlyMine; VSP.store("ag_mine", onlyMine ? "1" : "0"); renderAgenda(); };
+    $("mine-chip").onclick = function () { onlyMine = !onlyMine; VSP.store("ag_mine", onlyMine ? "1" : "0"); session("ag_mine", onlyMine ? "1" : "0"); renderAgenda(); };
     $("print-btn").onclick = function () { printCalendar(Number($("print-btn").getAttribute("data-team"))); };
   };
 
@@ -198,9 +217,9 @@
   function printCalendar(team) {
     var list = VSP.sortMatches(VSP.matches.filter(function (m) { return m.team === team; }));
     var y = list.length ? Number(list[0].date.slice(0, 4)) - (Number(list[0].date.slice(5, 7)) >= 8 ? 0 : 1) : new Date().getFullYear();
-    $("print").innerHTML = "<h1>Calendari " + esc(VSP.teamName(team)) + " · " + y + "-" + VSP.pad((y + 1) % 100) + "</h1>" +
-      "<p>Club Vòlei Santpedor · Generat el " + esc(VSP.fmtDate(VSP.today(), true)) + " · Comproveu els canvis d'última hora a dpericas.github.io</p>" +
-      "<table><tr><th>J</th><th>Data</th><th>Hora</th><th>Partit</th><th>Pavelló</th><th>Resultat</th></tr>" +
+    $("print").innerHTML = "<h1>" + esc(VSP.t("ag.print_title", VSP.teamName(team), y + "-" + VSP.pad((y + 1) % 100))) + "</h1>" +
+      "<p>" + esc(VSP.t("ag.print_sub", VSP.fmtDate(VSP.today(), true))) + "</p>" +
+      "<table><tr>" + VSP.t("ag.print_cols").split(",").map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") + "</tr>" +
       list.map(function (m) {
         return '<tr class="' + (m.homeIsClub ? "home" : "") + '"><td>' + (m.round || "") + "</td><td>" + esc(VSP.shortDate(m.date)) + "</td><td>" +
           esc(m.time || "--:--") + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(VSP.pretty(m.venue)) + "</td><td>" +
@@ -233,7 +252,7 @@
       lines.push("DTSTART;VALUE=DATE:" + d, "DTEND;VALUE=DATE:" + VSP.addDays(m.date, 1).replace(/-/g, ""));
     }
     var conv = VSP.convocations[m.id];
-    var desc = [m.comp + (m.round ? " · Jornada " + m.round : ""), conv && conv.meeting ? "Quedada: " + conv.meeting + (conv.place ? " · " + conv.place : "") : "", "Club Vòlei Santpedor"]
+    var desc = [m.comp + (m.round ? " · " + VSP.t("ag.round", m.round) : ""), conv && conv.meeting ? VSP.t("ag.ics_meeting", conv.meeting + (conv.place ? " · " + conv.place : "")) : "", "Club Vòlei Santpedor"]
       .filter(Boolean).join("\n");
     lines.push(fold("SUMMARY:" + icsText("🏐 " + VSP.teamName(m.team) + ": " + m.home + " - " + m.away)));
     var loc = [m.venue, m.address].filter(Boolean).join(", ");
@@ -245,25 +264,25 @@
   // ---------- match page
   VSP.pages.partit = { tab: "agenda", render: function (id, el, title) {
     var m = VSP.matchById[id];
-    if (!m) { title("Partit"); el.innerHTML = '<div class="empty">No trobo aquest partit a l\'agenda.</div>'; return; }
+    if (!m) { title(VSP.t("ag.match")); el.innerHTML = '<div class="empty">' + esc(VSP.t("ag.match_missing")) + "</div>"; return; }
     title(VSP.teamName(m.team));
     var conv = VSP.convocations[m.id];
     var q = VSP.mapsQuery(m), maps = VSP.directionsUrl(q);
     var res = m.played ? '<div class="bigscore">' + esc(m.hs) + " – " + esc(m.as) + "</div>" : "";
     var carpool = !m.played && !m.homeIsClub && VSP.featureOn("cotxes");
     el.innerHTML =
-      '<section><div class="meta">' + esc(VSP.pretty(VSP.fmtDate(m.date, true))) + " · " + esc(m.time || "hora per confirmar") + "</div>" +
+      '<section><div class="meta">' + esc(VSP.pretty(VSP.fmtDate(m.date, true))) + " · " + esc(m.time || VSP.t("ag.time_tbc")) + "</div>" +
       '<h3 class="vs">' + (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + "<span>–</span>" + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>") + "</h3>" + res +
-      '<div class="meta">' + (m.homeIsClub ? "A casa" : "A fora") + (m.round ? " · Jornada " + m.round : "") + (m.comp ? " · " + esc(m.comp) : "") + "</div>" +
+      '<div class="meta">' + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.round ? " · " + esc(VSP.t("ag.round", m.round)) : "") + (m.comp ? " · " + esc(m.comp) : "") + "</div>" +
       (m.venue ? '<p>📍 ' + esc(VSP.pretty(m.venue)) + (m.address ? '<br><span class="muted">' + esc(VSP.pretty(m.address)) + "</span>" : "") + "</p>" : "") +
       '<div class="row">' +
-      (!m.played ? '<button class="btn ghost small" id="m-ics">📅 Calendari</button>' : "") +
-      (maps ? '<a class="btn ghost small" href="' + esc(maps) + '" target="_blank" rel="noopener">🧭 Com arribar</a>' : "") +
-      (m.venue && VSP.featureOn("consells") ? '<a class="btn ghost small" href="#pavello/' + esc(VSP.venueKey(m.venue)) + '" data-href="#pavello/' + esc(VSP.venueKey(m.venue)) + '">🏟️ Pavelló</a>' : "") +
-      '<a class="btn ghost small" href="#equip/' + m.team + '" data-href="#equip/' + m.team + '">👥 Equip</a>' +
+      (!m.played ? '<button class="btn ghost small" id="m-ics">' + esc(VSP.t("ag.btn_calendar")) + "</button>" : "") +
+      (maps ? '<a class="btn ghost small" href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") +
+      (m.venue && VSP.featureOn("consells") ? '<a class="btn ghost small" href="#pavello/' + esc(VSP.venueKey(m.venue)) + '" data-href="#pavello/' + esc(VSP.venueKey(m.venue)) + '">' + esc(VSP.t("ag.btn_hall")) + "</a>" : "") +
+      '<a class="btn ghost small" href="#equip/' + m.team + '" data-href="#equip/' + m.team + '">' + esc(VSP.t("ag.btn_team")) + "</a>" +
       "</div></section>" +
       (conv ? '<section id="conv-sec"></section>' : "") +
-      (carpool ? '<section id="cp-sec"><h2>🚗 Cotxes compartits</h2><div id="cp"><div class="empty">Carregant…</div></div></section>' : "");
+      (carpool ? '<section id="cp-sec"><h2>' + esc(VSP.t("cp.title")) + '</h2><div id="cp"><div class="empty">' + esc(VSP.t("common.loading")) + "</div></div></section>" : "");
     if ($("m-ics")) $("m-ics").onclick = function () {
       VSP.download("partit-" + m.date + ".ics", "text/calendar;charset=utf-8", VSP.ics(m));
     };
@@ -292,18 +311,18 @@
     el.setAttribute("data-shown", convKey(c));
     if (c.stub) {
       var member = VSP.member && VSP.member.approved().indexOf(c.team) >= 0, st = VSP.privConvState[c.team];
-      el.innerHTML = "<h2>📋 Convocatòria</h2><p><b>" + esc("📋 Convocatòria publicada" + (c.n ? " · " + c.n + " convocades" : "")) + "</b></p>" +
-        (member ? '<p class="muted">' + esc(st === "err" ? "No s'ha pogut carregar la convocatòria completa. Torna-ho a provar més tard." :
-          st === "ok" ? "La convocatòria completa encara no està disponible." : "Carregant la convocatòria completa…") + "</p>"
-          : '<p class="muted">Fes-te membre de l\'equip (<a href="#meu-equip" data-href="#meu-equip">El meu equip</a>) per veure-la.</p>');
+      el.innerHTML = "<h2>" + esc(VSP.t("ag.conv")) + "</h2><p><b>" + esc(VSP.t("ag.conv_published") + (c.n ? " · " + VSP.tn("ag.conv_called", c.n) : "")) + "</b></p>" +
+        (member ? '<p class="muted">' + esc(st === "err" ? VSP.t("ag.conv_err") :
+          st === "ok" ? VSP.t("ag.conv_not_yet") : VSP.t("ag.conv_loading")) + "</p>"
+          : '<p class="muted">' + VSP.t("ag.conv_join", '<a href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a>") + "</p>");
       return;
     }
-    el.innerHTML = "<h2>📋 Convocatòria</h2>" +
-      (c.meeting ? "<p>⏰ <b>Quedada:</b> " + esc(c.meeting) + (c.place ? " · " + esc(c.place) : "") + "</p>" : "") +
-      (c.kit ? "<p>👕 <b>Equipació:</b> " + esc(c.kit) + "</p>" : "") +
-      (c.players.length ? "<p>✅ <b>Convocades (" + c.players.length + "):</b></p>" + VSP.chips(c.players) : "") +
+    el.innerHTML = "<h2>" + esc(VSP.t("ag.conv")) + "</h2>" +
+      (c.meeting ? "<p>⏰ <b>" + esc(VSP.t("ag.meeting")) + "</b> " + esc(c.meeting) + (c.place ? " · " + esc(c.place) : "") + "</p>" : "") +
+      (c.kit ? "<p>👕 <b>" + esc(VSP.t("ag.kit")) + "</b> " + esc(c.kit) + "</p>" : "") +
+      (c.players.length ? "<p>✅ <b>" + esc(VSP.t("ag.called_list", c.players.length)) + "</b></p>" + VSP.chips(c.players) : "") +
       (c.notes ? '<p style="white-space:pre-line">📝 ' + esc(c.notes) + "</p>" : "") +
-      (c.author ? '<div class="meta">Publicada per ' + esc(c.author) + "</div>" : "") +
+      (c.author ? '<div class="meta">' + esc(VSP.t("ag.published_by", c.author)) + "</div>" : "") +
       '<div id="rsvp"></div>';
     if (!m.played && VSP.rsvpSection) VSP.rsvpSection(m, c, $("rsvp"));
   }
@@ -331,7 +350,7 @@
     var entries = [], phones = {}, busy = false, me = VSP.uid(), gen = 0;
     function isMember() { return !!(VSP.member && VSP.member.approved().indexOf(m.team) >= 0); }
     function load() {
-      el.innerHTML = '<div class="empty">Carregant…</div>';
+      el.innerHTML = '<div class="empty">' + esc(VSP.t("common.loading")) + "</div>";
       var g = ++gen;
       VSP.fs.list("cotxes/" + m.id + "/entrades").then(function (l) {
         if (g !== gen) return;
@@ -341,7 +360,7 @@
         phones = {};
         draw();
         loadPhones(g);
-      }, function (e) { el.innerHTML = '<div class="empty">No s\'ha pogut carregar (' + esc(VSP.errText(e)) + ")</div>"; });
+      }, function (e) { el.innerHTML = '<div class="empty">' + esc(VSP.t("cp.load_err", VSP.errText(e))) + "</div>"; });
     }
     /**
      * Phones: cotxes/{match}/telefons/{id}, readable by the entry's owner and the team's approved members
@@ -359,8 +378,8 @@
     }
     function tel(e) {
       var p = phones[e.id] || e.phone;   // (old entries still had the phone in the public entry)
-      if (p) return '<a class="btn ghost small" href="tel:' + esc(String(p).replace(/[^0-9+]/g, "")) + '">📞 Trucar</a>';
-      return isMember() || e.owner === me ? "" : '<span class="meta">Telèfon només per a membres de l\'equip</span>';
+      if (p) return '<a class="btn ghost small" href="tel:' + esc(String(p).replace(/[^0-9+]/g, "")) + '">' + esc(VSP.t("cp.call")) + "</a>";
+      return isMember() || e.owner === me ? "" : '<span class="meta">' + esc(VSP.t("cp.phone_members")) + "</span>";
     }
     function draw() {
       var offers = entries.filter(function (e) { return e.kind === "offer"; });
@@ -368,28 +387,28 @@
         return { o: o, p: entries.filter(function (e) { return e.kind === "passenger" && e.offerId === o.id; }).slice(0, o.seats || 0) };
       });
       var needs = entries.filter(function (e) { return e.kind === "need"; });
-      var html = '<div class="row"><button class="btn primary small" data-cp="offer">🚗 Ofereixo places</button><button class="btn ghost small" data-cp="need">Necessito plaça</button></div>' +
-        '<p class="muted">Tothom qui té l\'app o aquesta web veu aquesta llista. Poseu el nom de la família (p. ex. "Família Gil"); el telèfon és opcional i només el veuen els membres aprovats de l\'equip, els entrenadors i la junta. S\'esborra sola dos dies després del partit.</p>' +
+      var html = '<div class="row"><button class="btn primary small" data-cp="offer">🚗 ' + esc(VSP.t("cp.offer")) + '</button><button class="btn ghost small" data-cp="need">' + esc(VSP.t("cp.need")) + "</button></div>" +
+        '<p class="muted">' + esc(VSP.t("cp.info")) + "</p>" +
         '<div id="cp-form"></div>' +
-        '<h3 class="sub">COTXES (' + cars.length + ")</h3>" +
+        '<h3 class="sub">' + esc(VSP.t("cp.cars", cars.length)) + "</h3>" +
         (cars.length ? cars.map(function (c) {
           var free = Math.max(0, (c.o.seats || 0) - c.p.length), mine = c.p.filter(function (p) { return p.owner === me; })[0];
-          var where = [c.o.from ? "Surt de " + c.o.from : "", c.o.time ? "a les " + c.o.time : ""].filter(Boolean).join(" ");
-          var act = c.o.owner === me ? '<button class="btn ghost small" data-del-car="' + esc(c.o.id) + '">🗑️ Treure el cotxe</button>'
-            : mine ? '<button class="btn ghost small" data-del="' + esc(mine.id) + '">Me\'n desapunto</button>'
-            : free > 0 ? '<button class="btn primary small" data-join="' + esc(c.o.id) + '">M\'hi apunto</button>' : "";
+          var where = [c.o.from ? VSP.t("cp.from", c.o.from) : "", c.o.time ? VSP.t("cp.at", c.o.time) : ""].filter(Boolean).join(" ");
+          var act = c.o.owner === me ? '<button class="btn ghost small" data-del-car="' + esc(c.o.id) + '">' + esc(VSP.t("cp.remove_car")) + "</button>"
+            : mine ? '<button class="btn ghost small" data-del="' + esc(mine.id) + '">' + esc(VSP.t("cp.unjoin")) + "</button>"
+            : free > 0 ? '<button class="btn primary small" data-join="' + esc(c.o.id) + '">' + esc(VSP.t("cp.join")) + "</button>" : "";
           return '<div class="card"><div class="row" style="justify-content:space-between"><b>🚗 ' + esc(c.o.name) + "</b>" +
-            '<b class="' + (free > 0 ? "ok" : "bad") + '">' + free + " lliures de " + esc(c.o.seats) + "</b></div>" +
+            '<b class="' + (free > 0 ? "ok" : "bad") + '">' + esc(VSP.t("cp.free_of", free, c.o.seats)) + "</b></div>" +
             (where ? '<div class="meta">' + esc(where) + "</div>" : "") + (c.o.note ? '<div class="meta">' + esc(c.o.note) + "</div>" : "") +
-            (c.p.length ? '<div class="meta">Hi van: ' + esc(c.p.map(function (p) { return p.name; }).join(", ")) + "</div>" : "") +
+            (c.p.length ? '<div class="meta">' + esc(VSP.t("cp.going", c.p.map(function (p) { return p.name; }).join(", "))) + "</div>" : "") +
             '<div class="row" style="margin-top:6px">' + tel(c.o) + act + "</div></div>";
-        }).join("") : '<div class="empty">Encara no hi ha cap cotxe.</div>') +
-        '<h3 class="sub">NECESSITEN PLAÇA (' + needs.length + ")</h3>" +
+        }).join("") : '<div class="empty">' + esc(VSP.t("cp.no_cars")) + "</div>") +
+        '<h3 class="sub">' + esc(VSP.t("cp.needs", needs.length)) + "</h3>" +
         (needs.length ? needs.map(function (n) {
-          return '<div class="card soft"><b>' + esc(n.seats > 1 ? n.name + " · " + n.seats + " places" : n.name) + "</b>" +
+          return '<div class="card soft"><b>' + esc(n.seats > 1 ? n.name + " · " + VSP.tn("cp.seats", n.seats) : n.name) + "</b>" +
             (n.note ? '<div class="meta">' + esc(n.note) + "</div>" : "") +
-            '<div class="row" style="margin-top:6px">' + tel(n) + (n.owner === me ? '<button class="btn ghost small" data-del="' + esc(n.id) + '">🗑️ Treu</button>' : "") + "</div></div>";
-        }).join("") : '<div class="empty">Ningú.</div>');
+            '<div class="row" style="margin-top:6px">' + tel(n) + (n.owner === me ? '<button class="btn ghost small" data-del="' + esc(n.id) + '">' + esc(VSP.t("cp.remove")) + "</button>" : "") + "</div></div>";
+        }).join("") : '<div class="empty">' + esc(VSP.t("cp.nobody")) + "</div>");
       el.innerHTML = html;
       VSP.each("[data-cp]", function (b) { b.onclick = function () { form(b.getAttribute("data-cp")); }; }, el);
       VSP.each("[data-join]", function (b) {
@@ -399,7 +418,7 @@
       VSP.each("[data-del-car]", function (b) {
         b.onclick = function () {
           var id = b.getAttribute("data-del-car");
-          if (!confirm("Treure el cotxe?")) return;
+          if (!confirm(VSP.t("cp.remove_car_q"))) return;
           remove([id].concat(entries.filter(function (e) { return e.kind === "passenger" && e.offerId === id && e.owner === me; }).map(function (e) { return e.id; })));
         };
       }, el);
@@ -408,14 +427,14 @@
       var f = $("cp-form");
       var defTime = "";
       if (m.time) { var h = +m.time.slice(0, 2) - 1; defTime = h >= 0 ? VSP.pad(h) + m.time.slice(2) : ""; }
-      f.innerHTML = '<form class="card form" id="cp-f"><b>' + esc(kind === "offer" ? "Ofereixo places" : kind === "need" ? "Necessito plaça" : "M'apunto al cotxe de " + offer.name) + "</b>" +
-        '<label>Nom (p. ex. Família Gil)<input name="name" maxlength="40" required autocomplete="name" value="' + esc(VSP.store("cp_name") || "") + '"></label>' +
-        (kind !== "passenger" ? '<label>' + (kind === "offer" ? "Places lliures" : "Places que necessiteu") + '<input name="seats" type="number" min="1" max="8" required value="' + (kind === "offer" ? 3 : 1) + '"></label>' : "") +
-        (kind === "offer" ? '<label>Lloc de sortida<input name="from" maxlength="60" value="Pavelló Rafa Martínez"></label><label>Hora de sortida<input name="time" maxlength="10" value="' + esc(defTime) + '"></label>' : "") +
-        '<label>Telèfon (opcional)<input name="phone" type="tel" maxlength="20" autocomplete="tel" value="' + esc(VSP.store("cp_phone") || "") + '"></label>' +
-        '<label>Nota (opcional)<input name="note" maxlength="120"></label>' +
-        '<div class="meta">El nom i la nota els veurà tothom qui té l\'app; el telèfon, només els membres aprovats de l\'equip.</div>' +
-        '<div class="row"><button class="btn primary small" type="submit">Desa</button><button class="btn ghost small" type="button" id="cp-cancel">Cancel·la</button></div>' +
+      f.innerHTML = '<form class="card form" id="cp-f"><b>' + esc(kind === "offer" ? VSP.t("cp.offer") : kind === "need" ? VSP.t("cp.need") : VSP.t("cp.join_car", offer.name)) + "</b>" +
+        "<label>" + esc(VSP.t("cp.f_name")) + '<input name="name" maxlength="40" required autocomplete="name" value="' + esc(VSP.store("cp_name") || "") + '"></label>' +
+        (kind !== "passenger" ? "<label>" + esc(VSP.t(kind === "offer" ? "cp.f_free" : "cp.f_needed")) + '<input name="seats" type="number" min="1" max="8" required value="' + (kind === "offer" ? 3 : 1) + '"></label>' : "") +
+        (kind === "offer" ? "<label>" + esc(VSP.t("cp.f_from")) + '<input name="from" maxlength="60" value="Pavelló Rafa Martínez"></label><label>' + esc(VSP.t("cp.f_time")) + '<input name="time" maxlength="10" value="' + esc(defTime) + '"></label>' : "") +
+        "<label>" + esc(VSP.t("cp.f_phone")) + '<input name="phone" type="tel" maxlength="20" autocomplete="tel" value="' + esc(VSP.store("cp_phone") || "") + '"></label>' +
+        "<label>" + esc(VSP.t("cp.f_note")) + '<input name="note" maxlength="120"></label>' +
+        '<div class="meta">' + esc(VSP.t("cp.f_who_sees")) + "</div>" +
+        '<div class="row"><button class="btn primary small" type="submit">' + esc(VSP.t("cp.save")) + '</button><button class="btn ghost small" type="button" id="cp-cancel">' + esc(VSP.t("common.cancel")) + "</button></div>" +
         '<div class="err" id="cp-err" role="alert"></div></form>';
       $("cp-cancel").onclick = function () { f.innerHTML = ""; draw(); };
       f.querySelector("input[name=name]").focus();
@@ -425,8 +444,8 @@
         var fd = new FormData(ev.target);
         var name = String(fd.get("name") || "").trim().slice(0, 40);
         var seats = kind === "passenger" ? 1 : parseInt(fd.get("seats"), 10);
-        if (!name) { $("cp-err").textContent = "Escriu el nom."; return; }
-        if (!(seats >= 1 && seats <= 8)) { $("cp-err").textContent = "Les places han de ser d'1 a 8."; return; }
+        if (!name) { $("cp-err").textContent = VSP.t("cp.err_name"); return; }
+        if (!(seats >= 1 && seats <= 8)) { $("cp-err").textContent = VSP.t("cp.err_seats"); return; }
         var phone = String(fd.get("phone") || "").replace(/[^0-9+ ]/g, "").slice(0, 20);
         VSP.store("cp_name", name); VSP.store("cp_phone", phone.trim());
         var expires = new Date(VSP.addDays(m.date, 2) + "T00:00:00+01:00").toISOString();
@@ -440,16 +459,16 @@
             if (!phone.trim()) return;
             // the phone goes apart, readable only by the team (the entry itself is public)
             return VSP.fs.set(cpPhonePath(m.id, id), { phone: phone.trim(), equip: m.team, owner: VSP.uid() }).catch(function (e) {
-              VSP.toast("L'entrada s'ha desat, però el telèfon no. " + VSP.errText(e));
+              VSP.toast(VSP.t("cp.phone_not_saved", VSP.errText(e)));
             });
           });
-        }).then(function () { busy = false; f.innerHTML = ""; load(); }, function (e) { busy = false; $("cp-err").textContent = "No s'ha pogut desar. " + VSP.errText(e); });
+        }).then(function () { busy = false; f.innerHTML = ""; load(); }, function (e) { busy = false; $("cp-err").textContent = VSP.t("cp.save_err", VSP.errText(e)); });
       };
     }
     function remove(ids) {
       if (busy) return; busy = true;
       Promise.all(ids.map(function (id) { return cpDelete(m.id, id); }))
-        .then(function () { busy = false; load(); }, function (e) { busy = false; VSP.toast("No s'ha pogut esborrar. " + VSP.errText(e)); });
+        .then(function () { busy = false; load(); }, function (e) { busy = false; VSP.toast(VSP.t("cp.del_err", VSP.errText(e))); });
     }
     load();
   };

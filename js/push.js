@@ -8,7 +8,7 @@
  */
 (function () {
   "use strict";
-  var VSP = window.VSP, $ = function (id) { return document.getElementById(id); };
+  var VSP = window.VSP, $ = function (id) { return document.getElementById(id); }, esc = VSP.esc;
   /** Public half of the club's VAPID key pair (the private half is a secret of the sending Action). */
   VSP.VAPID_PUBLIC = "BDA4epRBfFWZmszB2zcclr5-1RqLPlAhjUqfL_iLmEo5DWTLzay4qzDukGhZqAO0I6OlzAfum3UGBpGCLpDtpEw";
 
@@ -50,9 +50,10 @@
     });
   }
 
+  /** This browser's subscription, or null (also when the service worker is not registered: no waiting for it). */
   function current() {
     if (VSP.pushSupport() !== "ok") return Promise.resolve(null);
-    return registration().then(function (r) { return r.pushManager.getSubscription(); });
+    return navigator.serviceWorker.getRegistration().then(function (r) { return r ? r.pushManager.getSubscription() : null; });
   }
 
   function enable() {
@@ -73,42 +74,58 @@
     });
   }
 
-  function render() {
-    var box = $("push-box"); if (!box) return;
+  /** Turns the avisos off in this browser, if they are on (⚙️ Preferències › Desconnecta). */
+  VSP.pushDisable = function () {
+    return current().then(function (s) { return s ? disable() : null; });
+  };
+
+  /** The 🔔 box (⚙️ Preferències): draws into [box] (default #push-box); does nothing without it. */
+  function render(box) {
+    box = box || $("push-box"); if (!box || !box.isConnected) return Promise.resolve();
+    var again = function () { return render(box); };
     var sup = VSP.pushSupport(), p = prefs();
-    if (sup === "no") { box.innerHTML = '<p class="muted">Aquest navegador no pot rebre avisos. Al mòbil Android, fes servir l\'app del club.</p>'; return; }
+    if (sup === "no") { box.innerHTML = '<p class="muted">' + esc(VSP.t("push.no")) + "</p>"; return Promise.resolve(); }
     if (sup === "ios-install") {
-      box.innerHTML = '<p>Per rebre els avisos a l\'iPhone (iOS 16.4 o posterior):</p><ol class="muted"><li>A Safari, toca <b>Compartir</b> › <b>Afegeix a la pantalla d\'inici</b>.</li><li>Obre la web des de la icona nova.</li><li>Torna aquí i toca «Activa els avisos».</li></ol>';
-      return;
+      box.innerHTML = "<p>" + esc(VSP.t("push.ios_title")) + '</p><ol class="muted"><li>' + VSP.t("push.ios_1") + "</li><li>" + esc(VSP.t("push.ios_2")) + "</li><li>" + esc(VSP.t("push.ios_3")) + "</li></ol>";
+      return Promise.resolve();
     }
-    current().then(function (s) {
+    return current().then(function (s) {
+      if (!box.isConnected) return;
       var on = !!s && Notification.permission === "granted";
       box.innerHTML =
-        '<p class="muted">Avisos del club (els de tot el club i els dels teus equips ★) i convocatòries dels teus equips, com a l\'app. Poden arribar amb uns minuts de retard.</p>' +
-        '<label class="row"><input type="checkbox" id="push-avisos"' + (p.avisos ? " checked" : "") + '> Avisos del club</label>' +
-        '<label class="row"><input type="checkbox" id="push-conv"' + (p.convocatories ? " checked" : "") + '> Convocatòries dels meus equips ★</label>' +
+        '<p class="muted">' + esc(VSP.t("push.intro")) + "</p>" +
+        '<label class="row"><input type="checkbox" id="push-avisos"' + (p.avisos ? " checked" : "") + "> " + esc(VSP.t("push.notices")) + "</label>" +
+        '<label class="row"><input type="checkbox" id="push-conv"' + (p.convocatories ? " checked" : "") + "> " + esc(VSP.t("push.callups")) + "</label>" +
         '<div class="row" style="margin-top:8px">' + (on
-          ? '<span>✅ Activats en aquest mòbil</span><button class="btn small" type="button" id="push-off">Desactiva</button>'
-          : '<button class="btn primary small" type="button" id="push-on">🔔 Activa els avisos</button>') + "</div>" +
+          ? "<span>" + esc(VSP.t("push.on_here")) + '</span><button class="btn small" type="button" id="push-off">' + esc(VSP.t("push.disable")) + "</button>"
+          : '<button class="btn primary small" type="button" id="push-on">🔔 ' + esc(VSP.t("push.enable")) + "</button>") + "</div>" +
         '<div class="err" id="push-err" role="alert"></div>';
       function setPref(k, v) { var q = prefs(); q[k] = v; VSP.storeJson("push_prefs", q); if (on) current().then(function (s2) { if (s2) save(s2); }); }
-      $("push-avisos").onchange = function () { setPref("avisos", this.checked); };
-      $("push-conv").onchange = function () { setPref("convocatories", this.checked); };
-      if ($("push-on")) $("push-on").onclick = function () {
+      var q = function (sel) { return box.querySelector(sel); };
+      q("#push-avisos").onchange = function () { setPref("avisos", this.checked); };
+      q("#push-conv").onchange = function () { setPref("convocatories", this.checked); };
+      if (q("#push-on")) q("#push-on").onclick = function () {
         this.disabled = true;
-        enable().then(function () { VSP.toast("Avisos activats"); render(); }, function (e) {
-          $("push-err").textContent = e && e.message === "denied"
-            ? "Has de permetre les notificacions per a aquesta web (a la configuració del navegador o de l'iPhone)."
-            : "No s'han pogut activar els avisos. Torna-ho a provar amb connexió.";
-          render();
+        enable().then(function () { VSP.toast(VSP.t("push.toast_on")); again(); paintState(); }, function (e) {
+          var msg = VSP.t(e && e.message === "denied" ? "push.denied" : "push.failed");
+          again().then(function () { var err = box.querySelector("#push-err"); if (err) err.textContent = msg; });
         });
       };
-      if ($("push-off")) $("push-off").onclick = function () { disable().then(function () { VSP.toast("Avisos desactivats"); render(); }, render); };
+      if (q("#push-off")) q("#push-off").onclick = function () { disable().then(function () { VSP.toast(VSP.t("push.toast_off")); again(); paintState(); }, again); };
     });
   }
 
+  VSP.renderPush = render;
+  /** Club tab row: whether the avisos are on here (the box itself is in ⚙️ Preferències). */
+  function paintState() {
+    var el = $("push-state"); if (!el) return;
+    el.textContent = el.textContent || VSP.t("push.row_off");
+    current().then(function (s) {
+      el.textContent = VSP.t(s && Notification.permission === "granted" ? "push.row_on" : "push.row_off");
+    }).catch(function () {});
+  }
   VSP.initPush = function () {
-    render();
+    paintState();
     // the ★ teams decide which team notices and call-ups arrive: keep the subscription up to date
     VSP.on("favs", function () { current().then(function (s) { if (s && Notification.permission === "granted") save(s); }); });
   };

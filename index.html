@@ -18,99 +18,99 @@
 <meta property="og:description" content="Equips, agenda, resultats, avisos, horaris i partits en directe del club.">
 <meta property="og:image" content="https://dpericas.github.io/live/logo.jpg">
 <link rel="stylesheet" href="css/app.css">
-<script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); } catch (e) {}</script>
+<script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); if (localStorage.getItem("text_size") === "large") document.documentElement.setAttribute("data-text", "large"); } catch (e) {}</script>
 </head>
 <body>
+<button class="theme prefs" id="prefs-btn" title="Preferències" aria-label="Preferències" data-i18n-attr="title:pf.title;aria-label:pf.title">⚙️</button>
 <button class="theme" id="theme" title="Canvia el tema" aria-label="Canvia el tema clar o fosc">🌙</button>
 <main>
   <header class="hero">
-    <img src="live/logo.jpg" alt="Escut del Club Vòlei Santpedor">
+    <img src="live/logo.jpg" alt="Escut del Club Vòlei Santpedor" data-i18n-attr="alt:idx.logo_alt">
     <div>
       <h1>Club Vòlei Santpedor</h1>
       <p>Santpedor (Bages) · Federació Catalana de Voleibol</p>
     </div>
-    <svg class="pili" viewBox="10 10 180 180" role="img" aria-label="La Pili, la mascota del club"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
+    <svg class="pili" viewBox="10 10 180 180" role="img" aria-label="La Pili, la mascota del club" data-i18n-attr="aria-label:idx.pili"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
   </header>
 
   <div class="banner" id="rc-banner" role="status" hidden></div>
 
   <div class="install" id="ios-install" hidden>
-    <button id="ios-close" aria-label="Tancar">×</button>
-    <b>📲 Posa-la a la pantalla d'inici</b>
-    A l'iPhone toca <b style="display:inline">Compartir</b> <span aria-hidden="true">⬆️</span> (a baix, a Safari) i després
-    <b style="display:inline">«Afegeix a la pantalla d'inici»</b>. S'obrirà com una app.
+    <button id="ios-close" aria-label="Tancar" data-i18n-attr="aria-label:common.close">×</button>
+    <b data-i18n="idx.ios_title">📲 Posa-la a la pantalla d'inici</b>
+    <span data-i18n-html="idx.ios_text">A l'iPhone toca <b class="inl">Compartir</b> <span aria-hidden="true">⬆️</span> (a baix, a Safari) i després <b class="inl">«Afegeix a la pantalla d'inici»</b>. S'obrirà com una app.</span>
   </div>
 
   <!-- ====================== EQUIPS ====================== -->
   <div data-tab="equips" hidden>
     <section>
-      <h2>👥 Equips</h2>
-      <p class="muted" id="teams-hint">Toca ☆ per marcar els teus equips: sortiran primer i a «★ Els meus» de l'Agenda.</p>
-      <div id="teams"><div class="empty">Carregant…</div></div>
+      <h2 data-i18n="idx.teams_h">👥 Equips</h2>
+      <p class="muted" id="teams-hint" data-i18n="idx.teams_hint">Toca ☆ per marcar els teus equips: sortiran primer i a «★ Els meus» de l'Agenda.</p>
+      <div id="teams"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
   </div>
 
   <!-- ====================== INICI ====================== -->
   <div data-tab="inici" hidden>
     <section id="live-sec" hidden>
-      <h2><span class="live-dot" aria-hidden="true"></span> En directe ara</h2>
+      <h2><span class="live-dot" aria-hidden="true"></span> <span data-i18n="idx.live_now">En directe ara</span></h2>
       <div id="live"></div>
     </section>
 
     <section id="today-sec" hidden>
-      <h2>📅 Avui juga el club</h2>
+      <h2 data-i18n="idx.today">📅 Avui juga el club</h2>
       <div id="today"></div>
     </section>
 
     <section id="res-sec" hidden>
-      <h2>🏆 Últims resultats</h2>
+      <h2 data-i18n="idx.results">🏆 Últims resultats</h2>
       <div id="resultats"></div>
-      <p class="muted">Partits retransmesos en directe amb l'app.</p>
+      <p class="muted" data-i18n="idx.results_note">Partits retransmesos en directe amb l'app.</p>
     </section>
 
     <section>
-      <h2>📢 Avisos</h2>
-      <div id="avisos"><div class="empty">Carregant…</div></div>
+      <h2 data-i18n="idx.notices">📢 Avisos</h2>
+      <div id="avisos"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
 
     <section id="act-sec" hidden>
-      <h2>🎉 Properes activitats</h2>
+      <h2 data-i18n="idx.activities">🎉 Properes activitats</h2>
       <div id="activitats"></div>
     </section>
 
     <section>
-      <h2>📡 Seguir un partit</h2>
-      <div id="follow-live"><div class="empty">Buscant partits en directe…</div></div>
+      <h2 data-i18n="idx.follow">📡 Seguir un partit</h2>
+      <div id="follow-live"><div class="empty" data-i18n="idx.follow_searching">Buscant partits en directe…</div></div>
       <form class="form" id="code-f">
-        <label for="code-in" class="muted" style="font-weight:400;margin-top:0">Enganxa l'enllaç o el codi que t'han enviat (p. ex. vsp-abcd2345efgh).</label>
-        <div class="row" style="margin-top:6px"><input class="grow" id="code-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vsp-…"><button class="btn primary small" type="submit">Segueix</button></div>
+        <label for="code-in" class="muted" style="font-weight:400;margin-top:0" data-i18n="idx.code_label">Enganxa l'enllaç o el codi que t'han enviat (p. ex. vsp-abcd2345efgh).</label>
+        <div class="row" style="margin-top:6px"><input class="grow" id="code-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vsp-…"><button class="btn primary small" type="submit" data-i18n="idx.code_btn">Segueix</button></div>
         <div class="err" id="code-err" role="alert"></div>
       </form>
     </section>
 
     <section id="try-sec">
-      <h2>🏐 Vols jugar a vòlei?</h2>
-      <div class="muted">Vine a fer un entrenament de prova gratuït. Deixa'ns les dades i et truquem per quedar.</div>
-      <div class="row" style="margin-top:10px"><a class="btn primary" href="provar/">🏐 Vull provar el vòlei</a></div>
+      <h2 data-i18n="idx.try_h">🏐 Vols jugar a vòlei?</h2>
+      <div class="muted" data-i18n="idx.try_text">Vine a fer un entrenament de prova gratuït. Deixa'ns les dades i et truquem per quedar.</div>
+      <div class="row" style="margin-top:10px"><a class="btn primary" href="provar/" data-i18n="idx.try_btn">🏐 Vull provar el vòlei</a></div>
     </section>
 
     <section id="android-app">
-      <h2>📲 L'app per a Android</h2>
-      <div class="muted">Amb marcador i retransmissió en directe, avisos al mòbil, cotxes compartits i molt més.</div>
+      <h2 data-i18n="idx.android_h">📲 L'app per a Android</h2>
+      <div class="muted" data-i18n="idx.android_text">Amb marcador i retransmissió en directe, avisos al mòbil, cotxes compartits i molt més.</div>
       <div class="row" style="margin-top:10px">
-        <a class="btn primary" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk">⬇️ Descarrega per a Android</a>
+        <a class="btn primary" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk" data-i18n="idx.android_dl">⬇️ Descarrega per a Android</a>
         <small class="muted" id="ver"></small>
       </div>
       <details class="how">
-        <summary>Com s'instal·la?</summary>
+        <summary data-i18n="idx.howto">Com s'instal·la?</summary>
         <ol>
-          <li>Obre aquesta pàgina des del mòbil Android i toca <b>Descarrega</b>.</li>
-          <li>Obre el fitxer <i>VoleiSantpedor.apk</i> descarregat.</li>
-          <li>Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i>.</li>
-          <li>L'app avisa sola quan hi ha versions noves.</li>
+          <li data-i18n-html="idx.howto_1">Obre aquesta pàgina des del mòbil Android i toca <b>Descarrega</b>.</li>
+          <li data-i18n-html="idx.howto_2">Obre el fitxer <i>VoleiSantpedor.apk</i> descarregat.</li>
+          <li data-i18n-html="idx.howto_3">Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i>.</li>
+          <li data-i18n="idx.howto_4">L'app avisa sola quan hi ha versions noves.</li>
         </ol>
       </details>
-      <div class="muted" style="margin-top:8px">Tens iPhone o ordinador? Aquesta mateixa web fa gairebé tot el que fa l'app: posa-la a la pantalla d'inici.</div>
+      <div class="muted" style="margin-top:8px" data-i18n="idx.iphone">Tens iPhone o ordinador? Aquesta mateixa web fa gairebé tot el que fa l'app: posa-la a la pantalla d'inici.</div>
     </section>
   </div>
 
@@ -118,81 +118,82 @@
   <div data-tab="agenda" hidden>
     <section>
       <div class="row" style="justify-content:space-between">
-        <div class="chips" style="margin-top:0" role="group" aria-label="Quins partits">
-          <button class="chip" data-mode="today">Avui</button>
-          <button class="chip on" data-mode="next">Propers</button>
-          <button class="chip" data-mode="played">Resultats</button>
-          <button class="chip" id="mine-chip" hidden>★ Els meus</button>
+        <div class="chips" style="margin-top:0" role="group" aria-label="Quins partits" data-i18n-attr="aria-label:idx.ag_which">
+          <button class="chip" data-mode="today" data-i18n="idx.ag_today">Avui</button>
+          <button class="chip on" data-mode="next" data-i18n="idx.ag_next">Propers</button>
+          <button class="chip" data-mode="played" data-i18n="common.results">Resultats</button>
+          <button class="chip" id="mine-chip" hidden data-i18n="idx.ag_mine">★ Els meus</button>
         </div>
-        <button class="btn ghost small" id="print-btn" hidden>🖨️ Calendari</button>
+        <button class="btn ghost small" id="print-btn" hidden data-i18n="ag.btn_calendar_print">🖨️ Calendari</button>
       </div>
-      <div class="chips" id="team-chips" role="group" aria-label="Equips"></div>
+      <div class="chips" id="team-chips" role="group" aria-label="Equips" data-i18n-attr="aria-label:idx.ag_teams"></div>
       <div class="muted" id="agenda-note" style="margin-top:8px"></div>
     </section>
     <section>
-      <div id="agenda"><div class="empty">Carregant…</div></div>
+      <div id="agenda"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
-    <p class="muted" style="text-align:center">Toca un partit per veure la convocatòria, com arribar-hi, afegir-lo al calendari o compartir cotxe.<br>Dades oficials a <a href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">fcvolei.cat</a>.</p>
+    <p class="muted" style="text-align:center" data-i18n-html="idx.ag_foot">Toca un partit per veure la convocatòria, com arribar-hi, afegir-lo al calendari o compartir cotxe.<br>Dades oficials a <a href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">fcvolei.cat</a>.</p>
   </div>
 
   <!-- ====================== CLUB ====================== -->
   <div data-tab="club" hidden>
     <section>
-      <a class="linkrow" href="#meu-equip" data-href="#meu-equip"><span><b>👤 El meu equip</b><span class="meta">Jugadors/es i famílies: avisos de l'equip i «vinc / no vinc»</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="provar/"><span><b>🏐 Vull provar el vòlei</b><span class="meta">Entrenament de prova gratuït per a nous jugadors/es</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="#galeria" data-href="#galeria"><span><b>🖼️ Galeria de fotos</b><span class="meta">Àlbums del club</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="#proposa" data-href="#proposa" id="propose-link"><span><b>📷 Proposa una foto</b><span class="meta">Perquè surti a la galeria</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="#pavellons" data-href="#pavellons" id="tips-link"><span><b>🏟️ Guia de pavellons</b><span class="meta">Aparcament, bar, accés… consells de les famílies</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="#valors" data-href="#valors"><span><b>🤝 Els nostres valors</b><span class="meta">Valors i codi de conducta del club</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="manual/"><span><b>📖 Manual de l'app</b><span class="meta">Com funciona cada cosa</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="jocs/"><span><b>🎮 Jocs del club</b><span class="meta">El camí de la Pili: repte del dia, medalles, cromos i rànquing</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#meu-equip" data-href="#meu-equip"><span><b data-i18n="idx.c_team">👤 El meu equip</b><span class="meta" data-i18n="idx.c_team_sub">Jugadors/es i famílies: avisos de l'equip i «vinc / no vinc»</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="provar/"><span><b data-i18n="idx.try_btn">🏐 Vull provar el vòlei</b><span class="meta" data-i18n="idx.c_try_sub">Entrenament de prova gratuït per a nous jugadors/es</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#galeria" data-href="#galeria"><span><b data-i18n="idx.c_gallery">🖼️ Galeria de fotos</b><span class="meta" data-i18n="idx.c_gallery_sub">Àlbums del club</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#proposa" data-href="#proposa" id="propose-link"><span><b data-i18n="gal.propose">📷 Proposa una foto</b><span class="meta" data-i18n="idx.c_propose_sub">Perquè surti a la galeria</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#pavellons" data-href="#pavellons" id="tips-link"><span><b data-i18n="idx.c_halls">🏟️ Guia de pavellons</b><span class="meta" data-i18n="idx.c_halls_sub">Aparcament, bar, accés… consells de les famílies</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#valors" data-href="#valors"><span><b data-i18n="idx.c_values">🤝 Els nostres valors</b><span class="meta" data-i18n="idx.c_values_sub">Valors i codi de conducta del club</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="manual/"><span><b data-i18n="pf.manual">📖 Manual de l'app</b><span class="meta" data-i18n="pf.manual_sub">Com funciona cada cosa</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="jocs/"><span><b data-i18n="idx.c_games">🎮 Jocs del club</b><span class="meta" data-i18n="idx.c_games_sub">El camí de la Pili: repte del dia, medalles, cromos i rànquing</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#preferencies" data-href="#preferencies"><span><b data-i18n="idx.c_prefs">⚙️ Preferències</b><span class="meta" data-i18n="idx.c_prefs_sub">Idioma, tema, avisos, privacitat…</span></span><span aria-hidden="true">›</span></a>
     </section>
     <section id="push-sec">
-      <h2>🔔 Avisos en aquest mòbil</h2>
-      <div id="push-box"><p class="muted">Carregant…</p></div>
+      <a class="linkrow" href="#preferencies" data-href="#preferencies"><span><b data-i18n="idx.c_push">🔔 Avisos en aquest dispositiu</b><span class="meta" id="push-state"></span></span><span aria-hidden="true">›</span></a>
     </section>
     <section id="orders-sec" hidden>
-      <h2>🛍️ Comandes d'equipació</h2>
+      <h2 data-i18n="idx.orders">🛍️ Comandes d'equipació</h2>
       <div id="orders"></div>
     </section>
     <section id="friendly-sec" hidden>
-      <h2>🤝 Amistosos i tornejos</h2>
+      <h2 data-i18n="idx.friendlies">🤝 Amistosos i tornejos</h2>
       <div id="friendlies"></div>
     </section>
     <section>
-      <h2>🕒 Horaris d'entrenament</h2>
-      <div id="horaris"><div class="empty">Carregant…</div></div>
+      <h2 data-i18n="idx.trainings">🕒 Horaris d'entrenament</h2>
+      <div id="horaris"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
     <section>
-      <h2>📍 Contacte i xarxes</h2>
+      <h2 data-i18n="idx.contact">📍 Contacte i xarxes</h2>
       <div class="row">
         <a class="btn ghost" href="https://www.instagram.com/voleisantpedor/" target="_blank" rel="noopener">📸 Instagram</a>
         <a class="btn ghost" href="tel:+34649992552">📞 649 99 25 52</a>
-        <a class="btn ghost" href="mailto:voleisantpedor@hotmail.com">✉️ Correu</a>
+        <a class="btn ghost" href="mailto:voleisantpedor@hotmail.com" data-i18n="idx.email">✉️ Correu</a>
         <a class="btn ghost" href="https://fcvolei.cat/buscador-equip/" target="_blank" rel="noopener">🏐 FCVB</a>
       </div>
     </section>
     <section>
-      <h2>📄 Per als pavellons i l'escola</h2>
-      <div class="muted">📄 <a href="app/cartell.pdf">Cartell amb el codi QR de l'app (A4)</a> · <a href="app/">Pàgina de descàrrega</a></div>
+      <h2 data-i18n="idx.posters">📄 Per als pavellons i l'escola</h2>
+      <div class="muted" data-i18n-html="idx.posters_text">📄 <a href="app/cartell.pdf">Cartell amb el codi QR de l'app (A4)</a> · <a href="app/">Pàgina de descàrrega</a></div>
     </section>
-    <footer>Club Vòlei Santpedor · <span id="year"></span> · <a href="manual/" style="color:var(--muted)">Manual</a> · <a href="privacitat/" style="color:var(--muted)">Privacitat</a> · <a href="editors/" rel="nofollow" style="color:var(--muted)">Zona d'editors</a></footer>
+    <footer>Club Vòlei Santpedor · <span id="year"></span> · <a href="manual/" style="color:var(--muted)" data-i18n="idx.f_manual">Manual</a> · <a href="privacitat/" style="color:var(--muted)" data-i18n="idx.f_privacy">Privacitat</a> · <a href="editors/" rel="nofollow" style="color:var(--muted)" data-i18n="idx.f_editors">Zona d'editors</a></footer>
   </div>
 
   <div id="page" hidden></div>
 </main>
 
-<nav class="tabs" aria-label="Seccions">
-  <button data-go="equips"><span aria-hidden="true">👥</span>Equips</button>
-  <button data-go="inici"><span aria-hidden="true">🏠</span>Inici</button>
-  <button data-go="agenda"><span aria-hidden="true">📅</span>Agenda</button>
-  <button data-go="club"><span aria-hidden="true">🏐</span>Club</button>
+<nav class="tabs" aria-label="Seccions" data-i18n-attr="aria-label:idx.tabs">
+  <button data-go="inici"><span aria-hidden="true">🏠</span><i data-i18n="tab.inici">Inici</i></button>
+  <button data-go="equips"><span aria-hidden="true">👥</span><i data-i18n="tab.equips">Equips</i></button>
+  <button data-go="agenda"><span aria-hidden="true">📅</span><i data-i18n="tab.agenda">Agenda</i></button>
+  <button data-go="club"><span aria-hidden="true">🏐</span><i data-i18n="tab.club">Club</i></button>
 </nav>
 
-<div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto" hidden></div>
+<div id="lightbox" role="dialog" aria-modal="true" aria-label="Foto" data-i18n-attr="aria-label:idx.photo" hidden></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>
 <div id="print"></div>
 
+<script src="js/i18n.js"></script>
 <script src="js/core.js"></script>
 <script src="js/livesign.js"></script>
 <script src="js/home.js"></script>
@@ -201,6 +202,7 @@
 <script src="js/member.js"></script>
 <script src="js/club.js"></script>
 <script src="js/push.js"></script>
+<script src="js/prefs.js"></script>
 <script src="js/main.js"></script>
 </body>
 </html>

@@ -37,11 +37,11 @@
   VSP.memberLogic = {
     /** name ≥ 2, at least one team, a role in each one and "jugador/a" in one team at most. */
     validate: function (name, roles, teams) {
-      if (String(name || "").trim().length < 2) return "Escriu el nom (almenys 2 lletres).";
-      if (!teams.length) return "Tria l'equip.";
+      if (String(name || "").trim().length < 2) return VSP.t("mem.err_name");
+      if (!teams.length) return VSP.t("mem.err_teams");
       roles = roles || {};
-      if (teams.some(function (t) { return !isRole(roles[t]); })) return "Tria si ets jugador/a o família a cada equip.";
-      if (teams.filter(function (t) { return roles[t] === "jugador"; }).length > 1) return "Només pots ser jugador/a d'un equip; als altres hi pots ser com a família.";
+      if (teams.some(function (t) { return !isRole(roles[t]); })) return VSP.t("mem.err_role");
+      if (teams.filter(function (t) { return roles[t] === "jugador"; }).length > 1) return VSP.t("mem.err_player_one");
       return null;
     },
     /** Role of a newly chosen team: family when already a player in another chosen team, else [suggested] (or family). */
@@ -136,7 +136,7 @@
     var out = {}, ap = M.approved();
     M.requested().forEach(function (t) {
       var m = M.mine[t];
-      out[t] = m === undefined ? (ap.indexOf(t) >= 0 ? "✅ Dins" : "⏳ Pendent") : m === null ? "❔ No aprovada" : m.estat === "aprovat" ? "✅ Dins" : "⏳ Pendent";
+      out[t] = VSP.t(m === undefined ? (ap.indexOf(t) >= 0 ? "mem.st_in" : "mem.st_pending") : m === null ? "mem.st_missing" : m.estat === "aprovat" ? "mem.st_in" : "mem.st_pending");
     });
     return out;
   };
@@ -231,7 +231,7 @@
       var uid = VSP.uid(), req = M.requested();
       var first = req.map(function (t) { return mine[t]; }).filter(Boolean)[0];
       var dades = L.linkData(M.persona() || uid, M.name() || (first && first.nom) || "", req, mine, uid);
-      if (!dades.equips.length) throw userErr("Encara no tens cap sol·licitud feta en cap equip.");
+      if (!dades.equips.length) throw userErr(VSP.t("mem.link_no_requests"));
       var old = VSP.store("mem_link_code");
       return (old ? VSP.fs.del("enllacos/" + old).catch(function () {}) : Promise.resolve()).then(function () {
         VSP.store("mem_link_code", null);
@@ -254,17 +254,17 @@
    */
   M.joinLink = function (input) {
     var code = L.normalizeCode(input);
-    if (!code) return Promise.reject(userErr("El codi té 8 lletres i xifres (p. ex. ABCD-EFGH)."));
+    if (!code) return Promise.reject(userErr(VSP.t("mem.link_bad_format")));
     var uid, data;
     return VSP.token().then(function () {
       uid = VSP.uid();
       return VSP.fs.get("enllacos/" + code);
     }).then(function (doc) {
-      if (!doc) throw userErr("Aquest codi no existeix.");
-      if (!(Number(doc.expira) >= Date.now())) throw userErr("El codi ha caducat; genera'n un de nou.");
+      if (!doc) throw userErr(VSP.t("mem.link_unknown"));
+      if (!(Number(doc.expira) >= Date.now())) throw userErr(VSP.t("mem.link_expired"));
       data = L.parseLink(doc.dades);
-      if (!data || !data.equips.length) throw userErr("Aquest codi no és vàlid.");
-      if (data.persona === uid) throw userErr("Aquest codi és d'aquest mateix dispositiu.");
+      if (!data || !data.equips.length) throw userErr(VSP.t("mem.link_invalid"));
+      if (data.persona === uid) throw userErr(VSP.t("mem.link_same"));
       var done = [];   // memberships written: undone when another team fails (no half-linked device)
       return Promise.all(data.equips.map(function (e) {
         var p = path(e.t, uid);
@@ -275,7 +275,7 @@
       })).catch(function (e) {
         return Promise.all(done.map(function (p) { return VSP.fs.del(p).catch(function () {}); })).then(function () { throw e; });
       }).catch(function (e) {
-        if (e && e.status === 403) throw userErr("No s'ha pogut enllaçar (el codi ja no és vàlid o la membresia ha canviat).");
+        if (e && e.status === 403) throw userErr(VSP.t("mem.link_refused"));
         throw e;
       });
     }).then(function () {
@@ -368,9 +368,17 @@
   /** Everything only for the approved teams: notices, call-ups and squads. */
   M.loadPrivate = function () { return Promise.all([M.loadPrivateNotices(), M.loadPrivateConvocations(), M.loadSquads()]); };
 
+  /** Editors zone role of this browser (hint saved by editors/ after signing in; display only). */
+  function editorHint() {
+    var h = null;
+    try { h = JSON.parse(localStorage.getItem("vsp_editor_hint") || "null"); } catch (e) { h = null; }
+    return h && typeof h === "object" ? h : null;
+  }
+  function coachOf(t) { var h = editorHint(); return !!(h && h.role === "entrenador" && Array.isArray(h.teams) && h.teams.indexOf(Number(t)) >= 0); }
+
   // ---------- page "El meu equip" (MyMembershipScreen)
   VSP.pages["meu-equip"] = { tab: "club", render: function (arg, el, title) {
-    title("El meu equip");
+    title(VSP.t("member.title"));
     var name = M.name(), teams = M.requested().slice(), players = M.players(), roles = M.roles();
     var last = VSP.store("mem_last_role");
     if (!isRole(last)) last = isRole(VSP.store("mem_role")) ? VSP.store("mem_role") : "familia";
@@ -383,64 +391,73 @@
     }
     function linkHtml(req) {
       var persona = M.persona(), hasDocs = req.some(function (t) { return M.mine[t]; });
-      var h = '<section><h2>🔗 Altres dispositius</h2>';
-      if (persona) h += '<p class="meta">Aquest dispositiu està enllaçat amb el teu compte principal.</p>';
+      var h = "<section><h2>" + esc(VSP.t("mem.devices_title")) + "</h2>";
+      if (persona) h += '<p class="meta">' + esc(VSP.t("mem.linked_here")) + "</p>";
       if (made && Date.now() > made.until) made = null;
       if (made) {
-        h += '<p style="font-size:2em;font-weight:700;letter-spacing:.12em;text-align:center;margin:8px 0" aria-label="Codi d\'enllaç">' + esc(L.formatCode(made.code)) + "</p>" +
-          '<p class="meta" style="text-align:center">Caduca en 10 minuts. A l\'app: Club › 👤 El meu equip › Enllaça amb un codi.</p>';
+        h += '<p style="font-size:2em;font-weight:700;letter-spacing:.12em;text-align:center;margin:8px 0" aria-label="' + esc(VSP.t("mem.link_code")) + '">' + esc(L.formatCode(made.code)) + "</p>" +
+          '<p class="meta" style="text-align:center">' + esc(VSP.t("mem.link_expires")) + "</p>";
       } else if (hasDocs) {
-        h += '<p class="meta">Fes servir el mateix compte a l\'app o en un altre navegador sense tornar-ho a demanar: els entrenadors hi veuran una sola persona.</p>' +
-          '<div class="row"><button type="button" class="btn ghost small" id="link-make"' + (busy ? " disabled" : "") + ">🔗 Connecta un altre dispositiu</button></div>";
+        h += '<p class="meta">' + esc(VSP.t("mem.link_why")) + "</p>" +
+          '<div class="row"><button type="button" class="btn ghost small" id="link-make"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_make")) + "</button></div>";
       }
       if (!persona && devices && devices.length) {
-        h += "<h3>Dispositius enllaçats</h3>" + devices.map(function (d, i) {
-          return '<div class="row between"><span>' + (d.dispositiu === "web" ? "💻 Web" : "📱 Mòbil") + " · " +
-            esc(sorted(d.teams).map(VSP.teamName).join(", ")) + '</span><button type="button" class="btn ghost small" data-unlink="' + i + '">Desconnecta</button></div>';
+        h += "<h3>" + esc(VSP.t("mem.devices")) + "</h3>" + devices.map(function (d, i) {
+          return '<div class="row between"><span>' + esc(VSP.t(d.dispositiu === "web" ? "mem.dev_web" : "mem.dev_phone")) + " · " +
+            esc(sorted(d.teams).map(VSP.teamName).join(", ")) + '</span><button type="button" class="btn ghost small" data-unlink="' + i + '">' + esc(VSP.t("mem.unlink")) + "</button></div>";
         }).join("");
       }
       if (!joinOpen) {
-        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost small" id="link-open">🔗 Ja estic donat d\'alta a l\'app o en un altre dispositiu</button></div>';
+        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost small" id="link-open">' + esc(VSP.t("mem.link_open")) + "</button></div>";
       } else {
-        h += '<div class="form" style="margin-top:8px"><label>Codi d\'enllaç<input id="link-code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
-          '<p class="meta">Al dispositiu on ja estàs donat d\'alta, obre 👤 El meu equip i genera un codi per connectar un altre dispositiu.</p>' +
-          '<div class="row"><button type="button" class="btn primary small" id="link-join"' + (busy ? " disabled" : "") + '>Enllaça</button>' +
-          '<button type="button" class="btn ghost small" id="link-cancel">Cancel·la</button></div></div>';
+        h += '<div class="form" style="margin-top:8px"><label>' + esc(VSP.t("mem.link_code")) + '<input id="link-code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
+          '<p class="meta">' + esc(VSP.t("mem.link_join_help")) + "</p>" +
+          '<div class="row"><button type="button" class="btn primary small" id="link-join"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_join")) + "</button>" +
+          '<button type="button" class="btn ghost small" id="link-cancel">' + esc(VSP.t("common.cancel")) + "</button></div></div>";
       }
       return h + "</section>";
     }
     function draw() {
       var status = VSP.memberStatus(), req = M.requested();
       var anyFamily = teams.some(function (t) { return roles[t] === "familia"; });
-      var html = '<section><p>Si ets jugador/a o família, demana entrar al teu equip. Quan l\'entrenador/a t\'aprovi rebràs els avisos només per a l\'equip i podràs respondre les convocatòries («vinc / no vinc»).</p>' +
+      var html = "<section><p>" + esc(VSP.t("mem.intro")) + "</p>" +
         (info ? '<p class="ok" role="status"><b>' + esc(info) + "</b></p>" : "") + (error ? '<p class="err" role="alert">' + esc(error) + "</p>" : "") + "</section>";
       if (req.length) {
-        html += '<section><h2>Estat</h2>' + req.map(function (t) {
-          return '<div class="row between"><b>' + esc(VSP.teamName(t)) + "</b><span>" + esc(status[t]) + '</span><button class="btn ghost small" data-leave="' + t + '">Surt</button></div>';
-        }).join("") + '<div class="row" style="margin-top:8px"><button class="btn ghost small" id="mem-refresh">↻ Actualitza</button></div></section>';
+        html += "<section><h2>" + esc(VSP.t("mem.status")) + "</h2>" + req.map(function (t) {
+          var r = M.roleIn(t);
+          return '<div class="row between"><span><b>' + esc(VSP.teamName(t)) + '</b><br><span class="meta">' +
+            esc(r === "jugador" ? "🏐 " + VSP.t("mem.role_player") : r === "familia" ? "👨‍👩‍👧 " + VSP.t("mem.role_family") : "") + (coachOf(t) ? " · 📋 " + esc(VSP.t("mem.role_coach")) : "") +
+            "</span></span><span>" + esc(status[t]) + '</span><button class="btn ghost small" data-leave="' + t + '">' + esc(VSP.t("common.leave_btn")) + "</button></div>";
+        }).join("") + '<div class="row" style="margin-top:8px"><button class="btn ghost small" id="mem-refresh">' + esc(VSP.t("common.update")) + "</button></div></section>";
+      }
+      var eh = editorHint();
+      if (eh) {
+        var lbl = eh.role === "admin" ? "⚙️ " + VSP.t("mem.role_admin") : eh.role === "junta" ? "🏛️ " + VSP.t("mem.role_board") : "📋 " + VSP.t("mem.role_coach");
+        var et = (eh.teams || []).map(function (t) { return VSP.teamName(t); }).join(", ");
+        html += '<section><p class="meta">' + esc(VSP.t("mem.editors_zone")) + " <b>" + esc(lbl) + "</b>" + (eh.role === "entrenador" && et ? " · " + esc(et) : "") + "</p></section>";
       }
       html += linkHtml(req);
       html += '<section><form id="mem-f" class="form">' +
-        '<label>Nom<input id="mem-name" maxlength="60" autocomplete="name" value="' + esc(name) + '" placeholder="' +
-        (anyFamily ? "Ex.: Família Puig (mare de la Laia)" : "Nom i cognom") + '"></label>' +
-        '<fieldset><legend>Els teus equips (on jugues o on juguen els teus fills/es)</legend><div class="chips">' +
+        "<label>" + esc(VSP.t("mem.name")) + '<input id="mem-name" maxlength="60" autocomplete="name" value="' + esc(name) + '" placeholder="' +
+        esc(VSP.t(anyFamily ? "mem.name_hint_family" : "mem.name_hint_player")) + '"></label>' +
+        "<fieldset><legend>" + esc(VSP.t("mem.teams_legend")) + '</legend><div class="chips">' +
         VSP.TEAMS.map(function (t) { return chip(teams.indexOf(t.id) >= 0, 'data-mteam="' + t.id + '"', esc(t.name)); }).join("") +
-        '</div><div class="meta">Pots ser jugador/a d\'un sol equip i família de tots els que calgui. Pots seguir altres equips amb ★ a la pestanya Equips.</div></fieldset>';
+        '</div><div class="meta">' + esc(VSP.t("mem.teams_hint")) + "</div></fieldset>";
       sorted(teams).forEach(function (t) {
         var role = roles[t], roster = VSP.roster(t), cur = players[t] || [];
         cur.forEach(function (p) { if (!roster.some(function (r) { return VSP.sameName(r, p); })) roster.push(p); });
-        html += '<fieldset><legend>' + esc(VSP.teamName(t)) + '</legend><div class="chips" role="group" aria-label="' + esc("Qui ets a " + VSP.teamName(t)) + '">' +
-          [["jugador", "Jugador/a"], ["familia", "Família"]].map(function (r) { return chip(role === r[0], 'data-rteam="' + t + '" data-role="' + r[0] + '"', r[1]); }).join("") +
-          '</div><div class="meta">' + esc(role === "familia" ? "Els teus fills/es a " + VSP.teamName(t) + " (fins a 6):" : "Qui ets a " + VSP.teamName(t) + "?") + '</div><div class="chips">' +
+        html += '<fieldset><legend>' + esc(VSP.teamName(t)) + '</legend><div class="chips" role="group" aria-label="' + esc(VSP.t("mem.who_in", VSP.teamName(t))) + '">' +
+          [["jugador", "mem.role_player"], ["familia", "mem.role_family"]].map(function (r) { return chip(role === r[0], 'data-rteam="' + t + '" data-role="' + r[0] + '"', esc(VSP.t(r[1]))); }).join("") +
+          '</div><div class="meta">' + esc(role === "familia" ? VSP.t("mem.kids_in", VSP.teamName(t)) : VSP.t("mem.who_in_q", VSP.teamName(t))) + '</div><div class="chips">' +
           roster.map(function (p) {
             var on = cur.some(function (c) { return VSP.sameName(c, p); });
             return chip(on, 'data-pteam="' + t + '" data-pname="' + esc(p) + '"', esc(p));
           }).join("") + "</div>" +
-          '<div class="row"><input class="grow" data-addname="' + t + '" maxlength="50" placeholder="Afegeix el nom com surt a la convocatòria (p. ex. Laia G.)" aria-label="Afegeix un nom a ' + esc(VSP.teamName(t)) + '"><button type="button" class="btn ghost small" data-addbtn="' + t + '">Afegeix</button></div>' +
-          '<div class="meta">Serveix per avisar-te quan hi hagi convocatòria i respondre «vinc / no vinc».</div></fieldset>';
+          '<div class="row"><input class="grow" data-addname="' + t + '" maxlength="50" placeholder="' + esc(VSP.t("mem.add_name_ph")) + '" aria-label="' + esc(VSP.t("mem.add_name_to", VSP.teamName(t))) + '"><button type="button" class="btn ghost small" data-addbtn="' + t + '">' + esc(VSP.t("common.add")) + "</button></div>" +
+          '<div class="meta">' + esc(VSP.t("mem.link_hint")) + "</div></fieldset>";
       });
-      html += '<button class="btn primary" type="submit"' + (busy ? " disabled" : "") + ">" + (req.length ? "Actualitza la sol·licitud" : "Envia la sol·licitud") + "</button>" +
-        '<p class="meta">El nom només el veuen els entrenadors dels equips triats i la junta. Queda lligat a aquest navegador (si l\'esborres o canvies de mòbil, ho hauràs de tornar a demanar o enllaçar-lo amb un codi).</p></form></section>';
+      html += '<button class="btn primary" type="submit"' + (busy ? " disabled" : "") + ">" + esc(VSP.t(req.length ? "mem.update" : "mem.send")) + "</button>" +
+        '<p class="meta">' + esc(VSP.t("mem.privacy")) + "</p></form></section>";
       el.innerHTML = html;
       bind();
     }
@@ -481,15 +498,15 @@
       VSP.each("[data-leave]", function (b) {
         b.onclick = function () {
           var t = Number(b.getAttribute("data-leave"));
-          if (!confirm("Sortir de " + VSP.teamName(t) + "?\nDeixaràs de rebre els avisos només per a l'equip. Ho pots tornar a demanar quan vulguis.")) return;
+          if (!confirm(VSP.t("mem.leave_q", VSP.teamName(t)) + "\n" + VSP.t("mem.leave_text"))) return;
           run(function () { return M.leave(t).then(function () { teams = teams.filter(function (x) { return x !== t; }); }); }, "");
         };
       }, el);
       VSP.each("[data-unlink]", function (b) {
         b.onclick = function () {
           var d = devices && devices[+b.getAttribute("data-unlink")]; if (!d) return;
-          if (!confirm("Desconnectar aquest dispositiu?\nSortirà de " + sorted(d.teams).map(VSP.teamName).join(", ") + " i haurà de tornar a demanar-ho o enllaçar-se amb un codi nou.")) return;
-          run(function () { return M.unlinkDevice(d).then(loadDevices); }, "Dispositiu desconnectat.", true);
+          if (!confirm(VSP.t("mem.unlink_q") + "\n" + VSP.t("mem.unlink_text", sorted(d.teams).map(VSP.teamName).join(", ")))) return;
+          run(function () { return M.unlinkDevice(d).then(loadDevices); }, VSP.t("mem.unlinked"), true);
         };
       }, el);
       if ($("mem-refresh")) $("mem-refresh").onclick = function () { run(function () { return M.check().then(loadDevices); }, ""); };
@@ -500,13 +517,13 @@
       if ($("link-cancel")) $("link-cancel").onclick = function () { joinOpen = false; joinCode = ""; draw(); };
       if ($("link-code")) $("link-code").oninput = function () { joinCode = this.value; };
       if ($("link-join")) $("link-join").onclick = function () {
-        if (M.requested().length && !confirm("Les sol·licituds d'aquest navegador als equips del codi se substituiran per les de l'altre dispositiu. Continuar?")) return;
+        if (M.requested().length && !confirm(VSP.t("mem.join_replace_q"))) return;
         run(function () {
           return M.joinLink(joinCode).then(function () {
             joinOpen = false; joinCode = ""; devices = null;
             name = M.name(); teams = M.requested().slice(); players = M.players(); roles = M.roles();
           });
-        }, "Fet! Aquest dispositiu ja està enllaçat amb el teu compte.", true);
+        }, VSP.t("mem.linked_done"), true);
       };
       $("mem-f").onsubmit = function (ev) {
         ev.preventDefault();
@@ -514,7 +531,7 @@
         if (error) { info = ""; draw(); return; }
         var pl = {}, rl = {}; teams.forEach(function (t) { pl[t] = players[t] || []; rl[t] = roles[t]; });
         VSP.store("mem_last_role", last);
-        run(function () { return M.request(name, rl, teams, pl); }, "Sol·licitud enviada. L'entrenador/a l'ha d'aprovar.");
+        run(function () { return M.request(name, rl, teams, pl); }, VSP.t("mem.sent"));
       };
     }
     function loadDevices() {
@@ -536,7 +553,7 @@
     if (M.approved().indexOf(team) < 0) return;
     var mine = L.calledOf(M.players()[team] || [], c.players);
     if (!mine.length) {
-      if (!(M.players()[team] || []).length) el.innerHTML = '<p class="meta">Per respondre «vinc / no vinc», indica qui ets a Club › 👤 <a href="#meu-equip" data-href="#meu-equip">El meu equip</a>.</p>';
+      if (!(M.players()[team] || []).length) el.innerHTML = '<p class="meta">' + VSP.t("rsvp.link_hint", '<a href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a>") + "</p>";
       return;
     }
     var answers = {}, note = "", busy = false, msg = "";
@@ -544,14 +561,14 @@
     function docPath() { return "equips/" + team + "/respostes/" + c.fixture + "_" + VSP.uid(); }
     function draw() {
       var anyNo = mine.some(function (p) { return answers[p] === false; });
-      el.innerHTML = '<hr><h3 class="sub">Hi aniràs?</h3>' + mine.map(function (p, i) {
+      el.innerHTML = '<hr><h3 class="sub">' + esc(VSP.t("rsvp.title")) + "</h3>" + mine.map(function (p, i) {
         return '<div class="row between rsvp"><span>' + esc(p) + '</span><span class="chips" style="margin:0">' +
-          '<button class="chip' + (answers[p] === true ? " on" : "") + '" aria-pressed="' + (answers[p] === true) + '" data-a="' + i + '" data-v="1">✅ Vinc</button>' +
-          '<button class="chip' + (answers[p] === false ? " on" : "") + '" aria-pressed="' + (answers[p] === false) + '" data-a="' + i + '" data-v="0">❌ No vinc</button></span></div>';
+          '<button class="chip' + (answers[p] === true ? " on" : "") + '" aria-pressed="' + (answers[p] === true) + '" data-a="' + i + '" data-v="1">✅ ' + esc(VSP.t("rsvp.yes")) + "</button>" +
+          '<button class="chip' + (answers[p] === false ? " on" : "") + '" aria-pressed="' + (answers[p] === false) + '" data-a="' + i + '" data-v="0">❌ ' + esc(VSP.t("rsvp.no")) + "</button></span></div>";
       }).join("") +
-        (anyNo ? '<label class="form">Motiu (opcional)<input id="rsvp-note" maxlength="120" value="' + esc(note) + '"></label>' : "") +
+        (anyNo ? '<label class="form">' + esc(VSP.t("rsvp.reason")) + '<input id="rsvp-note" maxlength="120" value="' + esc(note) + '"></label>' : "") +
         (msg ? '<p class="ok" role="status">' + esc(msg) + "</p>" : "") +
-        '<button class="btn primary small" id="rsvp-send"' + (busy || !mine.some(function (p) { return answers[p] !== null; }) ? " disabled" : "") + ">Envia la resposta</button>";
+        '<button class="btn primary small" id="rsvp-send"' + (busy || !mine.some(function (p) { return answers[p] !== null; }) ? " disabled" : "") + ">" + esc(VSP.t("rsvp.send")) + "</button>";
       VSP.each("[data-a]", function (b) {
         b.onclick = function () { answers[mine[+b.getAttribute("data-a")]] = b.getAttribute("data-v") === "1"; msg = ""; draw(); };
       }, el);
@@ -562,7 +579,7 @@
         VSP.token().then(function () {
           return VSP.fs.set(docPath(), { partit: String(c.fixture), owner: VSP.uid(), nom: (M.name() || M.roleIn(team) || "").slice(0, MAX_NAME),
             vinc: yes.slice(0, 6), novinc: no.slice(0, 6), nota: no.length ? note.trim().slice(0, MAX_NOTE) : "", created: new Date().toISOString() });
-        }).then(function () { busy = false; msg = "Resposta enviada. Gràcies!"; draw(); },
+        }).then(function () { busy = false; msg = VSP.t("rsvp.sent"); draw(); },
           function (e) { busy = false; msg = VSP.errText(e); draw(); });
       };
     }

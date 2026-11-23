@@ -5,8 +5,9 @@
 (function () {
   "use strict";
   var VSP = window.VSP;
-  // theme chosen on the main page (before the first paint)
+  // theme and text size chosen on the main page (before the first paint)
   var saved = VSP.store("theme"); if (saved) document.documentElement.setAttribute("data-theme", saved);
+  if (VSP.store("text_size") === "large") document.documentElement.setAttribute("data-text", "large");
 
   var MIN_YEAR = 1950, DAYS = ["dl", "dt", "dc", "dj", "dv"], EXP = ["no", "poc", "si"];
 
@@ -33,15 +34,15 @@
     var dies = DAYS.filter(function (d) { var c = f.querySelector("input[name=t-dia][value=" + d + "]"); return c && c.checked; });
     var exp = (f.querySelector("input[name=t-exp]:checked") || {}).value;
     if (EXP.indexOf(exp) < 0) exp = "no";
-    if (nom.length < 2 || nom.length > 60) return { err: "Escriu el nom de qui vol provar-ho.", el: "t-nom" };
-    if (!(any >= MIN_YEAR && any <= now)) return { err: "Tria l'any de naixement.", el: "t-any" };
-    if (rol === "jugador" && mustBeGuardian(any, now)) return { err: "Té menys de 18 anys: ho ha d'enviar el pare, la mare o el tutor/a." };
-    if (contacte.length < 2 || contacte.length > 60) return { err: "Escriu el nom de contacte.", el: "t-contacte" };
-    if (!tel && !email) return { err: "Posa un telèfon o un correu perquè et puguem contactar.", el: "t-tel" };
-    if (tel && !phoneValid(tel)) return { err: "El telèfon no és vàlid.", el: "t-tel" };
-    if (email && !emailValid(email)) return { err: "El correu no és vàlid.", el: "t-email" };
-    if (com.length > 300) return { err: "El comentari és massa llarg.", el: "t-com" };
-    if (!$("t-ok").checked) return { err: "Cal acceptar que el club guardi les dades per poder-te contactar.", el: "t-ok" };
+    if (nom.length < 2 || nom.length > 60) return { err: VSP.t("try.err_name"), el: "t-nom" };
+    if (!(any >= MIN_YEAR && any <= now)) return { err: VSP.t("try.err_year"), el: "t-any" };
+    if (rol === "jugador" && mustBeGuardian(any, now)) return { err: VSP.t("try.err_minor") };
+    if (contacte.length < 2 || contacte.length > 60) return { err: VSP.t("try.err_contact"), el: "t-contacte" };
+    if (!tel && !email) return { err: VSP.t("try.err_reach"), el: "t-tel" };
+    if (tel && !phoneValid(tel)) return { err: VSP.t("try.err_phone"), el: "t-tel" };
+    if (email && !emailValid(email)) return { err: VSP.t("try.err_email"), el: "t-email" };
+    if (com.length > 300) return { err: VSP.t("try.err_comment"), el: "t-com" };
+    if (!$("t-ok").checked) return { err: VSP.t("try.err_ok"), el: "t-ok" };
     return { data: {
       nom: nom.slice(0, 60), any: any, rol: rol, contacte: contacte.slice(0, 60), telefon: tel.slice(0, 20), email: email.slice(0, 80),
       dies: dies, experiencia: exp, comentari: com.slice(0, 300), creat: new Date().toISOString(), estat: "nova"
@@ -69,12 +70,12 @@
       var r = read(f, now), err = $("t-err");
       if (r.err) { err.textContent = r.err; if (r.el && $(r.el)) $(r.el).focus(); return; }
       err.textContent = ""; busy = true;
-      var btn = $("t-send"); btn.disabled = true; btn.textContent = "Enviant…";
+      var btn = $("t-send"); btn.disabled = true; btn.textContent = VSP.t("try.sending");
       VSP.fs.add("provatures", r.data).then(function () {
         $("try-sec").hidden = true; $("try-done").hidden = false; window.scrollTo(0, 0);
       }, function (e) {
         err.textContent = VSP.errText(e);
-      }).then(function () { busy = false; btn.disabled = false; btn.textContent = "Envia"; });
+      }).then(function () { busy = false; btn.disabled = false; btn.textContent = VSP.t("common.send"); });
     });
   }
 

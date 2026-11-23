@@ -10,7 +10,7 @@
     if (!c.message || VSP.store("rc_closed") === c.message) { el.hidden = true; return; }
     el.hidden = false;
     el.className = "banner" + (c.level === "avis" ? " warn" : "");
-    el.innerHTML = "<span>" + (c.level === "avis" ? "⚠️ " : "ℹ️ ") + esc(c.message) + '</span><button aria-label="Tancar el missatge">×</button>';
+    el.innerHTML = "<span>" + (c.level === "avis" ? "⚠️ " : "ℹ️ ") + esc(c.message) + '</span><button aria-label="' + esc(VSP.t("home.close_msg")) + '">×</button>';
     el.querySelector("button").onclick = function () { VSP.store("rc_closed", c.message); el.hidden = true; };
   };
 
@@ -27,18 +27,18 @@
       return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
         '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (o.autorNom ? " · " + esc(o.autorNom) : "") + "</div>" +
         (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
-        (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">Més informació</a></p>' : "") +
-        (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">🖼️ Veure la imatge</button></p>' : "") +
-        (o.adjunt ? '<p><button class="btn ghost small" data-doc="' + esc(o.adjunt) + '" data-name="' + esc(o.adjuntNom || "document.pdf") + '">📎 ' + esc(o.adjuntNom || "Document") + "</button></p>" : "") +
+        (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a></p>" : "") +
+        (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">' + esc(VSP.t("home.see_image")) + "</button></p>" : "") +
+        (o.adjunt ? '<p><button class="btn ghost small" data-doc="' + esc(o.adjunt) + '" data-name="' + esc(o.adjuntNom || "document.pdf") + '">📎 ' + esc(o.adjuntNom || VSP.t("home.document")) + "</button></p>" : "") +
         VSP.chips(VSP.teamsOf(o)) + "</div>";
-    }).join("") : '<div class="empty">Ara mateix no hi ha avisos.</div>';
+    }).join("") : '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>";
     // PDF documents attached from the app (fs://fitxers/{id}) or plain https ones
     VSP.each("#avisos [data-doc]", function (b) {
       b.onclick = function () {
         var src = b.getAttribute("data-doc"), name = b.getAttribute("data-name");
         if (/^https:\/\//.test(src)) { window.open(src, "_blank", "noopener"); return; }
         var m = /^fs:\/\/fitxers\/([A-Za-z0-9]+)$/.exec(src); if (!m) return;
-        var label = b.textContent; b.textContent = "Baixant…";
+        var label = b.textContent; b.textContent = VSP.t("home.downloading");
         VSP.blob("fitxers/" + m[1], "dades").then(function (b64) {
           var bin = atob(b64), bytes = new Uint8Array(bin.length);
           for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
@@ -48,7 +48,7 @@
           b.textContent = label;
         }).catch(function (e) {
           // a team-only document (fitxers privat) can be read only by the team's approved members
-          b.textContent = e && e.status === 403 ? "Document només per als membres de l'equip" : "No s'ha pogut baixar el document";
+          b.textContent = e && e.status === 403 ? VSP.t("home.doc_members_only") : VSP.t("home.doc_failed");
         });
       };
     });
@@ -59,9 +59,9 @@
         var show = function (url) { var img = document.createElement("img"); img.src = url; img.alt = ""; img.className = "notice-img"; b.replaceWith(img); };
         if (/^https:\/\//.test(src)) { show(src); return; }
         var m = /^fs:\/\/fotos\/([A-Za-z0-9]+)$/.exec(src); if (!m) return;
-        b.textContent = "Carregant…";
+        b.textContent = VSP.t("common.loading");
         VSP.blob("fotos/" + m[1], "jpeg").then(function (j) { show("data:image/jpeg;base64," + j); })
-          .catch(function () { b.textContent = "No s'ha pogut carregar la imatge"; });
+          .catch(function () { b.textContent = VSP.t("home.img_failed"); });
       };
     });
   }
@@ -76,8 +76,8 @@
       var when = VSP.fmtDate(o.data) + (o.hora ? " · " + o.hora : "") + (o.fins && o.fins !== o.data ? " – " + VSP.fmtDate(o.fins) : "");
       return '<div class="item"><h3>' + esc(o.titol) + '</h3><div class="meta">' + esc(when) +
         (o.lloc ? " · " + esc(o.lloc) : "") + "</div>" + (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
-        '<p class="row">' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">Més informació</a>' : "") +
-        (maps && (o.lloc || o.adreca) ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">🧭 Com arribar</a>' : "") + "</p>" +
+        '<p class="row">' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a>" : "") +
+        (maps && (o.lloc || o.adreca) ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") + "</p>" +
         VSP.chips(VSP.teamsOf(o)) + "</div>";
     }).join("");
   };
@@ -112,7 +112,7 @@
   };
   VSP.trainingTable = function (ses) {
     return "<table>" + ses.map(function (s) {
-      return '<tr><td class="day">' + esc(s.dia) + '</td><td class="time">' + esc(s.inici) + "–" + esc(s.fi) + "</td><td>" + esc(s.lloc) + "</td></tr>";
+      return '<tr><td class="day">' + esc(VSP.dayLabel(s.dia)) + '</td><td class="time">' + esc(s.inici) + "–" + esc(s.fi) + "</td><td>" + esc(s.lloc) + "</td></tr>";
     }).join("") + "</table>";
   };
   VSP.renderTrainings = function () {
@@ -120,7 +120,7 @@
     $("horaris").innerHTML = ids.length ? ids.map(function (id) {
       return '<details class="team"' + (ids.length === 1 ? " open" : "") + "><summary>" + esc(VSP.teamName(id)) +
         "</summary>" + VSP.trainingTable(VSP.trainings[id]) + "</details>";
-    }).join("") : '<div class="empty">Encara no hi ha horaris publicats.</div>';
+    }).join("") : '<div class="empty">' + esc(VSP.t("common.no_trainings")) + "</div>";
   };
 
   // ---------- 🔴 live now (live/ClubLive.kt liveNow(): club channel + latest snapshot of each match)
@@ -197,15 +197,15 @@
       $("live-sec").hidden = !live.length;
       var html = live.map(function (x) {
         var h = x.d ? x.d.h : x.a.h, aw = x.d ? x.d.a : x.a.a, c = (x.d && x.d.c) || x.a.c;
-        var sc = x.s ? '<span class="lscore">' + x.s.sh + "-" + x.s.sa + '</span><span class="muted">Set ' + x.s.n + ": " + x.s.h + "-" + x.s.a + "</span>" : "";
+        var sc = x.s ? '<span class="lscore">' + x.s.sh + "-" + x.s.sa + '</span><span class="muted">' + esc(VSP.t("home.set_score", x.s.n, x.s.h + "-" + x.s.a)) + "</span>" : "";
         return '<a class="live" href="live/#' + esc(x.a.topic) + '"><span><b>' + esc(h) + " – " + esc(aw) + "</b>" +
-          (c ? '<span class="muted">' + esc(c) + "</span>" : "") + sc + "</span><span>Segueix ▶</span></a>";
+          (c ? '<span class="muted">' + esc(c) + "</span>" : "") + sc + "</span><span>" + esc(VSP.t("home.follow")) + "</span></a>";
       }).join("");
       $("live").innerHTML = html;
       // "Seguir un partit": the same list (or that nothing is live now), and the code box below it
-      if ($("follow-live")) $("follow-live").innerHTML = html || '<div class="empty">Ara no hi ha cap partit del club en directe. Si t\'han enviat un enllaç o un codi, posa\'l aquí sota.</div>';
+      if ($("follow-live")) $("follow-live").innerHTML = html || '<div class="empty">' + esc(VSP.t("home.no_live")) + "</div>";
     }).catch(function () {
-      if ($("follow-live")) $("follow-live").innerHTML = '<div class="empty">No s\'ha pogut consultar la llista de directes. Pots seguir un partit amb el codi.</div>';
+      if ($("follow-live")) $("follow-live").innerHTML = '<div class="empty">' + esc(VSP.t("home.live_failed")) + "</div>";
     });
   }
   VSP.initLive = function () {
@@ -215,7 +215,7 @@
     $("code-f").onsubmit = function (ev) {
       ev.preventDefault();
       var m = /vsp-[a-z0-9]{6,32}/.exec(String($("code-in").value || "").toLowerCase());
-      if (!m) { $("code-err").textContent = "No hi trobo cap codi de partit (comença per «vsp-»)."; return; }
+      if (!m) { $("code-err").textContent = VSP.t("home.code_bad"); return; }
       $("code-err").textContent = "";
       location.href = "live/#" + m[0];
     };
