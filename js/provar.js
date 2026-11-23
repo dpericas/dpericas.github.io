@@ -1,7 +1,11 @@
 /* «Vull provar el vòlei» (provar/index.html): anybody asks the board for a trial training.
- * Creates provatures/{autoId} with this browser's anonymous Firebase session; nobody but the board
- * (junta / admin) can read it back. Same fields and limits as the app (community/TryVolleyball.kt)
- * and docs/firestore.rules. Loaded in <head> after core.js (no inline scripts: strict CSP). */
+ * Creates provatures/<uid>_0, _1 or _2 with this browser's anonymous Firebase session (at most 3
+ * requests per browser: the rules only allow "create", so a taken slot is refused with 403 and the
+ * next one is tried); nobody but the board (junta / admin) can read it back. `caduca` (now + 180 days)
+ * lets Firestore TTL delete it by itself. Same fields and limits as the app (community/TryVolleyball.kt)
+ * and docs/firestore.rules. Anti-spam: a hidden honeypot field (filled = a bot: pretend it was sent)
+ * and at least 3 s between showing the form and sending it.
+ * Loaded in <head> after core.js (no inline scripts: strict CSP). */
 (function () {
   "use strict";
   var VSP = window.VSP;
@@ -10,6 +14,25 @@
   if (VSP.store("text_size") === "large") document.documentElement.setAttribute("data-text", "large");
 
   var MIN_YEAR = 1950, DAYS = ["dl", "dt", "dc", "dj", "dv"], EXP = ["no", "poc", "si"];
+
+  var L = VSP.tryLogic = {
+    MAX_SLOTS: 3, MIN_FILL_MS: 3000, KEEP_DAYS: 180, CLUB_PHONE: "649 99 25 52", CLUB_EMAIL: "voleisantpedor@hotmail.com",
+    slotPath: function (uid, n) { return "provatures/" + uid + "_" + n; },
+    /** The honeypot has something in it: only a bot fills a field nobody can see. */
+    isBot: function (hp) { return String(hp || "").length > 0; },
+    /** Sent less than MIN_FILL_MS after the form was shown. */
+    tooFast: function (shownAt, now) { return now - shownAt < L.MIN_FILL_MS; },
+    /** Firestore TTL date of a request made at [nowMs] (rules: at most now + 181 days). */
+    caduca: function (nowMs) { return new Date(nowMs + L.KEEP_DAYS * 86400000).toISOString(); },
+    /** Writes [data] in the first free slot with set(path, data); all taken -> error with .full. */
+    send: function (set, uid, data) {
+      function attempt(n) {
+        if (n >= L.MAX_SLOTS) { var e = new Error("full"); e.full = true; return Promise.reject(e); }
+        return set(L.slotPath(uid, n), data).catch(function (e) { if (e && e.status === 403) return attempt(n + 1); throw e; });
+      }
+      return attempt(0);
+    }
+  };
 
   function cleanPhone(s) { return String(s || "").replace(/[^0-9+ ]/g, "").slice(0, 20); }
   function phoneValid(p) {
@@ -58,10 +81,12 @@
       $("t-minor").hidden = !(y && mayBeMinor(y, now));
     }
     sel.addEventListener("change", minorNote);
+    var shownAt = Date.now();
+    function done() { $("try-sec").hidden = true; $("try-done").hidden = false; window.scrollTo(0, 0); }
     $("t-tel").addEventListener("input", function () { var c = cleanPhone(this.value); if (c !== this.value) this.value = c; });
     $("try-again").addEventListener("click", function () {
       f.reset(); minorNote(); $("t-err").textContent = "";
-      $("try-done").hidden = true; $("try-sec").hidden = false; window.scrollTo(0, 0);
+      $("try-done").hidden = true; $("try-sec").hidden = false; window.scrollTo(0, 0); shownAt = Date.now();
     });
     var busy = false;
     f.addEventListener("submit", function (ev) {
@@ -69,12 +94,13 @@
       if (busy) return;
       var r = read(f, now), err = $("t-err");
       if (r.err) { err.textContent = r.err; if (r.el && $(r.el)) $(r.el).focus(); return; }
+      if (L.isBot($("t-web") && $("t-web").value)) { err.textContent = ""; done(); return; }   // pretend: nothing is sent
+      if (L.tooFast(shownAt, Date.now())) { err.textContent = VSP.t("try.err_fast"); return; }
       err.textContent = ""; busy = true;
       var btn = $("t-send"); btn.disabled = true; btn.textContent = VSP.t("try.sending");
-      VSP.fs.add("provatures", r.data).then(function () {
-        $("try-sec").hidden = true; $("try-done").hidden = false; window.scrollTo(0, 0);
-      }, function (e) {
-        err.textContent = VSP.errText(e);
+      r.data.caduca = VSP.ts(L.caduca(Date.now()));
+      VSP.token().then(function () { return L.send(VSP.fs.set, VSP.uid(), r.data); }).then(done, function (e) {
+        err.textContent = e && e.full ? VSP.t("try.err_three", L.CLUB_PHONE, L.CLUB_EMAIL) : VSP.errText(e);
       }).then(function () { busy = false; btn.disabled = false; btn.textContent = VSP.t("common.send"); });
     });
   }

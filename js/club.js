@@ -346,6 +346,14 @@
       return { jpeg: jpeg, thumb: thumb, w: c.width, h: c.height };
     }).catch(function () { return null; });
   };
+  /** Only the 360 px thumbnail (JPEG quality 70, PhotoData.THUMB_SIDE) in base64, or null if it can't be
+   * read or is not under 100000 characters (LostFoundRepository.thumbB64). Used by 🧦 Objectes perduts. */
+  VSP.photoThumb = function (file) {
+    return loadImage(file).then(function (img) {
+      var thumb = draw(img, THUMB_SIDE).toDataURL("image/jpeg", 0.7).split(",")[1] || "";
+      return thumb && thumb.length < 100000 ? thumb : null;
+    }).catch(function () { return null; });
+  };
   VSP.pages.proposa = { tab: "club", render: function (arg, el, title) {
     title(VSP.t("pp.title"));
     if (!VSP.featureOn("fotos")) { el.innerHTML = '<div class="empty">' + esc(VSP.t("pp.off")) + "</div>"; return; }

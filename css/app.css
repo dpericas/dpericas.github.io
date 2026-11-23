@@ -213,3 +213,18 @@ input.grow { display:inline-block; width:auto; margin-top:0; }
   #print table { font-size:11px; } #print th { text-align:left; background:#0f5132; color:#fff; padding:4px; }
   #print td { padding:4px; border-top:1px solid #ccc; } #print tr.home td { font-weight:700; }
 }
+/* anti-spam honeypot (provar/): out of sight, out of the tab order */
+.hp { position:absolute; left:-10000px; top:auto; width:1px; height:1px; overflow:hidden; }
+/* 🧦 Objectes perduts */
+.lf-item { display:flex; gap:12px; align-items:flex-start; }
+.lf-item.resolved .lf-kind { color:var(--muted); }
+.lf-item.big { flex-direction:column; }
+.lf-body { flex:1; min-width:0; }
+.lf-kind { color:var(--brand); font-size:calc(13px * var(--fs)); }
+.lf-title { margin:2px 0; font-size:calc(16px * var(--fs)); overflow-wrap:anywhere; }
+.lf-desc { margin:4px 0; overflow-wrap:anywhere; }
+.lf-ph { border:0; padding:0; background:none; cursor:zoom-in; flex:none; }
+.lf-ph img, .lf-prev { width:84px; height:84px; object-fit:cover; border-radius:8px; display:block; }
+.lf-item.big .lf-ph { width:100%; cursor:zoom-out; }
+.lf-item.big .lf-ph img { width:100%; height:auto; max-height:420px; object-fit:contain; }
+.lf-item .row { margin-top:6px; }

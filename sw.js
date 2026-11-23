@@ -2,9 +2,9 @@
 // Same-origin pages and files: network first, cache as fallback. Data from Firebase / the live
 // relay (other origins) is never cached here.
 // Keep in sync by hand with VSP.WEB_VERSION in js/core.js (shown in ⚙️ Preferències › Quant a).
-const CACHE = "vsp-v15";
+const CACHE = "vsp-v16";
 const SHELL = ["/", "/index.html", "/manifest.webmanifest", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/live/logo.jpg",
-  "/css/app.css", "/js/i18n.js", "/js/core.js", "/js/livesign.js", "/js/home.js", "/js/agenda.js", "/js/teams.js", "/js/member.js", "/js/club.js", "/js/push.js", "/js/prefs.js", "/js/main.js",
+  "/css/app.css", "/js/i18n.js", "/js/core.js", "/js/livesign.js", "/js/home.js", "/js/agenda.js", "/js/teams.js", "/js/member.js", "/js/club.js", "/js/perduts.js", "/js/push.js", "/js/prefs.js", "/js/main.js",
   "/provar/", "/provar/index.html", "/js/provar.js",
   "/jocs/", "/jocs/index.html", "/jocs/css/jocs.css", "/jocs/js/progress.js", "/jocs/js/pili.js", "/jocs/js/frame.js", "/jocs/js/hub.js"];
 

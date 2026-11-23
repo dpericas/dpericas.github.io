@@ -237,7 +237,8 @@
         VSP.store("mem_link_code", null);
         function attempt(n) {
           var code = L.newCode(randomBytes()), until = Date.now() + L.LINK_MS;
-          return VSP.fs.set("enllacos/" + code, { owner: uid, expira: until, dades: JSON.stringify(dades) }).then(function () {
+          // caduca: Firestore TTL deletes the code by itself (rules: at most now + 15 min)
+          return VSP.fs.set("enllacos/" + code, { owner: uid, expira: until, caduca: VSP.ts(new Date(until).toISOString()), dades: JSON.stringify(dades) }).then(function () {
             VSP.store("mem_link_code", code);
             return { code: code, until: until };
           }, function (e) { if (e.status === 403 && n < 2) return attempt(n + 1); throw e; });   // 403: that code is someone else's
