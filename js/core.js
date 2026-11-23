@@ -30,13 +30,8 @@
     { id: 3634, name: "Infantil Femení V", sub: "Preferent · Equip V", fed: true },
     { id: 4916, name: "Infantil Femení N", sub: "Preferent · Equip N", fed: true },
     { id: 6731, name: "Aleví Femení", sub: "3x3 · categoria mixta", fed: true },
-    { id: -1, name: "Escola Aleví Femení", sub: "No federat", fed: false, squad: sq([
-      ["Lia Hermoso", "1a Entrenadora"], ["Berta Sisquella", "2a Entrenadora"], ["Nuria Casagolda", "Jugadora"],
-      ["Maia Ruiz", "Jugadora"], ["Ariadna Hermida", "Jugadora"], ["Nahomi Roa", "Jugadora"], ["Jana Bihimeden", "Jugadora"]]) },
-    { id: -2, name: "Escola Femení", sub: "No federat", fed: false, squad: sq([
-      ["Elanor Gil", "1a Entrenadora"], ["Laia Rodriguez", "2a Entrenadora"], ["Mariona Garzon", "Jugadora"],
-      ["Isona Calvo", "Jugadora"], ["Júlia Gomez", "Jugadora"], ["Soufia Tikni", "Jugadora"], ["Lara Palomo", "Jugadora"],
-      ["Queralt Bosch", "Jugadora"], ["Valery Pulido", "Jugadora"], ["Tanit Subirana", "Jugadora"], ["Julia Laso", "Jugadora"]]) }
+    { id: -1, name: "Escola Aleví Femení", sub: "No federat", fed: false },
+    { id: -2, name: "Escola Femení", sub: "No federat", fed: false }
   ];
   VSP.TEAM_ORDER = VSP.TEAMS.map(function (t) { return t.id; });
   VSP.team = function (id) { id = Number(id); for (var i = 0; i < VSP.TEAMS.length; i++) if (VSP.TEAMS[i].id === id) return VSP.TEAMS[i]; return null; };
@@ -338,7 +333,8 @@
 
   // ---------- data: everything the club publishes from the app (cached for offline use)
   VSP.data = {};
-  var COLLS = ["avisos", "activitats", "amistosos", "horaris", "resultats", "agenda", "convocatories", "plantilles", "albums", "comandes"];
+  // plantilles are not here: minors' names are only for approved members (member.js loadSquads)
+  var COLLS = ["avisos", "activitats", "amistosos", "horaris", "resultats", "agenda", "convocatories", "albums", "comandes"];
   function web(file, key) {
     return VSP.getJson("club/" + file + "?t=" + Date.now()).then(function (r) { return r[key] || []; }).catch(function () { return []; });
   }
@@ -369,7 +365,7 @@
       VSP.data = {
         avisos: merge(r[0], d.avisos), activitats: merge(r[1], d.activitats), amistosos: merge(r[2], d.amistosos),
         horarisWeb: r[3], horaris: d.horaris, resultats: d.resultats, agenda: d.agenda, convocatories: d.convocatories,
-        plantilles: d.plantilles, albums: d.albums, albumsWeb: r[4], comandes: d.comandes
+        plantilles: (VSP.data && VSP.data.plantilles) || [], albums: d.albums, albumsWeb: r[4], comandes: d.comandes
       };
       return VSP.data;
     });

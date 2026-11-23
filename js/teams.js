@@ -72,11 +72,12 @@
     var next = nextOf(t.id).slice(0, 6);
     var played = VSP.sortMatches(VSP.matches.filter(function (m) { return m.team === t.id && m.played; }), true).slice(0, 12);
     var ses = VSP.trainings[t.id] || [];
-    var squad = t.fed ? [] : VSP.squad(t.id);
-    var players = squad.filter(function (m) { return !VSP.isStaff(m); }), staff = squad.filter(VSP.isStaff);
-    var numbers = players.some(function (m) { return m.dorsal; });
     var st = VSP.memberStatus ? VSP.memberStatus()[t.id] : null;
     function draw() {
+      var squad = t.fed ? [] : VSP.squad(t.id);
+      var players = squad.filter(function (m) { return !VSP.isStaff(m); }), staff = squad.filter(VSP.isStaff);
+      var numbers = players.some(function (m) { return m.dorsal; });
+      var locked = !squad.length && !VSP.member.approved().length && t.id !== -3;
       el.innerHTML =
         '<section class="team-head"><div><div class="meta">' + esc(t.sub) + "</div>" +
         (st ? '<div class="meta">👤 ' + esc(st) + "</div>" : "") + "</div>" + star(t.id) + "</section>" +
@@ -93,7 +94,8 @@
           (staff.length ? '<div class="meta">' + staff.map(function (m) { return esc(m.nom) + " (" + esc(m.rol) + ")"; }).join(" · ") + "</div>" : "") +
           '<ul class="squad">' + players.map(function (m) {
             return "<li>" + (numbers ? '<span class="num">' + esc(m.dorsal || "") + "</span>" : "") + esc(m.nom) + (m.rol && !/^jugador/i.test(m.rol) ? ' <span class="meta">' + esc(m.rol) + "</span>" : "") + "</li>";
-          }).join("") + "</ul>" : '<div class="empty">Encara no hi ha la plantilla.</div>') + "</section>" : "") +
+          }).join("") + "</ul>" : locked ? '<div class="empty">🔒 La plantilla només la veuen els membres aprovats d\'un equip del club i els entrenadors. Demana entrar al teu equip a «El meu equip».</div>'
+            : '<div class="empty">Encara no hi ha la plantilla.</div>') + "</section>" : "") +
         '<section><h2>👤 Ets d\'aquest equip?</h2><p class="muted">Si ets jugador/a o família, demana entrar a l\'equip per rebre els avisos només per a l\'equip i respondre les convocatòries.</p>' +
         '<a class="btn ghost" href="#meu-equip" data-href="#meu-equip">👤 El meu equip</a></section>';
       bindStars(el);
@@ -101,5 +103,6 @@
     draw();
     var redraw = function () { if (location.hash === "#equip/" + arg) draw(); };
     VSP.on("favs", redraw);
+    VSP.on("squads", redraw);
   } };
 })();

@@ -137,8 +137,35 @@
       VSP.setPrivateConvocations(by);
     });
   };
-  /** Everything only for the approved teams: notices and call-ups. */
-  M.loadPrivate = function () { return Promise.all([M.loadPrivateNotices(), M.loadPrivateConvocations()]); };
+  /**
+   * Squads (plantilles): minors' names, only for approved members of any club team and editors
+   * (docs/firestore.rules). The rules follow the pointer socis/{uid} = {equip} to a team where
+   * this browser is approved (MembersRepository.ensurePointer). Others only get the adults' (Màsters).
+   */
+  var PUBLIC_SQUADS = [-3];
+  function ensurePointer(ap) {
+    var want = ap.length ? (ap.indexOf(Number(VSP.store("mem_soci"))) >= 0 ? Number(VSP.store("mem_soci")) : Math.min.apply(null, ap)) : null;
+    var cur = VSP.store("mem_soci") ? Number(VSP.store("mem_soci")) : null;
+    if (want === cur) return Promise.resolve();
+    return VSP.token().then(function () {
+      var p = "socis/" + VSP.uid();
+      return want === null ? VSP.fs.del(p) : VSP.fs.set(p, { equip: want });
+    }).then(function () { VSP.store("mem_soci", want === null ? "" : String(want)); });
+  }
+  function publicSquads() {
+    return Promise.all(PUBLIC_SQUADS.map(function (t) {
+      return VSP.fs.get("plantilles/" + t).then(function (d) { if (d) d.id = String(t); return d; }, function () { return null; });
+    })).then(function (l) { return l.filter(Boolean); });
+  }
+  M.loadSquads = function () {
+    var ap = M.approved();
+    var load = ap.length ? ensurePointer(ap).then(function () { return VSP.fs.list("plantilles"); }).catch(publicSquads)
+      : ensurePointer([]).catch(function () {}).then(publicSquads);
+    return load.then(function (l) { VSP.data.plantilles = l || []; VSP.emit("squads"); });
+  };
+
+  /** Everything only for the approved teams: notices, call-ups and squads. */
+  M.loadPrivate = function () { return Promise.all([M.loadPrivateNotices(), M.loadPrivateConvocations(), M.loadSquads()]); };
 
   // ---------- page "El meu equip" (MyMembershipScreen)
   VSP.pages["meu-equip"] = { tab: "club", render: function (arg, el, title) {
