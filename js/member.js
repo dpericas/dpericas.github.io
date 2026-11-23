@@ -129,6 +129,39 @@
       });
       return out;
     },
+    // ---- board invitations (invitacions/{CODE}, members/Invitations.kt): join a team already approved
+    INV_LEN: 12,
+    /** A typed code ("abcd-efgh-jkmn") or the whole link (…/invitacio/#CODE) → "ABCDEFGHJKMN"; null if it is not one. */
+    normalizeInvite: function (input) {
+      var s = String(input || "").trim();
+      if (s.indexOf("/invitacio/") >= 0) s = s.split("/invitacio/")[1].replace(/^[#?]/, "").replace(/^c=/, "");
+      var c = s.toUpperCase().replace(/[^A-Z0-9]/g, "");
+      if (c.length !== 12) return null;
+      for (var i = 0; i < c.length; i++) if (CODE_ALPHABET.indexOf(c.charAt(i)) < 0) return null;
+      return c;
+    },
+    formatInvite: function (code) { return String(code).match(/.{1,4}/g).join("-"); },
+    /** invitacions doc → {code, team, rol, jugadors, nom, usos, max, expira}; null if not valid. */
+    parseInvite: function (doc) {
+      if (!doc || !isRole(doc.rol) || !VSP.team(Number(doc.equip)) || String(doc.id || "").length !== 12) return null;
+      return { code: doc.id, team: Number(doc.equip), rol: doc.rol, nom: String(doc.nom || "").trim(),
+        jugadors: (Array.isArray(doc.jugadors) ? doc.jugadors : []).map(function (n) { return String(n).trim(); }).filter(Boolean),
+        usos: Number(doc.usos) || 0, max: Number(doc.max) || 3, expira: Number(doc.expira) || 0 };
+    },
+    /** "ACTIVE" / "USED_UP" / "EXPIRED". */
+    inviteState: function (inv, now) { return inv.expira <= now ? "EXPIRED" : inv.usos >= inv.max ? "USED_UP" : "ACTIVE"; },
+    /** NEW (no membership) / ADD_PLAYERS (already in with that role: no use spent) / REPLACE. */
+    acceptAction: function (cur, inv) { return !cur ? "NEW" : cur.estat === "aprovat" && cur.rol === inv.rol ? "ADD_PLAYERS" : "REPLACE"; },
+    /** Current players plus the invitation's (no duplicates, at most 6). */
+    mergedPlayers: function (cur, inv) {
+      cur = (cur || []).map(String);
+      return cur.concat(inv.jugadors.filter(function (p) { return !cur.some(function (c) { return VSP.sameName(c, p); }); })).slice(0, MAX_PLAYERS);
+    },
+    /** Null = OK; else why not (a player invitation while already a player in another team). */
+    inviteConflict: function (roles, inv) {
+      return inv.rol === "jugador" && Object.keys(roles || {}).some(function (t) { return Number(t) !== inv.team && roles[t] === "jugador"; })
+        ? VSP.t("mem.err_player_one") : null;
+    },
     /** structuredQuery for the memberships linked to [uid] (inside equips/{team}). */
     linkQuery: function (uid) {
       return { from: [{ collectionId: "membres" }], where: { fieldFilter: { field: { fieldPath: "enllac" }, op: "EQUAL", value: { stringValue: uid } } } };
@@ -306,6 +339,58 @@
     }).then(function () { return M.loadPrivate(); });
   };
 
+  /** The invitation of a code (anyone with the code may read it); rejects with a message to show. */
+  M.peekInvite = function (input) {
+    var code = L.normalizeInvite(input);
+    if (!code) return Promise.reject(userErr(VSP.t("inv.bad")));
+    return VSP.token().then(function () { return VSP.fs.get("invitacions/" + code); }).then(function (doc) {
+      var inv = L.parseInvite(doc);
+      if (!inv) throw userErr(VSP.t("inv.missing"));
+      var st = L.inviteState(inv, Date.now());
+      if (st === "EXPIRED") throw userErr(VSP.t("inv.expired"));
+      if (st === "USED_UP") throw userErr(VSP.t("inv.used"));
+      return inv;
+    });
+  };
+
+  /**
+   * Uses one device of the invitation: this browser's membership in the team, approved, in the same
+   * commit as usos + 1 (the rules check both), exactly as MembersRepository.acceptInvitation.
+   */
+  M.acceptInvite = function (inv, name) {
+    var clean = String(name || "").trim().slice(0, MAX_NAME);
+    if (clean.length < 2) return Promise.reject(userErr(VSP.t("mem.err_name")));
+    var conflict = L.inviteConflict(M.roles(), inv);
+    if (conflict) return Promise.reject(userErr(conflict));
+    var p, players;
+    return VSP.token().then(function () {
+      p = path(inv.team, VSP.uid());
+      return VSP.fs.get(p);
+    }).then(function (cur) {
+      players = L.mergedPlayers(cur && cur.jugadors, inv);
+      var act = L.acceptAction(cur, inv);
+      if (act === "ADD_PLAYERS") return VSP.fs.update(p, { nom: clean, jugadors: players });
+      return (act === "REPLACE" ? VSP.fs.del(p) : Promise.resolve()).then(function () {
+        return VSP.fs.commit([
+          { create: p, data: { nom: clean, rol: inv.rol, estat: "aprovat", created: new Date().toISOString(), jugadors: players, dispositiu: "web", invitacio: inv.code } },
+          { update: "invitacions/" + inv.code, data: { usos: inv.usos + 1 } }]);
+      });
+    }).catch(function (e) {
+      if (e && (e.status === 400 || e.status === 403 || e.status === 409)) throw userErr(VSP.t("inv.refused"));
+      throw e;
+    }).then(function () {
+      var rj = M.roles(), pj = M.players();
+      rj[inv.team] = inv.rol; pj[inv.team] = players;
+      VSP.store("mem_name", clean);
+      VSP.storeJson("mem_roles", rj); VSP.store("mem_role", null);
+      VSP.storeJson("mem_players", pj);
+      if (M.requested().indexOf(inv.team) < 0) VSP.storeJson("mem_requested", M.requested().concat([inv.team]));
+      if (M.approved().indexOf(inv.team) < 0) VSP.storeJson("mem_approved", M.approved().concat([inv.team]));
+      VSP.addFavs([inv.team]);
+      return M.check();
+    }).then(function () { return M.loadPrivate(); });
+  };
+
   /** Devices linked to this browser (only when it is the principal): [{uid, dispositiu, teams}]. */
   M.linkedDevices = function () {
     var req = M.requested();
@@ -421,8 +506,8 @@
       if (!joinOpen) {
         h += '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost small" id="link-open">' + esc(VSP.t("mem.link_open")) + "</button></div>";
       } else {
-        h += '<div class="form" style="margin-top:8px"><label>' + esc(VSP.t("mem.link_code")) + '<input id="link-code" maxlength="12" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
-          '<p class="meta">' + esc(VSP.t("mem.link_join_help")) + "</p>" +
+        h += '<div class="form" style="margin-top:8px"><label>' + esc(VSP.t("mem.link_code")) + '<input id="link-code" maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
+          '<p class="meta">' + esc(VSP.t("mem.link_join_help")) + " " + esc(VSP.t("inv.or_code")) + "</p>" +
           '<div class="row"><button type="button" class="btn primary small" id="link-join"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_join")) + "</button>" +
           '<button type="button" class="btn ghost small" id="link-cancel">' + esc(VSP.t("common.cancel")) + "</button></div></div>";
       }
@@ -528,6 +613,9 @@
       if ($("link-cancel")) $("link-cancel").onclick = function () { joinOpen = false; joinCode = ""; draw(); };
       if ($("link-code")) $("link-code").oninput = function () { joinCode = this.value; };
       if ($("link-join")) $("link-join").onclick = function () {
+        // 12 characters: a board invitation (its own page); 8: a link code of another device
+        var inv = L.normalizeInvite(joinCode);
+        if (inv) { VSP.go("#invitacio/" + inv); return; }
         if (M.requested().length && !confirm(VSP.t("mem.join_replace_q"))) return;
         run(function () {
           return M.joinLink(joinCode).then(function () {
@@ -556,6 +644,40 @@
     }
     draw();
     if (M.requested().length) M.check().then(loadDevices).then(draw, function () {});
+  } };
+
+  // ---------- page "Invitació" (#invitacio/CODE): a board invitation opened from a QR / WhatsApp
+  VSP.pages.invitacio = { tab: "club", render: function (arg, el, title) {
+    title(VSP.t("inv.title"));
+    var inv = null, name = M.name(), busy = true, error = "", done = false;
+    function draw() {
+      var h = "<section>";
+      if (busy && !inv) h += '<p class="meta">' + esc(VSP.t("common.loading")) + "</p>";
+      if (error) h += '<p class="err" role="alert">' + esc(error) + "</p>";
+      if (done) {
+        h += '<p class="ok" role="status"><b>' + esc(VSP.t("inv.done", VSP.teamName(inv.team))) + "</b></p>" +
+          '<div class="row"><a class="btn primary" href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a></div>";
+      } else if (inv) {
+        h += "<p>" + esc(VSP.t(inv.rol === "jugador" ? "inv.what_player" : "inv.what_family", VSP.teamName(inv.team), inv.jugadors.join(", "))) + "</p>" +
+          '<div class="form"><label>' + esc(VSP.t("mem.name")) + '<input id="inv-name" maxlength="60" autocomplete="name" value="' + esc(name || inv.nom) + '"></label>' +
+          '<p class="meta">' + esc(VSP.t("inv.name_hint")) + " " + esc(VSP.t("inv.devices_left", inv.max - inv.usos, inv.max)) + "</p>" +
+          '<button class="btn primary" id="inv-accept"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("inv.accept")) + "</button></div>" +
+          '<p class="meta">' + esc(VSP.t("inv.app_hint")) + ' <a href="app/">' + esc(VSP.t("inv.app_link")) + "</a></p>";
+      } else if (!busy) {
+        h += '<div class="row"><a class="btn ghost" href="#meu-equip" data-href="#meu-equip">' + esc(VSP.t("member.title")) + "</a></div>";
+      }
+      el.innerHTML = h + "</section>";
+      if ($("inv-name")) $("inv-name").oninput = function () { name = this.value; };
+      if ($("inv-accept")) $("inv-accept").onclick = function () {
+        if (!name) name = inv.nom;
+        busy = true; error = ""; draw();
+        M.acceptInvite(inv, name).then(function () { busy = false; done = true; draw(); },
+          function (e) { busy = false; error = (e && e.msg) || VSP.errText(e); draw(); });
+      };
+    }
+    draw();
+    M.peekInvite(arg).then(function (i) { inv = i; busy = false; draw(); },
+      function (e) { busy = false; error = (e && e.msg) || VSP.errText(e); draw(); });
   } };
 
   // ---------- vinc / no vinc inside a published call-up

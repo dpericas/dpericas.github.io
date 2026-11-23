@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src 'self'; object-src 'none'; base-uri 'none'">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Invitació del club</title>
+<link rel="icon" href="../live/logo.jpg">
+<style>
+  :root { --bg:#f6f7f8; --text:#15191c; --muted:#5f6b73; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#101214; --text:#eef1f3; --muted:#9aa7af; } }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  main { max-width:520px; margin:0 auto; padding:40px 16px; text-align:center; }
+  a { color:inherit; font-weight:700; }
+  p { color:var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>🎟️ Invitació del Club Vòlei Santpedor</h1>
+  <p id="msg">Obrint la invitació…</p>
+  <p><a id="go" href="../#meu-equip">Continua al web del club</a></p>
+</main>
+<script>
+  // Board invitation (QR / WhatsApp): with the app installed Android opens it there (App Link /invitacio);
+  // otherwise, the club website's invitation page. The code travels in the fragment (never sent to the server).
+  (function () {
+    var code = (location.hash || "").replace(/^#/, "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+    var target = /^[A-HJ-NP-Z2-9]{12}$/.test(code) ? "../#invitacio/" + code : "../#meu-equip";
+    document.getElementById("go").href = target;
+    location.replace(target);
+  })();
+</script>
+</body>
+</html>

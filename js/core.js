@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v18";
+  VSP.WEB_VERSION = "vsp-v19";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -269,6 +269,17 @@
       return call("POST", BASE + (parent ? "/" + parent : "") + ":runQuery", { structuredQuery: structuredQuery }).then(function (rows) {
         return (rows || []).filter(function (x) { return x.document; }).map(function (x) { return VSP.fsDoc(x.document); });
       });
+    },
+    /**
+     * Several writes, all or none (the rules see them together: getAfter). Each write:
+     * {create: path, data} (fails if it exists) or {update: path, data} (only those fields, must exist).
+     */
+    commit: function (writes) {
+      var prefix = "projects/" + VSP.FIREBASE_PROJECT + "/databases/(default)/documents/";
+      return call("POST", BASE + ":commit", { writes: writes.map(function (w) {
+        if (w.create) return { update: { name: prefix + w.create, fields: toFields(w.data) }, currentDocument: { exists: false } };
+        return { update: { name: prefix + w.update, fields: toFields(w.data) }, updateMask: { fieldPaths: Object.keys(w.data) }, currentDocument: { exists: true } };
+      }) });
     },
     /** Several documents by path, only the fields of [mask]. */
     batchGet: function (paths, mask) {
