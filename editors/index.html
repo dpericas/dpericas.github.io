@@ -679,6 +679,29 @@
         return normName(a.nom) < normName(b.nom) ? -1 : normName(a.nom) > normName(b.nom) ? 1 : 0;
       });
     }
+    /** One row per person: the devices of the same person (linked with a code: "enllac" = the main
+     *  device's uid) are grouped (MembersLogic.persons). [list] = [{id, path, d}]. The name is the main
+     *  device's; pending when any device is; the players of all the devices. */
+    function groupMembers(list) {
+      var by = {}, out = [];
+      list.forEach(function (m) {
+        var key = String((m.d && m.d.enllac) || m.id);
+        if (!by[key]) { by[key] = { key: key, docs: [] }; out.push(by[key]); }
+        by[key].docs.push(m);
+      });
+      return out.map(function (g) {
+        var main = g.docs.filter(function (m) { return m.id === g.key; })[0] || g.docs[0], players = [];
+        g.docs.forEach(function (m) {
+          (Array.isArray(m.d.jugadors) ? m.d.jugadors : []).forEach(function (n) {
+            n = String(n).trim(); if (n && !players.some(function (x) { return sameName(x, n); })) players.push(n);
+          });
+        });
+        var pend = g.docs.filter(function (m) { return m.d.estat !== "aprovat"; });
+        var by2 = g.docs.filter(function (m) { return m.d.aprovatPer; })[0];
+        return { key: g.key, docs: g.docs, main: main, nom: main.d.nom, rol: main.d.rol, created: main.d.created,
+                 estat: pend.length ? "pendent" : "aprovat", pending: pend, jugadors: players, aprovatPer: by2 ? by2.d.aprovatPer : "" };
+      });
+    }
     // ---- errors → Catalan
     function errText(code) {
       code = String(code || "");
@@ -1266,7 +1289,7 @@
     return { esc: esc, isoDay: isoDay, validDay: validDay, enc: enc, encFields: encFields, dec: dec, decFields: decFields, doc: doc,
              isJunta: isJunta, isAdmin: isAdmin, allowedTeams: allowedTeams, teamsOk: teamsOk, roleOptions: roleOptions,
              buildNotice: buildNotice, stamp: stamp, editorName: editorName, titleOf: titleOf, registreEntry: registreEntry,
-             normName: normName, duplicates: duplicates, sortMembers: sortMembers, errText: errText,
+             normName: normName, duplicates: duplicates, sortMembers: sortMembers, groupMembers: groupMembers, errText: errText,
              cap: cap, lowerCap: lowerCap, uniqInts: uniqInts, addDays: addDays, localDay: localDay, normTime: normTime, sizeText: sizeText,
              b64Bytes: b64Bytes, scaleDims: scaleDims, PHOTO: PHOTO, MAX_PDF_BYTES: MAX_PDF_BYTES, PHOTO_SCHEME: PHOTO_SCHEME, FILE_SCHEME: FILE_SCHEME,
              teamsOf: teamsOf, canPublishFor: canPublishFor, FORMS: FORMS, buildItem: buildItem, itemTitle: itemTitle, DAYS: DAYS, dayShort: dayShort,
@@ -1772,14 +1795,15 @@
 
   // =====================================================================
   // 2. JUGADORS/ES I FAMÍLIES
-  var members = {}, pending = {}, curTeam = null;
+  var members = {}, pending = {}, curTeam = null, shownGroups = [];
   function countPending() {
     var teams = H.allowedTeams(S.me, TEAM_ORDER);
     return Promise.all(teams.map(function (t) {
       return fsList("equips/" + t + "/membres").then(function (l) { members[t] = l; }, function () { members[t] = members[t] || null; });
     })).then(function () {
       var total = 0;
-      teams.forEach(function (t) { pending[t] = (members[t] || []).filter(function (m) { return m.d.estat !== "aprovat"; }).length; total += pending[t]; });
+      // persons, not devices: the devices of the same person count once
+      teams.forEach(function (t) { pending[t] = H.groupMembers(members[t] || []).filter(function (g) { return g.estat !== "aprovat"; }).length; total += pending[t]; });
       $("pend-total").innerHTML = total ? '<span class="badge" aria-label="' + total + ' pendents">' + total + "</span>" : "";
       return teams;
     });
@@ -1805,18 +1829,21 @@
     var list = members[curTeam];
     if (list === null || list === undefined) { box.innerHTML = '<div class="msg err">No s\'ha pogut carregar aquest equip.</div>'; return; }
     if (!list.length) { box.innerHTML = '<div class="empty">Ningú no ha demanat entrar a ' + esc(teamName(curTeam)) + " encara.</div>"; return; }
-    var dup = H.duplicates(list.map(function (m) { return m.d; }));
-    var sorted = H.sortMembers(list.map(function (m) { return { nom: m.d.nom, estat: m.d.estat, m: m }; })).map(function (x) { return x.m; });
+    var groups = H.groupMembers(list);
+    shownGroups = groups;
+    var dup = H.duplicates(groups);
+    var sorted = H.sortMembers(groups);
     var html = "", lastPending = null;
-    sorted.forEach(function (m) {
-      var d = m.d, ok = d.estat === "aprovat";
+    sorted.forEach(function (g) {
+      var ok = g.estat === "aprovat", n = g.docs.length;
       if (lastPending !== ok) { html += "<h3>" + (ok ? "Aprovats" : "⏳ Pendents d'aprovar") + "</h3>"; lastPending = ok; }
-      var idx = list.indexOf(m);
-      var jug = Array.isArray(d.jugadors) && d.jugadors.length ? " · per a: " + d.jugadors.map(esc).join(", ") : "";
-      html += '<div class="item"><h4>' + (d.rol === "familia" ? "👪 " : "🏐 ") + esc(d.nom || "(sense nom)") +
-        (dup[H.normName(d.nom)] ? ' <span class="tag warn" title="Hi ha dues entrades amb aquest nom">Possible duplicat</span>' : "") + "</h4>" +
-        '<div class="meta">' + (d.rol === "familia" ? "Família" : "Jugador/a") + jug +
-        (d.created ? " · demanat el " + esc(fmtStamp(d.created)) : "") + (ok && d.aprovatPer ? " · aprovat per " + esc(d.aprovatPer) : "") + "</div>" +
+      var idx = groups.indexOf(g);
+      var jug = g.jugadors.length ? " · per a: " + g.jugadors.map(esc).join(", ") : "";
+      html += '<div class="item"><h4>' + (g.rol === "familia" ? "👪 " : "🏐 ") + esc(g.nom || "(sense nom)") +
+        (n > 1 ? ' <span class="tag" title="La mateixa persona amb l\'app i el web, o amb més d\'un mòbil">📱💻 ' + n + " dispositius</span>" : "") +
+        (dup[H.normName(g.nom)] ? ' <span class="tag warn" title="Hi ha dues entrades amb aquest nom">Possible duplicat</span>' : "") + "</h4>" +
+        '<div class="meta">' + (g.rol === "familia" ? "Família" : "Jugador/a") + jug +
+        (g.created ? " · demanat el " + esc(fmtStamp(g.created)) : "") + (ok && g.aprovatPer ? " · aprovat per " + esc(g.aprovatPer) : "") + "</div>" +
         '<div class="row" style="margin-top:8px">' +
         (ok ? '<button class="btn danger small" type="button" data-mrem="' + idx + '">Treu</button>'
             : '<button class="btn primary small" type="button" data-mok="' + idx + '">Aprova</button><button class="btn danger small" type="button" data-mno="' + idx + '">Rebutja</button>') +
@@ -1831,17 +1858,20 @@
   };
   $("m-list").onclick = function (ev) {
     var b = ev.target.closest("button"); if (!b) return;
-    var list = members[curTeam] || [], m, p;
+    var g, p;
+    // every device of the person: approve the pending ones / delete them all
+    function all(docs, fn) { return Promise.all(docs.map(fn)); }
     if (b.hasAttribute("data-mok")) {
-      m = list[+b.getAttribute("data-mok")]; if (!m) return;
-      p = fsMasked(m.path, { estat: "aprovat", aprovatPer: H.editorName(S.me) }, m.d.nom).then(function () {
-        toast((m.d.nom || "") + " aprovat/da"); });
+      g = shownGroups[+b.getAttribute("data-mok")]; if (!g) return;
+      p = all(g.pending, function (m) { return fsMasked(m.path, { estat: "aprovat", aprovatPer: H.editorName(S.me) }, m.d.nom); }).then(function () {
+        toast((g.nom || "") + " aprovat/da"); });
     } else if (b.hasAttribute("data-mno")) {
-      m = list[+b.getAttribute("data-mno")]; if (!m || !confirm("Vols rebutjar la sol·licitud de «" + (m.d.nom || "") + "»?")) return;
-      p = fsDelete(m.path, m.d.nom).then(function () { toast("Sol·licitud rebutjada"); });
+      g = shownGroups[+b.getAttribute("data-mno")]; if (!g || !confirm("Vols rebutjar la sol·licitud de «" + (g.nom || "") + "»?")) return;
+      p = all(g.docs, function (m) { return fsDelete(m.path, m.d.nom); }).then(function () { toast("Sol·licitud rebutjada"); });
     } else if (b.hasAttribute("data-mrem")) {
-      m = list[+b.getAttribute("data-mrem")]; if (!m || !confirm("Vols treure «" + (m.d.nom || "") + "» de " + teamName(curTeam) + "? Deixarà de veure els avisos de l'equip.")) return;
-      p = fsDelete(m.path, m.d.nom).then(function () { toast("Tret/a de l'equip"); });
+      g = shownGroups[+b.getAttribute("data-mrem")]; if (!g || !confirm("Vols treure «" + (g.nom || "") + "» de " + teamName(curTeam) + "?" +
+        (g.docs.length > 1 ? " (" + g.docs.length + " dispositius)" : "") + " Deixarà de veure els avisos de l'equip.")) return;
+      p = all(g.docs, function (m) { return fsDelete(m.path, m.d.nom); }).then(function () { toast("Tret/a de l'equip"); });
     } else return;
     b.disabled = true;
     p.then(loadMembers, function (e) { b.disabled = false; toast(errOf(e), true); });

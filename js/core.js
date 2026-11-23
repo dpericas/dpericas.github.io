@@ -238,8 +238,9 @@
       return call("PATCH", BASE + "/" + path + "?" + mask, { fields: toFields(data) });
     },
     del: function (path) { return call("DELETE", BASE + "/" + path).catch(function (e) { if (e.status !== 404) throw e; }); },
-    query: function (structuredQuery) {
-      return call("POST", BASE + ":runQuery", { structuredQuery: structuredQuery }).then(function (rows) {
+    /** runQuery at the root, or under the document [parent] (e.g. "equips/3631" for its subcollections). */
+    query: function (structuredQuery, parent) {
+      return call("POST", BASE + (parent ? "/" + parent : "") + ":runQuery", { structuredQuery: structuredQuery }).then(function (rows) {
         return (rows || []).filter(function (x) { return x.document; }).map(function (x) { return VSP.fsDoc(x.document); });
       });
     },
