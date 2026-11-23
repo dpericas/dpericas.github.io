@@ -9,6 +9,8 @@
 (function () {
   "use strict";
   var VSP = window.VSP, $ = VSP.$, esc = VSP.esc;
+  /** Games progress code (jocs/js/progress.js P.code): 10 characters of this alphabet. */
+  var GAMES_CODE = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{10}$/;
   var MAX_NAME = 60, MAX_PLAYERS = 6, MAX_NOTE = 120;
   var ROLES = ["jugador", "familia"];
   function isRole(r) { return ROLES.indexOf(r) >= 0; }
@@ -112,7 +114,10 @@
         equips.push({ t: t, rol: e.rol, estat: e.estat === "aprovat" ? "aprovat" : "pendent",
           jugadors: (Array.isArray(e.jugadors) ? e.jugadors : []).map(function (n) { return String(n).trim(); }).filter(Boolean).slice(0, MAX_PLAYERS) });
       });
-      return { persona: o.persona, nom: nom, equips: equips };
+      var jocs = typeof o.jocs === "string" && GAMES_CODE.test(o.jocs) ? o.jocs : null;
+      var out = { persona: o.persona, nom: nom, equips: equips };
+      if (jocs) out.jocs = jocs;
+      return out;
     },
     /** Devices linked to this one: query rows [{t, doc}] → one entry per device uid with its teams. */
     devices: function (rows) {
@@ -232,6 +237,9 @@
       var first = req.map(function (t) { return mine[t]; }).filter(Boolean)[0];
       var dades = L.linkData(M.persona() || uid, M.name() || (first && first.nom) || "", req, mine, uid);
       if (!dades.equips.length) throw userErr(VSP.t("mem.link_no_requests"));
+      // the games progress code (jocs/: localStorage "jocs_code") travels too, so the other device gets the same unlocks
+      var games = VSP.storeJson("jocs_code", undefined, null);
+      if (typeof games === "string" && GAMES_CODE.test(games)) dades.jocs = games;
       var old = VSP.store("mem_link_code");
       return (old ? VSP.fs.del("enllacos/" + old).catch(function () {}) : Promise.resolve()).then(function () {
         VSP.store("mem_link_code", null);
@@ -291,6 +299,8 @@
       VSP.storeJson("mem_approved", M.approved().filter(function (t) { return keep.indexOf(t) >= 0; })
         .concat(data.equips.filter(function (e) { return e.estat === "aprovat"; }).map(function (e) { return e.t; })));
       VSP.store("mem_persona", data.persona);
+      // the games page (jocs/) restores this progress the next time it opens (merged with this browser's)
+      if (data.jocs) VSP.storeJson("jocs_pending_code", data.jocs);
       VSP.addFavs(teams);
       return M.check();
     }).then(function () { return M.loadPrivate(); });

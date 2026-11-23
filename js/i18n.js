@@ -69,7 +69,7 @@
     "ag.conv": ["📋 Convocatòria", "📋 Convocatoria", "📋 Squad call-up"],
     "ag.offline_saved": ["Sense connexió: dades desades el {0}.", "Sin conexión: datos guardados el {0}.", "Offline: data saved on {0}."],
     "ag.offline": ["Sense connexió.", "Sin conexión.", "Offline."],
-    "ag.updated": ["Actualitzat el {0} a les {1}.", "Actualizado el {0} a las {1}.", "Updated on {0} at {1}."],
+    "ag.updated": ["Actualitzat el {0} a les {1}. Calendari i resultats oficials: Federació Catalana de Voleibol (FCVB / iSquad).", "Actualizado el {0} a las {1}. Calendario y resultados oficiales: Federació Catalana de Voleibol (FCVB / iSquad).", "Updated on {0} at {1}. Official fixtures and results: Catalan Volleyball Federation (FCVB / iSquad)."],
     "ag.all": ["Tots", "Todos", "All"],
     "ag.none_today": ["Avui no hi ha partits.", "Hoy no hay partidos.", "No matches today."],
     "ag.none": ["No hi ha partits per mostrar.", "No hay partidos para mostrar.", "No matches to show."],

@@ -496,8 +496,16 @@
     hub.route();
     // remote switches (config/app: "ranking" can be turned off by the club)
     VSP.fs.get("config/app").then(function (cfg) { VSP.config = VSP.parseConfig(cfg); VSPG.configLoaded = true; }, function () {});
-    // with a saved code: bring the progress of the other phones / the app, send this one's
-    P.sync.sync().catch(function () {});
+    // linked from "El meu equip" with a code that carried the games progress: restore it once (merged
+    // with this browser's progress, nothing is lost); otherwise, with a saved code: bring the progress
+    // of the other phones / the app and send this one's
+    var pending = VSP.storeJson("jocs_pending_code", undefined, null);
+    if (typeof pending === "string" && pending && pending !== P.code.get()) {
+      P.sync.restore(pending).then(function () { VSP.store("jocs_pending_code", null); }, function () {});
+    } else {
+      if (pending) VSP.store("jocs_pending_code", null);
+      P.sync.sync().catch(function () {});
+    }
     P.board.syncAsync(2000);
   };
 
