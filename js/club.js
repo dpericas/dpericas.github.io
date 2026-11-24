@@ -43,7 +43,7 @@
     el.innerHTML = (VSP.featureOn("fotos") ? '<div class="row" style="margin:12px 0"><a class="btn ghost" href="#proposa" data-href="#proposa">' + esc(VSP.t("gal.propose")) + "</a></div>" : "") +
       (list.length ? '<div class="albums">' + list.map(function (a) {
         return '<a class="album" href="#album/' + esc(a.id) + '" data-href="#album/' + esc(a.id) + '">' +
-          (a.cover ? '<img alt="" loading="lazy" data-thumb="' + esc(a.cover) + '">' : '<span class="noimg">🖼️</span>') +
+          (a.cover ? '<img alt="" loading="lazy" data-thumb="' + esc(a.cover) + '">' : '<span class="noimg"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="M21 16l-5-5-9 8"/></svg></span>') +
           "<b>" + esc(a.title) + '</b><span class="meta">' + esc(VSP.fmtDate(a.date)) + " · " + esc(VSP.tn("gal.photos", a.photos.length)) + "</span></a>";
       }).join("") + "</div>" : '<section><div class="empty">' + esc(VSP.t("gal.none")) + "</div></section>");
     loadThumbs(el);
@@ -119,7 +119,7 @@
     el.innerHTML = '<section><p class="muted">' + esc(VSP.t("tips.intro")) + "</p>" +
       (list.length ? list.map(function (v) {
         return '<a class="linkrow" href="#pavello/' + esc(v.key) + '" data-href="#pavello/' + esc(v.key) + '"><span><b>' + (v.home ? "🏠 " : "🏟️ ") + esc(VSP.pretty(v.name)) + "</b>" +
-          (v.address ? '<span class="meta">' + esc(VSP.pretty(v.address)) + "</span>" : "") + '</span><span aria-hidden="true">›</span></a>';
+          (v.address ? '<span class="meta">' + esc(VSP.pretty(v.address)) + "</span>" : "") + '</span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>';
       }).join("") : '<div class="empty">' + esc(VSP.t("tips.no_halls")) + "</div>") + "</section>";
   } };
   VSP.pages.pavello = { tab: "club", render: function (key, el, title) {
@@ -229,7 +229,7 @@
     var list = campaigns();
     $("orders-sec").hidden = !list.length;
     $("orders").innerHTML = list.map(function (c) {
-      return '<a class="linkrow" href="#comanda/' + esc(c.id) + '" data-href="#comanda/' + esc(c.id) + '"><span><b>🛍️ ' + esc(c.title) + '</b><span class="meta">' + esc(VSP.t("common.until", VSP.fmtDate(c.until))) + "</span></span><span aria-hidden=\"true\">›</span></a>";
+      return '<a class="linkrow" href="#comanda/' + esc(c.id) + '" data-href="#comanda/' + esc(c.id) + '"><span><b>🛍️ ' + esc(c.title) + '</b><span class="meta">' + esc(VSP.t("common.until", VSP.fmtDate(c.until))) + "</span></span><svg class=\"ic chev\" viewBox=\"0 0 24 24\" aria-hidden=\"true\"><path d=\"M9 6l6 6-6 6\"/></svg></a>";
     }).join("");
   };
   VSP.pages.comanda = { tab: "club", render: function (id, el, title) {

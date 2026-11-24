@@ -69,7 +69,7 @@
   /** Links of the "Quant a" section. */
   function linkRow(href, title, sub) {
     return '<a class="linkrow" href="' + esc(VSP.langHref ? VSP.langHref(href) : href) + '"><span><b>' + esc(title) + '</b><span class="meta">' + esc(sub) +
-      '</span></span><span aria-hidden="true">›</span></a>';
+      '</span></span><svg class="ic chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg></a>';
   }
 
   VSP.pages.preferencies = { tab: "club", render: function (arg, el, title) {
