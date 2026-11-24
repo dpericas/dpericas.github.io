@@ -112,11 +112,13 @@
       var won = m.homeIsClub ? m.hs > m.as : m.as > m.hs;
       res = '<span class="score ' + (won ? "win" : "loss") + '">' + esc(m.hs) + "-" + esc(m.as) + "</span>";
     }
-    var teams = (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + " – " + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>");
+    var h = esc(VSP.niceTeam(m.home)), a = esc(VSP.niceTeam(m.away));
+    var teams = (m.homeIsClub ? "<b>" + h + "</b>" : h) + " – " + (m.homeIsClub ? a : "<b>" + a + "</b>");
     var conv = VSP.convocations[m.id];
-    return '<a class="match" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '"><span class="t">' + esc(m.time || "--:--") + "</span>" +
+    return '<a class="match" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '">' +
+      (m.time ? '<span class="t">' + esc(m.time) + "</span>" : '<span class="t tbc" title="' + esc(VSP.t("ag.tbc_long")) + '">' + esc(VSP.t("ag.tbc")) + "</span>") +
       '<span class="teams">' + teams + "</span>" + (res || '<span class="go" aria-hidden="true">›</span>') +
-      '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home_l" : "ag.away_l")) +
+      '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + ' · <span class="where' + (m.homeIsClub ? " home" : "") + '">' + esc(VSP.t(m.homeIsClub ? "ag.home_l" : "ag.away_l")) + "</span>" +
       (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") +
       (m.round ? " · " + esc(VSP.t("ag.round_short", m.round)) : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") +
       (conv && !m.played ? ' · <b class="conv">' + esc(VSP.t("ag.conv")) + "</b>" : "") + "</span></a>";
@@ -143,7 +145,15 @@
     onlyMine = initialMine();
     if (VSP.matches.length && $("agenda")) renderAgenda();
   };
-  var mode = "next", onlyMine = initialMine(), chosen = [];
+  var mode = "next", onlyMine = initialMine(), chosen = [], showAll = false;
+  /** "Propers" shows the next two weeks until "Veure'n més" (a team's whole season is long). Pure: tested. */
+  VSP.AGENDA_DAYS = 14;
+  VSP.agendaWindow = function (list, today, all) {
+    if (all) return { shown: list, hidden: 0 };
+    var end = VSP.addDays(today, VSP.AGENDA_DAYS), shown = list.filter(function (m) { return m.date <= end; });
+    if (!shown.length) shown = list.slice(0, 10);   // nothing in two weeks (holidays): the next ten
+    return { shown: shown, hidden: list.length - shown.length };
+  };
   try { chosen = JSON.parse(VSP.store("teams") || "[]").map(Number); } catch (e) { chosen = []; }
 
   VSP.renderAgendaTab = function () {
@@ -186,6 +196,8 @@
       .filter(function (m) { return mode === "today" ? m.date === t : mode === "next" ? m.date >= t && !(m.played && m.date < t) : m.played; });
     VSP.sortMatches(list, mode === "played");
     if (mode === "played") list = list.slice(0, 60);
+    var hiddenN = 0;
+    if (mode === "next") { var w = VSP.agendaWindow(list, t, showAll); list = w.shown; hiddenN = w.hidden; }
     if (!list.length) {
       $("agenda").innerHTML = '<div class="empty">' + esc(VSP.matches.length ? (mode === "today" ? VSP.t("ag.none_today") : VSP.t("ag.none")) :
         VSP.t("ag.not_published")) + "</div>";
@@ -196,12 +208,14 @@
       if (m.date !== day) { day = m.date; html += '<div class="day-head">' + esc(m.date === t ? VSP.t("ag.today_day", VSP.fmtDate(m.date)) : VSP.fmtDate(m.date)) + "</div>"; }
       html += VSP.matchRow(m);
     });
+    if (hiddenN) html += '<div class="more"><button class="btn ghost small" type="button" id="ag-more">' + esc(VSP.t("ag.more", hiddenN)) + "</button></div>";
     $("agenda").innerHTML = html;
+    if ($("ag-more")) $("ag-more").onclick = function () { showAll = true; renderAgenda(); };
   }
   VSP.on("favs", function () { if (VSP.matches) renderAgenda(); });
 
   VSP.initAgenda = function () {
-    VSP.each("[data-mode]", function (b) { b.onclick = function () { mode = b.getAttribute("data-mode"); renderAgenda(); }; });
+    VSP.each("[data-mode]", function (b) { b.onclick = function () { mode = b.getAttribute("data-mode"); showAll = false; renderAgenda(); }; });
     $("mine-chip").onclick = function () { onlyMine = !onlyMine; VSP.store("ag_mine", onlyMine ? "1" : "0"); session("ag_mine", onlyMine ? "1" : "0"); renderAgenda(); };
     $("print-btn").onclick = function () { printCalendar(Number($("print-btn").getAttribute("data-team"))); };
   };
@@ -222,7 +236,7 @@
       "<table><tr>" + VSP.t("ag.print_cols").split(",").map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") + "</tr>" +
       list.map(function (m) {
         return '<tr class="' + (m.homeIsClub ? "home" : "") + '"><td>' + (m.round || "") + "</td><td>" + esc(VSP.shortDate(m.date)) + "</td><td>" +
-          esc(m.time || "--:--") + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(VSP.pretty(m.venue)) + "</td><td>" +
+          esc(m.time || VSP.t("ag.tbc")) + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(VSP.pretty(m.venue)) + "</td><td>" +
           (m.played ? esc(m.hs) + "-" + esc(m.as) : "") + "</td></tr>";
       }).join("") + "</table>";
     window.print();

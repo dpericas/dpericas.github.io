@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v22";
+  VSP.WEB_VERSION = "vsp-v23";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -103,6 +103,32 @@
   VSP.fmtTime = function (date) { return date.toLocaleTimeString(VSP.locale(), { hour: "2-digit", minute: "2-digit" }); };
   VSP.shortDate = function (iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ""); return m ? (+m[3]) + "/" + (+m[2]) : ""; };
   VSP.pretty = function (s) { s = String(s || "").toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); };
+  /** Team names as the federation writes them ("CLUB VOLEIBOL CUNIT") read better in title case; the club's own
+   *  teams are shortened to "Santpedor N" (short enough for a phone's results row). Pure: tested. */
+  var SMALL = { de: 1, del: 1, dels: 1, la: 1, les: 1, el: 1, els: 1, i: 1, y: 1, en: 1, a: 1 };
+  VSP.titleCase = function (s) {
+    return String(s || "").trim().toLowerCase().split(/\s+/).map(function (w, i) {
+      if (!w) return w;
+      if (SMALL[w]) return i > 0 ? w : w.charAt(0).toUpperCase() + w.slice(1);
+      if (/^(d|l)'/.test(w)) return w.charAt(0) + "'" + w.charAt(2).toUpperCase() + w.slice(3);
+      if (w.length <= 2 || (w.length === 3 && !/[aeiouàèéíòóú]/.test(w))) return w.toUpperCase();
+      return w.charAt(0).toUpperCase() + w.slice(1);
+    }).join(" ");
+  };
+  VSP.niceTeam = function (s) {
+    var m = /^(?:club\s+)?v[oò]lei\s+santpedor\b\s*(.*)$/i.exec(String(s || "").trim());
+    return m ? ("Santpedor " + VSP.titleCase(m[1])).trim() : VSP.titleCase(s);
+  };
+  /** WhatsApp-style formatting in texts written by the club, on text ALREADY escaped: *bold*, _italic_, ~struck~. Pure: tested. */
+  VSP.waFormat = function (html) {
+    function wrap(ch, tag) {
+      var c = ch.replace(/[*~]/g, "\\$&");
+      var re = new RegExp("(^|[\\s(¡¿\"'«])" + c + "(?=\\S)([^" + ch + "\\n]*?\\S)" + c + "(?=$|[\\s.,;:!?)»\"'])", "g");
+      html = html.replace(re, "$1<" + tag + ">$2</" + tag + ">");
+    }
+    wrap("*", "b"); wrap("_", "i"); wrap("~", "s");
+    return html;
+  };
   VSP.chips = function (names) {
     return names.length ? '<div class="chips">' + names.map(function (n) { return '<span class="chip">' + esc(n) + "</span>"; }).join("") + "</div>" : "";
   };

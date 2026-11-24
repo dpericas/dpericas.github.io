@@ -56,6 +56,17 @@
   .counts { font-size:12px; opacity:.85; margin-top:4px; }
   .final { background:var(--card); border-radius:12px; padding:12px; text-align:center; margin-top:10px; font-weight:700; }
   .note { color:var(--muted); font-size:13px; text-align:center; margin-top:14px; }
+  /* no match code in the link: where to find the live matches, or type a code */
+  .nocode { background:var(--card); border-radius:16px; padding:16px; margin-top:16px; }
+  .nocode h2 { font-size:17px; margin:0 0 6px; text-wrap:balance; }
+  .nocode p { color:var(--muted); font-size:14px; margin:0 0 12px; }
+  .nocode label { display:block; font-size:14px; font-weight:600; margin-bottom:4px; }
+  .coderow { display:flex; gap:8px; }
+  .coderow input { flex:1; min-width:0; padding:10px 12px; font:inherit; font-size:16px; color:#fff; background:var(--bg); border:1px solid #37474f; border-radius:10px; }
+  .coderow .btn { flex:none; }
+  .nocode .home { display:block; margin-top:4px; }
+  .codeerr { color:var(--red); min-height:0; margin:6px 0 0 !important; }
+  .codeerr:empty { display:none; }
   .card { position:fixed; inset:0; display:flex; align-items:center; justify-content:center; pointer-events:none; z-index:20; }
   .card div { background:rgba(16,18,20,.92); border:2px solid var(--mint); border-radius:20px; padding:18px 26px; text-align:center; animation:pop 3.2s ease forwards; }
   .card b { display:block; font-size:28px; color:var(--mint); }
@@ -79,6 +90,7 @@
   :focus-visible { outline:3px solid var(--mint); outline-offset:2px; }
   @media (prefers-reduced-motion: reduce) { .team.serving, .streak, .pts span.flip, .flash, .floaters span, .card div { animation:none !important; } .team.serving { border-color:var(--mint); } }
   [hidden] { display:none !important; }
+  @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
 </style>
 </head>
 <body>
@@ -110,7 +122,17 @@
   </section>
 
   <p class="note" id="wait">Esperant el marcador… Si no arriba res, potser la retransmissió encara no ha començat o ja fa més de 12 hores que va acabar.</p>
-  <p class="note">Anima des d'aquí: els aplaudiments, el tambor i les reaccions arriben a qui porta el marcador i a tothom que el segueix.</p>
+  <section class="nocode" id="nocode" hidden>
+    <h2>No hi ha cap partit en aquest enllaç</h2>
+    <p>Els partits que el club retransmet ara mateix surten a l'inici del web. Si t'han enviat un codi, posa'l aquí.</p>
+    <form id="code-f" class="codef">
+      <label for="code-in">Codi del partit</label>
+      <div class="coderow"><input id="code-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vsp-…"><button class="btn" type="submit">Segueix</button></div>
+      <p class="codeerr" id="code-err" role="alert"></p>
+    </form>
+    <a class="btn ghost home" href="../#inici">🏠 Veure els partits en directe</a>
+  </section>
+  <p class="note" id="cheer-note">Anima des d'aquí: els aplaudiments, el tambor i les reaccions arriben a qui porta el marcador i a tothom que el segueix.</p>
 </main>
 
 <div class="crowd" id="crowd" hidden>
@@ -145,7 +167,14 @@
 
   if (!topic) {
     $("status").textContent = "Enllaç sense codi de partit.";
-    $("open").hidden = true; $("share").hidden = true; $("wait").hidden = true;
+    $("open").hidden = true; $("share").hidden = true; $("wait").hidden = true; $("cheer-note").hidden = true;
+    $("nocode").hidden = false;
+    $("code-f").onsubmit = function (ev) {
+      ev.preventDefault();
+      var c = /vsp-[a-z0-9]{6,32}/.exec(String($("code-in").value || "").toLowerCase());
+      if (!c) { $("code-err").textContent = "No hi trobo cap codi de partit (comença per «vsp-»)."; return; }
+      location.hash = c[0]; location.reload();
+    };
     return;
   }
   // Android: open the app by its own scheme; without the app, stay on this page.

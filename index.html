@@ -9,7 +9,19 @@
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<meta name="theme-color" content="#0f5132">
+<meta name="theme-color" content="#f6f7f8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#101214" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-startup-image" href="icons/splash/1290x2796.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1179x2556.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1284x2778.png" media="(device-width: 428px) and (device-height: 926px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1170x2532.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1125x2436.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1242x2688.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/828x1792.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/750x1334.png" media="(device-width: 375px) and (device-height: 667px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1206x2622.png" media="(device-width: 402px) and (device-height: 874px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/1320x2868.png" media="(device-width: 440px) and (device-height: 956px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)">
+<link rel="apple-touch-startup-image" href="icons/splash/640x1136.png" media="(device-width: 320px) and (device-height: 568px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -21,16 +33,18 @@
 <script>try { var t = localStorage.getItem("theme"); if (t) document.documentElement.setAttribute("data-theme", t); if (localStorage.getItem("text_size") === "large") document.documentElement.setAttribute("data-text", "large"); } catch (e) {}</script>
 </head>
 <body>
-<button class="theme prefs" id="prefs-btn" title="Preferències" aria-label="Preferències" data-i18n-attr="title:pf.title;aria-label:pf.title">⚙️</button>
-<button class="theme" id="theme" title="Canvia el tema" aria-label="Canvia el tema clar o fosc">🌙</button>
 <main>
   <header class="hero">
     <img src="live/logo.jpg" alt="Escut del Club Vòlei Santpedor" data-i18n-attr="alt:idx.logo_alt">
     <div>
       <h1>Club Vòlei Santpedor</h1>
-      <p>Santpedor (Bages) · Federació Catalana de Voleibol</p>
+      <p>Santpedor (Bages)<span class="fcv"> · Federació Catalana de Voleibol</span></p>
     </div>
     <svg class="pili" viewBox="10 10 180 180" role="img" aria-label="La Pili, la mascota del club" data-i18n-attr="aria-label:idx.pili"><defs><clipPath id="pv0"><circle cx="100" cy="100" r="80"/></clipPath><clipPath id="pv0w0"><path d="M100 100 Q45.3 105.7 -73.2 200 L-177.1 -60 L100 -100 Q122.4 49.8 100 100Z"/></clipPath><clipPath id="pv0w1"><path d="M100 100 Q122.4 49.8 100 -100 L377.1 -60 L273.2 200 Q132.3 144.5 100 100Z"/></clipPath><clipPath id="pv0w2"><path d="M100 100 Q132.3 144.5 273.2 200 L100 420 L-73.2 200 Q45.3 105.7 100 100Z"/></clipPath><radialGradient id="pv0s" cx="38%" cy="32%" r="75%"><stop offset="60%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".18"/></radialGradient><radialGradient id="pv0h" cx="32%" cy="26%" r="22%"><stop offset="0%" stop-color="#fff" stop-opacity=".8"/><stop offset="100%" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><circle cx="100" cy="100" r="80" fill="#ffffff"/><g clip-path="url(#pv0)"><g clip-path="url(#pv0w0)"><circle cx="-29.9" cy="25" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="-29.9" cy="25" r="132" fill="none" stroke="#1e8c34" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="-29.9" cy="25" r="221" fill="none" stroke="#1e8c34" stroke-width="58.6"/><circle cx="-29.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="-29.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q45.3 105.7 -73.2 200" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w1)"><circle cx="229.9" cy="25" r="56" fill="none" stroke="#1c211e" stroke-width="112.6"/><circle cx="229.9" cy="25" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="229.9" cy="25" r="172" fill="none" stroke="#1c211e" stroke-width="40.6"/><circle cx="229.9" cy="25" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="229.9" cy="25" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="229.9" cy="25" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q122.4 49.8 100 -100" fill="none" stroke="#121614" stroke-width="3"/><g clip-path="url(#pv0w2)"><circle cx="100" cy="250" r="56" fill="none" stroke="#ffffff" stroke-width="112.6"/><circle cx="100" cy="250" r="132" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="172" fill="none" stroke="#ffffff" stroke-width="40.6"/><circle cx="100" cy="250" r="221" fill="none" stroke="#ffffff" stroke-width="58.6"/><circle cx="100" cy="250" r="112" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="152" fill="none" stroke="#121614" stroke-width="2.4"/><circle cx="100" cy="250" r="192" fill="none" stroke="#121614" stroke-width="2.4"/></g><path d="M100 100 Q132.3 144.5 273.2 200" fill="none" stroke="#121614" stroke-width="3"/></g><circle cx="100" cy="100" r="80" fill="url(#pv0s)"/><circle cx="100" cy="100" r="80" fill="url(#pv0h)"/><circle cx="100" cy="100" r="80" fill="none" stroke="#121614" stroke-width="5"/><ellipse cx="78" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="81.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="122" cy="112" rx="9" ry="11.25" fill="#121614"/><circle cx="125.15" cy="107.95" r="3.42" fill="#fff"/><ellipse cx="64" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><ellipse cx="136" cy="128" rx="9" ry="6" fill="#f48fb1" opacity=".75"/><path d="M84 132 Q100 148 116 132" fill="none" stroke="#121614" stroke-width="5" stroke-linecap="round"/></svg>
+    <div class="hbtns">
+      <button class="hbtn" id="prefs-btn" type="button" title="Preferències" aria-label="Preferències" data-i18n-attr="title:pf.title;aria-label:pf.title">⚙️</button>
+      <button class="hbtn" id="theme" type="button" title="Canvia el tema" aria-label="Canvia el tema clar o fosc">🌙</button>
+    </div>
   </header>
 
   <div class="banner" id="rc-banner" role="status" hidden></div>
@@ -55,6 +69,11 @@
     <section id="live-sec" hidden>
       <h2><span class="live-dot" aria-hidden="true"></span> <span data-i18n="idx.live_now">En directe ara</span></h2>
       <div id="live"></div>
+    </section>
+
+    <section id="next-sec" hidden>
+      <h2 data-i18n="idx.next_h">📅 El teu proper partit</h2>
+      <div id="next"></div>
     </section>
 
     <section id="today-sec" hidden>

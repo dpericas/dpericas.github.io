@@ -119,6 +119,16 @@
   /** Club tab row: whether the avisos are on here (the box itself is in ⚙️ Preferències). */
   function paintState() {
     var el = $("push-state"); if (!el) return;
+    // iPhone in Safari: avisos only once the web is on the home screen; say so here, with the steps
+    if (VSP.pushSupport() === "ios-install") {
+      el.textContent = VSP.t("push.row_ios");
+      if (!$("push-ios-steps")) {
+        var d = document.createElement("div"); d.id = "push-ios-steps"; d.className = "muted";
+        d.innerHTML = '<ol style="margin:4px 0 0;padding-left:20px"><li>' + VSP.t("push.ios_1") + "</li><li>" + esc(VSP.t("push.ios_2")) + "</li><li>" + esc(VSP.t("push.ios_3")) + "</li></ol>";
+        $("push-sec").appendChild(d);
+      }
+      return;
+    }
     el.textContent = el.textContent || VSP.t("push.row_off");
     current().then(function (s) {
       el.textContent = VSP.t(s && Notification.permission === "granted" ? "push.row_on" : "push.row_off");

@@ -25,8 +25,8 @@
     $("avisos").innerHTML = list.length ? list.map(function (o) {
       var link = VSP.safeUrl(o.enllac);
       return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
-        '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (o.autorNom ? " · " + esc(o.autorNom) : "") + "</div>" +
-        (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
+        '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + "</div>" +
+        (o.text ? "<p>" + VSP.waFormat(esc(o.text)) + "</p>" : "") +
         (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a></p>" : "") +
         (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">' + esc(VSP.t("home.see_image")) + "</button></p>" : "") +
         (o.adjunt ? '<p><button class="btn ghost small" data-doc="' + esc(o.adjunt) + '" data-name="' + esc(o.adjuntNom || "document.pdf") + '">📎 ' + esc(o.adjuntNom || VSP.t("home.document")) + "</button></p>" : "") +
@@ -75,7 +75,7 @@
       var link = VSP.safeUrl(o.enllac), maps = VSP.directionsUrl(o.adreca || o.lloc);
       var when = VSP.fmtDate(o.data) + (o.hora ? " · " + o.hora : "") + (o.fins && o.fins !== o.data ? " – " + VSP.fmtDate(o.fins) : "");
       return '<div class="item"><h3>' + esc(o.titol) + '</h3><div class="meta">' + esc(when) +
-        (o.lloc ? " · " + esc(o.lloc) : "") + "</div>" + (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
+        (o.lloc ? " · " + esc(o.lloc) : "") + "</div>" + (o.text ? "<p>" + VSP.waFormat(esc(o.text)) + "</p>" : "") +
         '<p class="row">' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a>" : "") +
         (maps && (o.lloc || o.adreca) ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") + "</p>" +
         VSP.chips(VSP.teamsOf(o)) + "</div>";
@@ -89,13 +89,50 @@
     $("res-sec").hidden = !list.length;
     $("resultats").innerHTML = list.map(function (o) {
       var hw = o.sets_local > o.sets_visitant;
-      return '<div class="res"><span class="h' + (hw ? " win" : "") + '">' + esc(o.local) + "</span>" +
+      return '<div class="res"><span class="h' + (hw ? " win" : "") + '">' + esc(VSP.niceTeam(o.local)) + "</span>" +
         '<span class="score">' + esc(o.sets_local) + " – " + esc(o.sets_visitant) + "</span>" +
-        '<span class="a' + (hw ? "" : " win") + '">' + esc(o.visitant) + "</span>" +
+        '<span class="a' + (hw ? "" : " win") + '">' + esc(VSP.niceTeam(o.visitant)) + "</span>" +
         '<div class="meta">' + esc(VSP.fmtDate(o.data)) + (o.parcials ? " · " + esc(o.parcials) : "") +
         (o.competicio ? " · " + esc(o.competicio) : "") + "</div></div>";
     }).join("");
   };
+
+  /** "Avui", "Demà", "D'aquí a 3 dies" or "" (a week or more away). Pure: tested. */
+  VSP.relDay = function (iso, today) {
+    var d = Math.round((Date.parse(iso + "T12:00:00") - Date.parse(today + "T12:00:00")) / 86400000);
+    return d === 0 ? VSP.t("home.next_today") : d === 1 ? VSP.t("home.next_tomorrow") : d > 1 && d < 7 ? VSP.t("home.next_in_days", d) : "";
+  };
+  /** The next match of each ★ team (soonest first, 3 at most). Pure: tested. */
+  VSP.nextOfTeams = function (matches, favs, today) {
+    var best = {};
+    matches.forEach(function (m) {
+      if (favs.indexOf(m.team) < 0 || m.played || m.date < today) return;
+      var b = best[m.team];
+      if (!b || (m.date + (m.time || "99")) < (b.date + (b.time || "99"))) best[m.team] = m;
+    });
+    return VSP.sortMatches(Object.keys(best).map(function (k) { return best[k]; })).slice(0, 3);
+  };
+  /** 📅 El teu proper partit, at the top of Inici: the ★ teams' next match, or how to choose them. */
+  VSP.renderNext = function () {
+    var favs = VSP.favs(), t = VSP.today(), sec = $("next-sec");
+    if (!sec || !VSP.matches.length) { if (sec) sec.hidden = true; return; }
+    sec.hidden = false;
+    if (!favs.length) {
+      $("next").innerHTML = '<p class="muted" style="margin-top:0">' + esc(VSP.t("home.next_pick")) + '</p><a class="btn ghost small" href="#equips">' + esc(VSP.t("home.next_pick_btn")) + "</a>";
+      return;
+    }
+    var list = VSP.nextOfTeams(VSP.matches, favs, t);
+    $("next").innerHTML = list.length ? list.map(function (m) {
+      var rel = VSP.relDay(m.date, t), conv = VSP.convocations[m.id];
+      var when = (rel ? rel + " · " : "") + VSP.fmtDate(m.date) + " · " + (m.time || VSP.t("ag.tbc_long"));
+      return '<a class="nextm" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '"><span class="when">' + esc(when) + "</span>" +
+        '<span class="vs">' + esc(VSP.t(m.homeIsClub ? "home.next_vs" : "home.next_at", VSP.niceTeam(VSP.rival(m)))) + "</span>" +
+        '<span class="btn primary small">' + esc(conv ? VSP.t("ag.conv") : VSP.t("home.see_match")) + "</span>" +
+        '<span class="info">★ ' + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") + "</span></a>";
+    }).join("") : '<div class="empty">' + esc(VSP.t("home.next_none")) + "</div>";
+  };
+  VSP.on("favs", function () { VSP.renderNext(); });
+  VSP.on("convs", function () { VSP.renderNext(); });
 
   /** Training sessions per team (web horaris.json + Firestore horaris). */
   VSP.trainings = {};

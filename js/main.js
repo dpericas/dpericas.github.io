@@ -12,6 +12,13 @@
   }
   function paintTheme() {
     var b = $("theme"), dark = isDark();
+    // the iPhone's status bar (theme-color) follows the theme chosen here, not only the device's
+    var forced = document.documentElement.getAttribute("data-theme");
+    VSP.each('meta[name="theme-color"]', function (m) {
+      if (!m.getAttribute("data-media")) m.setAttribute("data-media", m.getAttribute("media") || "");
+      if (forced) { m.setAttribute("content", forced === "dark" ? "#101214" : "#f6f7f8"); m.removeAttribute("media"); }
+      else { m.setAttribute("media", m.getAttribute("data-media")); m.setAttribute("content", /dark/.test(m.getAttribute("data-media")) ? "#101214" : "#f6f7f8"); }
+    });
     b.textContent = dark ? "☀️" : "🌙";
     b.title = VSP.t(dark ? "main.to_light" : "main.to_dark");
     b.setAttribute("aria-label", b.title);
@@ -29,6 +36,12 @@
   if (window.matchMedia) { var mq = matchMedia("(prefers-color-scheme: dark)"); if (mq.addEventListener) mq.addEventListener("change", paintTheme); }
   $("prefs-btn").onclick = function () { if (location.hash === "#preferencies") VSP.route(); else VSP.go("#preferencies"); };
   $("year").textContent = new Date().getFullYear();
+
+  // the header shrinks to the crest, the name and the buttons once the page scrolls (two thresholds: the
+  // header's own change of height must not flip it back)
+  var hero = document.querySelector("header.hero"), shrunk = false;
+  function onScroll() { var y = window.scrollY, s = shrunk ? y > 10 : y > 80; if (s !== shrunk) { shrunk = s; hero.classList.toggle("scrolled", s); } }
+  window.addEventListener("scroll", onScroll, { passive: true }); onScroll();
 
   // tabs
   VSP.each("nav.tabs button", function (b) {
@@ -59,6 +72,7 @@
     VSP.renderTeams();
     VSP.renderAgendaTab();
     VSP.renderToday();
+    VSP.renderNext();
     VSP.renderFriendlies();
     VSP.renderOrders();
     $("tips-link").hidden = !VSP.featureOn("consells");
