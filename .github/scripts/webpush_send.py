@@ -75,15 +75,69 @@ def convocation_payload(c):
             "url": "/#agenda", "tag": "conv-" + c["id"]}
 
 
+WEEKDAYS = ["dilluns", "dimarts", "dimecres", "dijous", "divendres", "dissabte", "diumenge"]
+
+
+def nice_team(s):
+    """Same as VSP.niceTeam (js/core.js): "VOLEI SANTPEDOR N" -> "Santpedor N"."""
+    small = {"de", "del", "dels", "la", "les", "el", "els", "i", "y", "en", "a"}
+
+    def tc(x):
+        out = []
+        for i, w in enumerate((x or "").strip().lower().split()):
+            if w in small:
+                out.append(w if i > 0 else w[:1].upper() + w[1:])
+            elif len(w) <= 2 or (len(w) == 3 and not re.search("[aeiouàèéíòóú]", w)):
+                out.append(w.upper())
+            else:
+                out.append(w[:1].upper() + w[1:])
+        return " ".join(out)
+    m = re.match(r"^(?:club\s+)?v[oò]lei\s+santpedor\b\s*(.*)$", (s or "").strip(), re.I)
+    return ("Santpedor " + tc(m.group(1))).strip() if m else tc(s)
+
+
+def agenda_matches(agenda_docs, today):
+    """Upcoming official matches [{id, team, date, time, rival, home}] of agenda/{team} (as js/agenda.js)."""
+    out = []
+    for d in agenda_docs:
+        team = d.get("equip") or int(d["id"])
+        for p in d.get("partits") or []:
+            if not isinstance(p, dict) or not p.get("f"):
+                continue
+            f = str(p["f"])
+            t = int(p.get("t") or team)
+            hm = f[11:16]
+            gl, gv, lid = int(p.get("gl") or 0), int(p.get("gv") or 0), int(p.get("lid") or 0)
+            if f[:10] < today or gl + gv > 0 or re.search("finali[tz]", str(p.get("st") or ""), re.I):
+                continue
+            home = lid != 0 and lid == t
+            out.append({"id": str(p.get("id")), "team": t, "date": f[:10], "time": hm if hm and hm != "00:00" else None,
+                        "rival": str(p.get("v") if home else p.get("l") or "").strip(), "home": home})
+    return out
+
+
+def time_payload(m):
+    y, mo, dd = (int(x) for x in m["date"].split("-"))
+    day = WEEKDAYS[datetime.date(y, mo, dd).weekday()]
+    team = TEAMS.get(m["team"], "Vòlei Santpedor")
+    where = ("vs " if m["home"] else "a ") + nice_team(m["rival"])
+    return {"title": "🕒 Hora confirmada · " + team, "body": "%s %d/%d · %s · %s" % (day, dd, mo, m["time"], where),
+            "url": "/#partit/" + m["id"], "tag": "hora-" + m["id"]}
+
+
 def still_valid(a, today):
     """Notices whose "fins" (visible until) has passed are not sent."""
     fins = a.get("fins") or ""
     return not fins or fins >= today
 
 
-def plan(state, avisos, convs, subs, today):
-    """(messages to send as (sub, payload), new state). First run: nothing to send, only remember."""
+def plan(state, avisos, convs, subs, today, matches=None):
+    """(messages to send as (sub, payload), new state). First run: nothing to send, only remember.
+    [matches] (agenda_matches): a ★ team's match seen without a time that now has one → «Hora confirmada»."""
     first = not state.get("inicialitzat")
+    matches = matches or []
+    tbc_known = "sense_hora" in state
+    seen_tbc = set(state.get("sense_hora") or [])
     seen_a, seen_c = set(state.get("avisos") or []), set(state.get("convocatories") or [])
     out = []
     if not first:
@@ -101,9 +155,17 @@ def plan(state, avisos, convs, subs, today):
             for s in subs:
                 if s.get("convocatories", True) and c.get("equip") in (s.get("equips") or []):
                     out.append((s, p))
+        if tbc_known:
+            for m in matches:
+                if m["time"] and m["id"] in seen_tbc:
+                    p = time_payload(m)
+                    for s in subs:
+                        if s.get("convocatories", True) and m["team"] in (s.get("equips") or []):
+                            out.append((s, p))
     new_state = {"inicialitzat": True,
                  "avisos": [a["id"] for a in avisos][-KEEP:],
-                 "convocatories": [c["id"] for c in convs][-KEEP:]}
+                 "convocatories": [c["id"] for c in convs][-KEEP:],
+                 "sense_hora": [m["id"] for m in matches if not m["time"]][-1500:]}
     return out, new_state
 
 
@@ -186,7 +248,20 @@ def main():
     convs = list_all("convocatories", token)
     subs = [s for s in list_all("webpush", token) if valid_sub(s)]
     today = datetime.date.today().isoformat()
-    messages, new_state = plan(state, avisos, convs, subs, today)
+    try:
+        matches = agenda_matches(list_all("agenda", token), today)
+    except Exception as e:   # the notices must go out even if the agenda can't be read
+        print("agenda not read (%s)" % type(e).__name__)
+        matches = None
+    if matches is None:
+        state = dict(state)
+        prev_tbc = state.get("sense_hora")
+    messages, new_state = plan(state, avisos, convs, subs, today, matches or [])
+    if matches is None:   # keep what was remembered about the matches for the next run
+        if prev_tbc is not None:
+            new_state["sense_hora"] = prev_tbc
+        else:
+            new_state.pop("sense_hora", None)
     print("subscriptions: %d · new messages: %d" % (len(subs), len(messages)))
     # remember what is being sent BEFORE sending: if anything fails half way, nothing is sent twice
     http("PATCH", BASE + "/config/webpush", {"fields": {k: to_value(v) for k, v in new_state.items()}}, token=token)
@@ -243,6 +318,21 @@ def selftest():
     assert not valid_sub(dict(good, p256dh="short"))
     assert valid_sub(dict(good, endpoint="https://web.push.apple.com/QGm1abc"))
     assert valid_sub(dict(good, endpoint="https://wns2-db5p.notify.windows.com/w/?token=BQYAAAB%2bx&a=1"))
+    # «Hora confirmada»: only for matches seen before without a time, only to their teams, never twice
+    ag = [{"id": "3633", "equip": 3633, "partits": [
+        {"id": 7, "f": "2026-11-28 00:00:00", "t": 3633, "l": "VOLEI SANTPEDOR N", "v": "CV ENCAMP", "lid": 3633},
+        {"id": 8, "f": "2026-11-29 10:00:00", "t": 3633, "l": "AE MANRESA", "v": "VOLEI SANTPEDOR N", "lid": 1},
+        {"id": 6, "f": "2026-11-01 00:00:00", "t": 3633, "l": "X", "v": "Y", "lid": 1}]}]
+    m1 = agenda_matches(ag, "2026-11-24")
+    assert [m["id"] for m in m1] == ["7", "8"]
+    st0 = {"inicialitzat": True, "avisos": [], "convocatories": []}
+    msgs, st3 = plan(st0, [], [], subs, "2026-11-24", m1)
+    assert msgs == [] and st3["sense_hora"] == ["7"], "first look only records"
+    ag[0]["partits"][0]["f"] = "2026-11-28 18:00:00"
+    msgs, st4 = plan(st3, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))
+    assert [(s["id"], p["tag"]) for s, p in msgs] == [("a", "hora-7")], msgs
+    assert msgs[0][1]["body"] == "dissabte 28/11 · 18:00 · vs CV Encamp" and msgs[0][1]["url"] == "/#partit/7"
+    assert plan(st4, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))[0] == []
     print("selftest OK")
     return 0
 

@@ -273,3 +273,14 @@ input.grow { display:inline-block; width:auto; margin-top:0; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
 }
+/* 👋 Benvinguda: «Qui ets?» cards (several can be on; «Només segueixo el club» goes alone) */
+.whos { display:grid; gap:8px; margin-top:8px; }
+.who { display:flex; align-items:center; gap:12px; width:100%; text-align:left; padding:12px; border-radius:14px; border:2px solid var(--line);
+       background:var(--card); color:var(--text); font:inherit; cursor:pointer; }
+.who .wi { font-size:calc(26px * var(--fs)); line-height:1; flex:none; }
+.who > span:nth-child(2) { flex:1; min-width:0; }
+.who b, .who .meta { display:block; }
+.who.on { border-color:var(--brand); background:var(--soft); }
+.who .tick { color:var(--brand); font-weight:800; font-size:calc(20px * var(--fs)); }
+.calsub { border-top:1px solid var(--line); margin-top:12px; padding-top:10px; }
+.calsub .muted { margin:0 0 8px; }

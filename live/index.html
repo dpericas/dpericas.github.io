@@ -90,6 +90,34 @@
   :focus-visible { outline:3px solid var(--mint); outline-offset:2px; }
   @media (prefers-reduced-motion: reduce) { .team.serving, .streak, .pts span.flip, .flash, .floaters span, .card div { animation:none !important; } .team.serving { border-color:var(--mint); } }
   [hidden] { display:none !important; }
+  /* 📺 Pantalla gran: a TV or projector at the pavilion (button, or ?tv=1 in the address). The score fills the screen;
+     the crowd's reactions still float over it; no buttons to tap. */
+  .tvexit { display:none; }
+  body.tv main { max-width:none; padding:2vh 3vw; min-height:100vh; display:flex; flex-direction:column; }
+  body.tv header img { width:7vh; height:7vh; }
+  body.tv header h1 { font-size:4vh; }
+  body.tv #status { font-size:2.4vh; }
+  body.tv .dot { width:2vh; height:2vh; }
+  body.tv .viewers { font-size:2.4vh; }
+  body.tv .btnrow, body.tv .note, body.tv .crowd, body.tv .nocode { display:none !important; }
+  body.tv #score { flex:1; display:flex; flex-direction:column; }
+  body.tv #comp { font-size:2.6vh; }
+  body.tv .chips .chip { font-size:3vh; padding:.4vh 1.2vh; }
+  body.tv .board { flex:1; gap:2vw; }
+  body.tv .team { min-height:0; border-width:.6vh; border-radius:3vh; padding:2vh; }
+  body.tv .team .name { font-size:5vh; min-height:0; }
+  body.tv .setdots i { width:2.4vh; height:2.4vh; }
+  body.tv .pts { font-size:min(36vh, 22vw); }
+  body.tv .serve, body.tv .streak, body.tv .counts { font-size:2.6vh; }
+  body.tv .court { font-size:2.4vh; }
+  body.tv .court .row { grid-template-columns:repeat(3, 7vh); }
+  body.tv .label { top:9vh; font-size:2.4vh; }
+  body.tv .final { font-size:4vh; }
+  body.tv .floaters span { font-size:6vh; bottom:4vh; }
+  body.tv .card b { font-size:7vh; }
+  body.tv .tvexit { display:block; position:fixed; top:1.5vh; right:1.5vw; z-index:30; background:var(--card); color:#fff; border:0; border-radius:999px;
+    width:44px; height:44px; font-size:20px; cursor:pointer; opacity:.35; }
+  body.tv .tvexit:hover, body.tv .tvexit:focus-visible { opacity:1; }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
 </style>
 </head>
@@ -107,6 +135,7 @@
   <div class="btnrow">
     <a class="btn" id="open" href="#">📲 Obrir a l'app</a>
     <button class="btn ghost" id="share" type="button">🔗 Comparteix</button>
+    <button class="btn ghost" id="tv" type="button" title="Per a un televisor o un projector del pavelló">📺 Pantalla gran</button>
   </div>
 
   <section id="score" hidden>
@@ -147,6 +176,7 @@
     <button type="button" data-r="🌊" aria-label="Onada">🌊</button>
   </div>
 </div>
+<button class="tvexit" id="tvexit" type="button" aria-label="Surt de la pantalla gran">✕</button>
 <div class="floaters" id="floaters" aria-hidden="true"></div>
 <div class="wave" id="wave" hidden aria-hidden="true"></div>
 <div class="card" id="card" hidden aria-live="polite"></div>
@@ -167,7 +197,7 @@
 
   if (!topic) {
     $("status").textContent = "Enllaç sense codi de partit.";
-    $("open").hidden = true; $("share").hidden = true; $("wait").hidden = true; $("cheer-note").hidden = true;
+    $("open").hidden = true; $("share").hidden = true; $("tv").hidden = true; $("wait").hidden = true; $("cheer-note").hidden = true;
     $("nocode").hidden = false;
     $("code-f").onsubmit = function (ev) {
       ev.preventDefault();
@@ -181,6 +211,28 @@
   $("open").href = "intent://live/" + topic + "#Intent;scheme=voleisantpedor;package=" + PKG +
     ";S.browser_fallback_url=" + encodeURIComponent(location.href) + ";end";
   if (!/Android/i.test(navigator.userAgent)) $("open").hidden = true;
+  // 📺 Pantalla gran: full screen, the screen kept awake, the address with ?tv=1 to open it like this again
+  var wake = null;
+  function tv(on) {
+    document.body.classList.toggle("tv", on);
+    try { history.replaceState(null, "", location.pathname + (on ? "?tv=1" : "") + location.hash); } catch (e) {}
+    if (on) {
+      var el = document.documentElement;
+      if (el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(function () {});
+      if (navigator.wakeLock) navigator.wakeLock.request("screen").then(function (w) { wake = w; }).catch(function () {});
+    } else {
+      if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(function () {});
+      if (wake) { wake.release().catch(function () {}); wake = null; }
+    }
+  }
+  $("tv").onclick = function () { tv(true); };
+  $("tvexit").onclick = function () { tv(false); };
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && document.body.classList.contains("tv")) tv(false); });
+  // the screen lock is dropped when the tab is hidden: ask again when it comes back
+  document.addEventListener("visibilitychange", function () {
+    if (!document.hidden && document.body.classList.contains("tv") && navigator.wakeLock) navigator.wakeLock.request("screen").then(function (w) { wake = w; }).catch(function () {});
+  });
+  if (/[?&]tv=1\b/.test(location.search)) document.body.classList.add("tv");
   $("share").onclick = function () {
     var url = location.origin + location.pathname + "#" + topic;
     if (navigator.share) navigator.share({ title: document.title, url: url }).catch(function () {});

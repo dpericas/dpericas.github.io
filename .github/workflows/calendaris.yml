@@ -1,0 +1,43 @@
+# 📅 Subscribable calendars: one .ics per team in cal/ (iPhone / Google Calendar subscribe to it and
+# update by themselves). Every hour and on demand. Uses the same service account secrets as the web
+# push job (WEBPUSH_SERVICE_EMAIL / WEBPUSH_SERVICE_PASSWORD); until they exist it does nothing.
+# It commits only when a team's matches changed.
+name: Calendaris dels equips
+
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch: {}
+
+concurrency:
+  group: calendaris
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python .github/scripts/calendars.py
+        env:
+          WEBPUSH_SERVICE_EMAIL: ${{ secrets.WEBPUSH_SERVICE_EMAIL }}
+          WEBPUSH_SERVICE_PASSWORD: ${{ secrets.WEBPUSH_SERVICE_PASSWORD }}
+      - name: Commit the calendars that changed
+        run: |
+          if [ -d cal ] && [ -n "$(git status --porcelain cal)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add cal
+            git commit -q -m "Calendaris dels equips actualitzats"
+            git pull -q --rebase
+            git push -q
+          else
+            echo "No changes."
+          fi

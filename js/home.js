@@ -15,6 +15,12 @@
   };
 
   // ---------- notices
+  /** Who signs a notice ("signatura"): «Junta», «Entrenador/a», the club, or the short name ("Maria P."); never the full name. Pure: tested. */
+  VSP.signedBy = function (o) {
+    var s = o.signatura;
+    if (s === "junta" || s === "entrenador" || s === "club") return VSP.t("sig." + s);
+    return o.autorNom ? VSP.shortPerson(o.autorNom) : "";
+  };
   var publicNotices = [], privateNotices = [];
   VSP.renderNotices = function (list) { if (list) publicNotices = list; draw(); };
   VSP.setPrivateNotices = function (list) { privateNotices = list || []; draw(); };
@@ -25,7 +31,7 @@
     $("avisos").innerHTML = list.length ? list.map(function (o) {
       var link = VSP.safeUrl(o.enllac);
       return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
-        '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + "</div>" +
+        '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (VSP.signedBy(o) ? " · " + esc(VSP.signedBy(o)) : "") + "</div>" +
         (o.text ? "<p>" + VSP.waFormat(esc(o.text)) + "</p>" : "") +
         (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a></p>" : "") +
         (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">' + esc(VSP.t("home.see_image")) + "</button></p>" : "") +
@@ -130,6 +136,24 @@
         '<span class="btn primary small">' + esc(conv ? VSP.t("ag.conv") : VSP.t("home.see_match")) + "</span>" +
         '<span class="info">★ ' + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") + "</span></a>";
     }).join("") : '<div class="empty">' + esc(VSP.t("home.next_none")) + "</div>";
+    // 📅 the whole season of each ★ team in the phone's calendar (files written by .github/workflows/calendaris.yml)
+    var cal = favs.filter(function (id) { return VSP.calTeams.indexOf(id) >= 0; });
+    if (cal.length) $("next").innerHTML += '<div class="calsub"><p class="muted">' + esc(VSP.t("cal.text")) + '</p><div class="row">' + cal.map(function (id) {
+      return '<a class="btn ghost small" href="' + esc(VSP.calUrl(id)) + '" target="_blank" rel="noopener">📅 ' + esc(VSP.teamName(id)) + "</a>";
+    }).join("") + "</div></div>";
+  };
+  /** Teams with a subscribable calendar (cal/index.json) and its address: webcal:// on Apple devices, Google Calendar elsewhere. */
+  VSP.calTeams = [];
+  VSP.calUrl = function (id, apple) {
+    var ics = location.host + location.pathname.replace(/[^/]*$/, "") + "cal/" + id + ".ics";
+    if (apple === undefined) apple = VSP.isIOS || /Macintosh/.test(navigator.userAgent);
+    return apple ? "webcal://" + ics : "https://calendar.google.com/calendar/render?cid=" + encodeURIComponent("webcal://" + ics);
+  };
+  VSP.loadCalendars = function () {
+    return VSP.getJson("cal/index.json").then(function (o) {
+      VSP.calTeams = (o && Array.isArray(o.teams) ? o.teams : []).map(Number);
+      VSP.renderNext();
+    }).catch(function () {});
   };
   VSP.on("favs", function () { VSP.renderNext(); });
   VSP.on("convs", function () { VSP.renderNext(); });

@@ -73,6 +73,7 @@
     VSP.renderAgendaTab();
     VSP.renderToday();
     VSP.renderNext();
+    VSP.loadCalendars();
     VSP.renderFriendlies();
     VSP.renderOrders();
     $("tips-link").hidden = !VSP.featureOn("consells");
@@ -81,6 +82,7 @@
     return d;
   }).catch(function (e) { if (window.console) console.error(e); });
   VSP.route();
+  if (VSP.maybeWelcome) VSP.maybeWelcome();
 
   // memberships: approved teams → team-only notices and full call-ups; then the status chips
   VSP.loaded.then(function () {

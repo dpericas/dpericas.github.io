@@ -8,7 +8,7 @@
   var VSP = window.VSP, $ = VSP.$, esc = VSP.esc;
 
   /** Remembered to fill forms again (names, phone) and small UI state: "Esborra les dades desades". */
-  VSP.SAVED_DATA_KEYS = ["cp_name", "cp_phone", "tip_name", "ord_name", "pp_name", "rc_closed", "ios-install-closed", "teams", "tab", "ag_mine"];
+  VSP.SAVED_DATA_KEYS = ["cp_name", "cp_phone", "tip_name", "ord_name", "pp_name", "rc_closed", "ios-install-closed", "teams", "tab", "ag_mine", "welcomed", "who"];
   /** This browser's identity: "Desconnecta" (after leaving the teams). mem_* keys go too. */
   VSP.SESSION_KEYS = ["fb_uid", "fb_refresh", "cache_data", "cp_mine"];
 
@@ -115,6 +115,7 @@
         '<p class="muted">' + esc(T("pf.update_note")) + "</p>" +
         (VSP.isIOS ? "" : linkRow("app/", T("pf.app"), T("pf.app_sub"))) +
         linkRow("manual/", T("pf.manual"), T("pf.manual_sub")) +
+        linkRow("#benvinguda", T("wel.again"), T("wel.again_sub")) +
         linkRow("privacitat/", T("pf.privacy_page"), T("pf.privacy_page_sub")) + "</section>";
       bind();
       if (pushOk) VSP.renderPush($("push-box"));
