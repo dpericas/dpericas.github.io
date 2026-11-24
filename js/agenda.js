@@ -115,7 +115,7 @@
     var teams = (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + " – " + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>");
     var conv = VSP.convocations[m.id];
     return '<a class="match" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '"><span class="t">' + esc(m.time || "--:--") + "</span>" +
-      '<span class="teams">' + teams + "</span>" + (res || '<svg class="ic chev go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>') +
+      '<span class="teams">' + teams + "</span>" + (res || '<span class="go" aria-hidden="true">›</span>') +
       '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home_l" : "ag.away_l")) +
       (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") +
       (m.round ? " · " + esc(VSP.t("ag.round_short", m.round)) : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") +

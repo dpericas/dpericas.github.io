@@ -25,7 +25,7 @@
     $("avisos").innerHTML = list.length ? list.map(function (o) {
       var link = VSP.safeUrl(o.enllac);
       return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
-        '<div class="meta parts"><span>' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + "</span>" + (o.autorNom ? "<span>" + esc(o.autorNom) + "</span>" : "") + "</div>" +
+        '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (o.autorNom ? " · " + esc(o.autorNom) : "") + "</div>" +
         (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
         (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a></p>" : "") +
         (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">' + esc(VSP.t("home.see_image")) + "</button></p>" : "") +
@@ -73,10 +73,9 @@
     $("act-sec").hidden = !list.length;
     $("activitats").innerHTML = list.map(function (o) {
       var link = VSP.safeUrl(o.enllac), maps = VSP.directionsUrl(o.adreca || o.lloc);
-      var when = VSP.fmtDate(o.data) + (o.hora ? ", " + o.hora : "") + (o.fins && o.fins !== o.data ? " – " + VSP.fmtDate(o.fins) : "");
-      // the parts of the line sit apart by spacing (meta.parts), not joined with dots
-      return '<div class="item"><h3>' + esc(o.titol) + '</h3><div class="meta parts"><span>' + esc(when) + "</span>" +
-        (o.lloc ? "<span>" + esc(o.lloc) + "</span>" : "") + "</div>" + (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
+      var when = VSP.fmtDate(o.data) + (o.hora ? " · " + o.hora : "") + (o.fins && o.fins !== o.data ? " – " + VSP.fmtDate(o.fins) : "");
+      return '<div class="item"><h3>' + esc(o.titol) + '</h3><div class="meta">' + esc(when) +
+        (o.lloc ? " · " + esc(o.lloc) : "") + "</div>" + (o.text ? "<p>" + esc(o.text) + "</p>" : "") +
         '<p class="row">' + (link ? '<a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a>" : "") +
         (maps && (o.lloc || o.adreca) ? '<a href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") + "</p>" +
         VSP.chips(VSP.teamsOf(o)) + "</div>";
@@ -93,8 +92,8 @@
       return '<div class="res"><span class="h' + (hw ? " win" : "") + '">' + esc(o.local) + "</span>" +
         '<span class="score">' + esc(o.sets_local) + " – " + esc(o.sets_visitant) + "</span>" +
         '<span class="a' + (hw ? "" : " win") + '">' + esc(o.visitant) + "</span>" +
-        '<div class="meta parts"><span>' + esc(VSP.fmtDate(o.data)) + "</span>" + (o.parcials ? "<span>" + esc(o.parcials) + "</span>" : "") +
-        (o.competicio ? "<span>" + esc(String(o.competicio).split(" · ").join(", ")) + "</span>" : "") + "</div></div>";
+        '<div class="meta">' + esc(VSP.fmtDate(o.data)) + (o.parcials ? " · " + esc(o.parcials) : "") +
+        (o.competicio ? " · " + esc(o.competicio) : "") + "</div></div>";
     }).join("");
   };
 
