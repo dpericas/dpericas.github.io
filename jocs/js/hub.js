@@ -471,31 +471,57 @@
 
   var MILESTONE_TEXT = { 3: t("pet.lv3"), 5: t("pet.lv5"), 8: t("pet.lv8"), 10: t("pet.lv10") };
   function renderPet() {
+    // 🍎 the daily item and the festivity special (once a day, like opening the app)
+    P.earnPet("DAILY"); P.earnPet("FESTIVE");
+    function bar(key, cls) { return '<div class="jg-stat"><b>' + esc(t("pet." + key)) + '</b><div class="jg-bar ' + cls + '"><i id="jg-pet-' + key + '"></i></div></div>'; }
     var body = page(t("hub.pet"),
       '<div class="jg-center"><p class="jg-big" id="jg-pet-level"></p><div class="jg-bar xp"><i id="jg-pet-xpbar"></i></div><p class="jg-small" id="jg-pet-xp"></p>' +
       '<button type="button" class="jg-pet" id="jg-pet" aria-label="' + esc(t("pet.aria")) + '"></button>' +
       '<p class="jg-bubble" id="jg-pet-bubble" aria-live="polite"></p></div>' +
-      '<div class="jg-stat"><b>' + esc(t("pet.food")) + '</b><div class="jg-bar food"><i id="jg-pet-food"></i></div></div>' +
-      '<div class="jg-stat"><b>' + esc(t("pet.joy")) + '</b><div class="jg-bar joy"><i id="jg-pet-joy"></i></div></div>' +
+      bar("food", "food") + bar("joy", "joy") + bar("energy", "energy") + bar("clean", "clean") + bar("fit", "fit") +
       '<button type="button" class="jg-btn primary wide big" id="jg-feed">' + esc(t("pet.feed")) + "</button>" +
-      '<p class="jg-small jg-center" id="jg-feed-wait"></p><div id="jg-milestone"></div>' +
+      '<p class="jg-small jg-center" id="jg-feed-wait"></p>' +
+      '<div class="jg-care"><button type="button" class="jg-btn" id="jg-nap">' + esc(t("pet.nap")) + '</button>' +
+      '<button type="button" class="jg-btn" id="jg-shower">' + esc(t("pet.shower")) + "</button></div>" +
+      '<p class="jg-small jg-center" id="jg-care-wait"></p>' +
+      '<div class="jg-inv"><h3>' + esc(t("pet.inventory")) + '</h3><div id="jg-inv"></div>' +
+      '<p class="jg-acc"><b>' + esc(t("pet.earn_title")) + '</b></p><p class="jg-small jg-pre">' + esc(t("pet.earn_list")) + "</p></div>" +
+      '<div id="jg-milestone"></div>' +
       '<p class="jg-small jg-center">' + esc(t("pet.train")) + "</p>");
     var petBtn = VSP.$("jg-pet");
     var widget = VSPG.piliWidget(petBtn, 240, { mood: "happy", style: "green", shadow: true });
-    var message = null, msgTimer = 0, cheerTimer = 0, cheer = false, lastTickle = 0;
+    var message = null, msgTimer = 0, cheerTimer = 0, cheer = false, lastTickle = 0, invKey = null;
     function update() {
       if (!document.body.contains(petBtn)) return;
       var now = P.nowSec(), pet = P.petState(now), level = P.pet.level(pet.xp);
       VSP.$("jg-pet-level").textContent = t("pet.level", level);
       VSP.$("jg-pet-xpbar").style.width = Math.round(P.pet.levelProgress(pet.xp) * 100) + "%";
       VSP.$("jg-pet-xp").textContent = t("pet.xp", pet.xp, P.pet.xpFor(level + 1), level + 1);
-      VSP.$("jg-pet-food").style.width = Math.round(pet.food * 100) + "%";
-      VSP.$("jg-pet-joy").style.width = Math.round(pet.joy * 100) + "%";
+      ["food", "joy", "energy", "clean", "fit"].forEach(function (k) { VSP.$("jg-pet-" + k).style.width = Math.round(pet[k] * 100) + "%"; });
       widget.set({ mood: cheer ? "cheer" : P.pet.mood(pet) });
-      VSP.$("jg-pet-bubble").textContent = message || (pet.food < 0.25 ? t("pet.hungry") : pet.joy < 0.2 ? t("pet.bored") : t("pet.tap"));
+      var need = P.pet.need(pet);
+      VSP.$("jg-pet-bubble").textContent = message || t({ food: "pet.hungry", joy: "pet.bored", energy: "pet.tired", clean: "pet.dirty" }[need] || "pet.tap");
       var can = P.pet.canFeed(pet, now);
       VSP.$("jg-feed").disabled = !can;
       VSP.$("jg-feed-wait").textContent = can ? "" : t("pet.feed_wait", P.pet.formatWait(P.pet.feedWait(pet, now)));
+      var canNap = P.pet.canNap(pet, now), canShower = P.pet.canShower(pet, now);
+      VSP.$("jg-nap").disabled = !canNap; VSP.$("jg-shower").disabled = !canShower;
+      VSP.$("jg-care-wait").textContent = [
+        canNap ? "" : t("pet.nap_wait", P.pet.formatWait(Math.max(0, P.pet.NAP_EVERY - (now - pet.lastNap)))),
+        canShower ? "" : t("pet.shower_wait", P.pet.formatWait(Math.max(0, P.pet.SHOWER_EVERY - (now - pet.lastShower))))
+      ].filter(Boolean).join("\n");
+      // 🎒 redrawn only when it changes (keeps the focus on the buttons)
+      var owned = P.PET_ITEMS.filter(function (x) { return (pet.inv[x.id] || 0) > 0; });
+      var key = owned.map(function (x) { return x.id + pet.inv[x.id]; }).join(",");
+      if (key !== invKey) {
+        invKey = key;
+        VSP.$("jg-inv").innerHTML = owned.length ? '<p class="jg-small">' + esc(t("pet.inventory_hint")) + '</p><div class="jg-items">' +
+          owned.map(function (x) {
+            return '<button type="button" class="jg-item" data-item="' + esc(x.id) + '" aria-label="' + esc(x.name + " ×" + pet.inv[x.id]) + '">' +
+              '<span class="e">' + x.emoji + '</span><span class="n">×' + pet.inv[x.id] + '</span><span class="l">' + esc(x.name) + "</span></button>";
+          }).join("") + "</div>"
+          : '<p class="jg-small">' + esc(t("pet.inventory_empty")) + "</p>";
+      }
       var ms = P.pet.milestone(level), next = P.pet.nextMilestone(level);
       VSP.$("jg-milestone").innerHTML = (ms ? '<p class="jg-milestone">' + esc(MILESTONE_TEXT[ms]) + "</p>" : "") +
         (next ? '<p class="jg-acc jg-center jg-small">' + esc(t("pet.next_msg", next)) + "</p>" : "");
@@ -510,6 +536,18 @@
     }
     function freshMedals() {
       return P.checkMedals().map(function (id) { var m = P.medal(id); return t("rew.medal", m.emoji + " " + m.title); }).join("\n");
+    }
+    /** Nap, shower or an item: [change] gives the new state; [said] is her answer. */
+    function care(change, said) {
+      var now = P.nowSec(), before = P.petState(now), after = change(before, now);
+      if (JSON.stringify(after) === JSON.stringify(before)) { update(); return; }
+      P.savePet(after, false);
+      var m = freshMedals();
+      say(said + (m ? "\n" + m : ""));
+      cheerUp();
+      try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+      P.sync.pushAsync();
+      update();
     }
     petBtn.onclick = function () {
       try { if (navigator.vibrate) navigator.vibrate(10); } catch (e) {}
@@ -535,6 +573,14 @@
       say(t("pet.yum") + (m ? "\n" + m : ""));
       cheerUp();
       update();
+    };
+    VSP.$("jg-nap").onclick = function () { care(P.pet.nap, t("pet.nap_done")); };
+    VSP.$("jg-shower").onclick = function () { care(P.pet.shower, t("pet.shower_done")); };
+    VSP.$("jg-inv").onclick = function (e) {
+      var b = e.target.closest && e.target.closest("[data-item]");
+      if (!b) return;
+      var x = P.pet.item(b.getAttribute("data-item"));
+      if (x) care(function (s, now) { return P.pet.use(s, x.id, now); }, t("pet.used", x.emoji + " " + x.name));
     };
     update();
     petTimers.push(setInterval(update, 20000));

@@ -258,6 +258,7 @@
     { id: "ALBUM_10", emoji: "📒", secret: false },
     { id: "ALBUM_FULL", emoji: "📚", secret: false },
     { id: "PET_5", emoji: "🐣", secret: false },
+    { id: "PET_CARE", emoji: "💚", secret: false },
     { id: "QUIZ_TOP", emoji: "🧠", secret: false },
     { id: "REFEREE", emoji: "🟨", secret: false },
     { id: "BEACH", emoji: "🏖️", secret: false },
@@ -299,6 +300,7 @@
       case "ALBUM_10": return (s.cromos || 0) >= 10;
       case "ALBUM_FULL": return (s.cromosTotal || 0) > 0 && (s.cromos || 0) >= s.cromosTotal;
       case "PET_5": return (s.petLevel || 1) >= 5;
+      case "PET_CARE": return (s.careStreak || 0) >= P.pet.CARE_DAYS;
       case "QUIZ_TOP": return P.stars("quiz", bests) >= P.MAX_STARS_PER_GAME;
       case "REFEREE": return P.stars("arbitre", bests) >= 4;
       case "BEACH": return P.stars("platja", bests) >= P.MAX_STARS_PER_GAME;
@@ -465,9 +467,63 @@
       d.fit = clamp01(d.fit + 0.08); d.energy = clamp01(d.energy - 0.05); return d;
     },
     mood: function (s) {
-      if (s.food < 0.25 || s.joy < 0.2) return "sad";
-      if (s.joy > 0.75 && s.food > 0.5) return "cheer";
+      if (s.energy < 0.12) return "sleep";
+      if (s.food < 0.25 || s.joy < 0.2 || s.clean < 0.15) return "sad";
+      if (s.joy > 0.75 && s.food > 0.5 && s.energy > 0.4) return "cheer";
       return "happy";
+    },
+    // ---- the app's other indicators, naps, showers and the inventory (PetLogic in extras/Progress.kt)
+    NAP_EVERY: 4 * 3600,
+    SHOWER_EVERY: 6 * 3600,
+    MAX_ITEM: 20,
+    CARE_DAYS: 7,
+    canNap: function (s, now) { return now - (s.lastNap || 0) >= P.pet.NAP_EVERY; },
+    canShower: function (s, now) { return now - (s.lastShower || 0) >= P.pet.SHOWER_EVERY; },
+    nap: function (s, now) {
+      var d = P.pet.decay(s, now);
+      if (!P.pet.canNap(d, now)) return d;
+      d.energy = clamp01(d.energy + 0.6); d.xp += 2; d.lastNap = now; return d;
+    },
+    shower: function (s, now) {
+      var d = P.pet.decay(s, now);
+      if (!P.pet.canShower(d, now)) return d;
+      d.clean = 1; d.joy = clamp01(d.joy + 0.05); d.xp += 2; d.lastShower = now; return d;
+    },
+    addItem: function (s, id) {
+      s = copyPet(s);
+      if (!P.pet.item(id)) return s;
+      s.inv[id] = Math.min(P.pet.MAX_ITEM, (s.inv[id] || 0) + 1); return s;
+    },
+    use: function (s, id, now) {
+      var it = P.pet.item(id), n = (s && s.inv && s.inv[id]) || 0;
+      if (!it || n <= 0) return copyPet(s);
+      var d = P.pet.decay(s, now);
+      d.food = clamp01(d.food + (it.food || 0)); d.joy = clamp01(d.joy + (it.joy || 0)); d.energy = clamp01(d.energy + (it.energy || 0));
+      d.clean = clamp01(d.clean + (it.clean || 0)); d.fit = clamp01(d.fit + (it.fit || 0)); d.xp += it.xp == null ? 2 : it.xp;
+      if (n === 1) delete d.inv[id]; else d.inv[id] = n - 1;
+      return d;
+    },
+    /** The indicator she needs most ("food" | "joy" | "energy" | "clean") or null. */
+    need: function (s) {
+      var best = null, v = 1;
+      [["food", s.food / 0.25], ["joy", s.joy / 0.2], ["energy", s.energy / 0.2], ["clean", s.clean / 0.2]].forEach(function (x) {
+        if (x[1] < v) { v = x[1]; best = x[0]; }
+      });
+      return best;
+    },
+    wellCared: function (s) { return s.food >= 0.5 && s.joy >= 0.5 && s.energy >= 0.4 && s.clean >= 0.4; },
+    item: function (id) { for (var i = 0; i < PET_ITEMS.length; i++) if (PET_ITEMS[i].id === id) return PET_ITEMS[i]; return null; },
+    /** The special item of each festivity (PetItems.festive). */
+    festive: function (f) {
+      return { CASTANYADA: "castanyes", NADAL: "torro", CARNAVAL: "bunyol", PASQUA: "mona", SANT_JORDI: "rosa",
+        FESTA_MAJOR: "pastis", SANT_JOAN: "coca", DIADA: "patomaquet" }[f] || null;
+    },
+    /** PetLogic.reward: the item a source gives now, or null over today's cap. */
+    reward: function (source, givenToday, rnd, festivity) {
+      var src = P.PET_SOURCES[source];
+      if (!src || givenToday >= src.cap) return null;
+      if (source === "FESTIVE") return P.pet.festive(festivity);
+      return src.pool[Math.min(src.pool.length - 1, Math.floor((rnd || Math.random)() * src.pool.length))];
     },
     milestone: function (level) { var m = null; P.pet.MILESTONES.forEach(function (x) { if (level >= x) m = x; }); return m; },
     nextMilestone: function (level) { for (var i = 0; i < P.pet.MILESTONES.length; i++) if (P.pet.MILESTONES[i] > level) return P.pet.MILESTONES[i]; return null; },
@@ -482,12 +538,31 @@
     }
   };
   function clamp01(v) { v = Number(v); if (!(v === v)) return 0; return Math.max(0, Math.min(1, v)); }
-  var PET_ITEMS = ["poma", "entrepa", "platan", "isotonic", "crispetes", "croissant", "batut", "pilota", "sabo", "llaminadura"];
+  function it(id, emoji, o) { o = o || {}; o.id = id; o.emoji = emoji; return o; }
+  /** PetItems.ALL: what each item does (same order as the app). */
+  var PET_ITEMS = P.PET_ITEMS = [
+    it("poma", "🍎", { food: 0.25 }), it("entrepa", "🥪", { food: 0.6, xp: 4 }), it("platan", "🍌", { food: 0.2, energy: 0.2 }),
+    it("isotonic", "🧃", { energy: 0.45 }), it("crispetes", "🍿", { joy: 0.25, food: 0.15 }), it("croissant", "🥐", { food: 0.35, joy: 0.1 }),
+    it("batut", "🥤", { fit: 0.15, food: 0.2, xp: 4 }), it("pilota", "🏐", { joy: 0.35, fit: 0.1, xp: 4 }), it("sabo", "🧼", { clean: 0.6 }),
+    it("llaminadura", "🍬", { joy: 0.2 }),
+    it("castanyes", "🌰", { food: 0.3, joy: 0.25, xp: 6 }), it("torro", "🍫", { food: 0.25, joy: 0.35, xp: 6 }),
+    it("bunyol", "🍩", { food: 0.3, joy: 0.3, xp: 6 }), it("mona", "🥚", { food: 0.25, joy: 0.4, xp: 6 }), it("rosa", "🌹", { joy: 0.5, xp: 6 }),
+    it("pastis", "🎂", { food: 0.3, joy: 0.4, xp: 6 }), it("coca", "🥧", { food: 0.35, joy: 0.3, xp: 6 }),
+    it("patomaquet", "🍅", { food: 0.5, energy: 0.1, xp: 6 }),
+    it("trofeu", "🏆", { food: 0.2, joy: 0.6, energy: 0.2, fit: 0.2, xp: 20 })
+  ];
+  PET_ITEMS.forEach(function (x) { x.name = t("pet.item." + x.id); });
+  /** PetSource: where items come from on the web (the app has more: notices, agenda, live, scoreboard, call-ups, wins). */
+  P.PET_SOURCES = {
+    GAME: { pool: ["platan", "isotonic", "pilota", "sabo"], cap: 5 },
+    DAILY: { pool: ["poma"], cap: 1 },
+    FESTIVE: { pool: [], cap: 1 }
+  };
   function copyPet(s) {
     s = s || {};
     // energy, clean, fit, naps, showers and the inventory come from the app: kept as they are
     var inv = {};
-    if (s.inv && typeof s.inv === "object") PET_ITEMS.forEach(function (k) { var n = Math.floor(Number(s.inv[k]) || 0); if (n > 0) inv[k] = Math.min(20, n); });
+    if (s.inv && typeof s.inv === "object") PET_ITEMS.forEach(function (x) { var n = Math.floor(Number(s.inv[x.id]) || 0); if (n > 0) inv[x.id] = Math.min(20, n); });
     return { xp: Math.max(0, Math.floor(Number(s.xp) || 0)), food: s.food == null ? 1 : clamp01(s.food), joy: s.joy == null ? 1 : clamp01(s.joy),
       updated: Math.floor(Number(s.updated) || 0), lastFed: Math.floor(Number(s.lastFed) || 0),
       energy: s.energy == null ? 1 : clamp01(s.energy), clean: s.clean == null ? 1 : clamp01(s.clean), fit: s.fit == null ? 0.5 : clamp01(s.fit),
@@ -666,7 +741,34 @@
   P.markMedalsSeen = function () { set("medals_seen", strList(get("medals_seen", [])).concat(P.medals()).filter(function (x, i, a) { return a.indexOf(x) === i; })); };
 
   P.petState = function (now) { return P.pet.decay(copyPet(get("pet", null)), now == null ? P.nowSec() : now); };
-  P.savePet = function (s, check) { set("pet", copyPet(s)); if (check !== false) P.checkMedals(); };
+  P.savePet = function (s, check) {
+    s = copyPet(s);
+    set("pet", s);
+    // 💚 a day she was well looked after (the last 30 are kept)
+    if (P.pet.wellCared(s)) {
+      var today = P.today(), from = P.addDays(today, -30);
+      set("pet_care", P.careDays().concat([today]).filter(function (d, i, a) { return a.indexOf(d) === i && d >= from; }));
+    }
+    if (check !== false) P.checkMedals();
+  };
+  P.careDays = function () { return strList(get("pet_care", [])).filter(P.validDay); };
+  P.careStreak = function (today) { return P.daily.streak(P.careDays(), today || P.today()); };
+  /**
+   * PetRewards.earn: one item from [source] if today's cap allows; returns its id (or null).
+   * Counters per day in "jocs_pet_rewards" ({ day, n: { SOURCE: count } }).
+   */
+  P.earnPet = function (source, opts) {
+    opts = opts || {};
+    var today = opts.today || P.today(), r = get("pet_rewards", {}) || {};
+    if (r.day !== today || typeof r.n !== "object" || !r.n) r = { day: today, n: {} };
+    var id = P.pet.reward(source, r.n[source] || 0, opts.rnd, source === "FESTIVE" ? P.festivityOn(today) : null);
+    if (!id) return null;
+    r.n[source] = (r.n[source] || 0) + 1;
+    set("pet_rewards", r);
+    var now = opts.now != null ? opts.now : P.nowSec();
+    P.savePet(P.pet.addItem(P.petState(now), id), false);
+    return id;
+  };
 
   /** Teams where this browser is an approved member (localStorage "mem_approved", written by js/member.js). */
   P.approvedTeams = function () {
@@ -715,7 +817,7 @@
 
   P.stats = function () {
     return { bests: P.bests(), counters: P.counters(), streak: P.streak(), cromos: P.uniqueCromos(),
-      cromosTotal: P.REGULAR.length, petLevel: P.pet.level(P.petState().xp), team: P.team() };
+      cromosTotal: P.REGULAR.length, petLevel: P.pet.level(P.petState().xp), team: P.team(), careStreak: P.careStreak() };
   };
   P.leaguePoints = function () { return P.leaguePointsOf(P.totalStars(P.bests()), P.medals().length, P.uniqueCromos()); };
 
@@ -795,10 +897,11 @@
     }
     var now = opts.now != null ? opts.now : P.nowSec();
     P.savePet(P.pet.trained(P.petState(now), now, newStars), false);
+    var petItem = P.earnPet("GAME", { now: now, today: today, rnd: rnd });   // 🎁 an item for the Pili (up to 5 a day)
     var medals = P.checkMedals();
     if (newStars > 0 || cromos.length) P.markPending();
     var r = { game: g, score: score, record: record, newStars: newStars, stars: P.stars(g, after), medals: medals,
-      cromos: cromos, opened: P.newlyOpened(before, after), dailyBest: dailyBest };
+      cromos: cromos, opened: P.newlyOpened(before, after), dailyBest: dailyBest, petItem: petItem };
     P.last = r;
     P.sync.pushAsync();   // with a saved code: keep it up to date
     VSPG.emit("progress");
@@ -810,6 +913,7 @@
     var out = [];
     if (!r) return out;
     if (r.newStars > 0) out.push(t("rew.stars", r.newStars, r.stars));
+    if (r.petItem && P.pet.item(r.petItem)) out.push(t("pet.earned", P.pet.item(r.petItem).emoji + " " + P.pet.item(r.petItem).name));
     (r.opened || []).forEach(function (g) { out.push(t("rew.opened", P.title(g))); });
     (r.secretOpened || []).forEach(function (f) {
       var sg = VSPG.secret && VSPG.secret.game(f);

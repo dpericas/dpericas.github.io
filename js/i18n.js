@@ -48,6 +48,13 @@
     "home.close_msg": ["Tancar el missatge", "Cerrar el mensaje", "Close the message"],
     "home.see_image": ["🖼️ Veure la imatge", "🖼️ Ver la imagen", "🖼️ See the image"],
     "home.document": ["Document", "Documento", "Document"],
+    "home.notices_new.one": ["{0} avís nou", "{0} aviso nuevo", "{0} new notice"],
+    "home.notices_new.other": ["{0} avisos nous", "{0} avisos nuevos", "{0} new notices"],
+    "home.notices_more.one": ["Toca «Avisos» per veure'n {0} més.", "Toca «Avisos» para ver {0} más.", "Tap «Notices» to see {0} more."],
+    "home.notices_more.other": ["Toca «Avisos» per veure'n {0} més.", "Toca «Avisos» para ver {0} más.", "Tap «Notices» to see {0} more."],
+    "pf.notices": ["Avisos del club", "Avisos del club", "Club notices"],
+    "pf.notices_urgent": ["Mostra sempre els urgents ⚠️", "Mostrar siempre los urgentes ⚠️", "Always show the urgent ones ⚠️"],
+    "pf.notices_note": ["A l'Inici, els avisos surten plegats amb el comptador dels nous. Amb això, els urgents es veuen igualment.", "En Inicio, los avisos salen plegados con el contador de nuevos. Con esto, los urgentes se ven igualmente.", "On Home, notices are folded with a counter of new ones. With this on, urgent ones are still shown."],
     "home.no_notices": ["Ara mateix no hi ha avisos.", "Ahora mismo no hay avisos.", "There are no notices right now."],
     "home.downloading": ["Baixant…", "Descargando…", "Downloading…"],
     "home.doc_members_only": ["Document només per als membres de l'equip", "Documento solo para los miembros del equipo", "Document for team members only"],
@@ -243,6 +250,7 @@
     "mem.link_make": ["🔗 Connecta un altre dispositiu", "🔗 Conecta otro dispositivo", "🔗 Connect another device"],
     "idx.c_devices": ["🔗 Els meus dispositius", "🔗 Mis dispositivos", "🔗 My devices"],
     "idx.c_devices_sub": ["El mateix compte al web i a l'app, en tots els teus dispositius", "La misma cuenta en la web y en la app, en todos tus dispositivos", "The same account on the website and the app, on all your devices"],
+    "dev.new": ["📱 S'ha connectat un dispositiu nou als teus equips. Si no ets tu, desconnecta'l a «Els meus dispositius».", "📱 Se ha conectado un dispositivo nuevo a tus equipos. Si no eres tú, desconéctalo en «Mis dispositivos».", "📱 A new device was linked to your teams. If it wasn't you, disconnect it in «My devices»."],
     "dev.title": ["🔗 Els meus dispositius", "🔗 Mis dispositivos", "🔗 My devices"],
     "dev.intro": ["Fes servir el web o l'app en més d'un dispositiu (l'iPhone, el mòbil, la tauleta, l'ordinador) com si fossin un de sol. Quedaran enllaçats per sempre.", "Usa la web o la app en más de un dispositivo (el iPhone, el móvil, la tableta, el ordenador) como si fueran uno solo. Quedarán enlazados para siempre.", "Use the website or the app on more than one device (iPhone, phone, tablet, computer) as if they were one. They stay linked for good."],
     "dev.add_title": ["Afegir un altre dispositiu", "Añadir otro dispositivo", "Add another device"],
@@ -687,6 +695,7 @@
   VSP.setLang = function (lang) {
     if (LANGS.indexOf(lang) < 0 || lang === VSP.lang) return;
     store("lang", lang);
+    store("lang_at", String(Date.now()));   // the linked devices follow it (js/member.js)
     if (VSP.reload) VSP.reload(); else location.reload();
   };
 

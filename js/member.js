@@ -176,10 +176,12 @@
    * 🔗 Devices linked for good (members/SharedProfile.kt ProfileLogic, same format): perfils/{KEY} (16
    * random characters, only the linked devices know it). ★ teams and «Qui ets?»: the last change wins;
    * teams: the main device's ones (a linked device joins / leaves them); games code; "disp" = devices
-   * and when last seen; "fora" = devices the main one disconnected. Pure: tested with node.
+   * and when last seen; "fora" = devices the main one disconnected; "vistos" = notices seen on any
+   * device; "idioma" and "alertes": the last change wins. Pure: tested with node.
    */
   var P = VSP.profileLogic = {
     KEY_LEN: 16, WHO: ["player", "family", "coach", "board", "fan"],
+    MAX_SEEN: 80, MAX_SEEN_ID: 64, LANGS: ["ca", "es", "en"], ALERTS: ["avisos", "recordatoris", "convocatories"],
     newKey: function (bytes) { var s = ""; for (var i = 0; i < 16; i++) s += CODE_ALPHABET.charAt(bytes[i] % CODE_ALPHABET.length); return s; },
     validKey: function (k) {
       if (typeof k !== "string" || k.length !== 16) return false;
@@ -206,6 +208,15 @@
         qui: qui, quiAt: Number(o.quiAt) || 0 };
       if (typeof o.jocs === "string" && GAMES_CODE.test(o.jocs)) out.jocs = o.jocs;
       out.disp = disp; out.fora = fora;
+      var vistos = [];
+      (Array.isArray(o.vistos) ? o.vistos : []).map(function (x) { return String(x).trim(); }).forEach(function (x) {
+        if (x && x.length <= P.MAX_SEEN_ID && vistos.indexOf(x) < 0) vistos.push(x);
+      });
+      out.vistos = vistos.slice(-P.MAX_SEEN);
+      if (P.LANGS.indexOf(o.idioma) >= 0) { out.idioma = o.idioma; out.idiomaAt = Number(o.idiomaAt) || 0; }
+      var al = {}, has = false, a = o.alertes && typeof o.alertes === "object" ? o.alertes : {};
+      P.ALERTS.forEach(function (k) { if (typeof a[k] === "boolean") { al[k] = a[k]; has = true; } });
+      if (has) { out.alertes = al; out.alertesAt = Number(o.alertesAt) || 0; }
       return out;
     },
     parse: function (json) { var o; try { o = JSON.parse(json); } catch (e) { return null; } return o && typeof o === "object" ? P.clean(o) : null; },
@@ -214,8 +225,10 @@
       return x.length === y.length && x.every(function (v, i) { return String(v) === String(y[i]); });
     },
     /**
-     * local = {uid, kind, today, favs, favsAt, qui, quiAt, jocs, nom?, equips? (main device only)} →
-     * {favs?, favsAt, qui?, quiAt, jocs?, upload (profile or null), removed}.
+     * local = {uid, kind, today, favs, favsAt, qui, quiAt, jocs, nom?, equips? (main device only),
+     * vistos?, idioma?, idiomaAt?, alertes?, alertesAt?} →
+     * {favs?, favsAt, qui?, quiAt, jocs?, vistos? (to add here), idioma?, idiomaAt, alertes? (the ones
+     * that differ here), alertesAt, upload (profile or null), removed}.
      */
     merge: function (remote, local) {
       remote = P.clean(remote);
@@ -230,9 +243,37 @@
       if (!remote.jocs && local.jocs) out.jocs = local.jocs;
       out.fora.forEach(function (u) { delete out.disp[u]; });
       out.disp[local.uid] = { d: local.kind, vist: local.today };
+      // seen notices: everybody's (the newest kept)
+      var mine = (local.vistos || []).map(String).filter(function (x) { return x.length <= P.MAX_SEEN_ID; });
+      var add = mine.filter(function (x) { return remote.vistos.indexOf(x) < 0; }).sort();
+      if (add.length) out.vistos = remote.vistos.concat(add).slice(-P.MAX_SEEN);
+      var seen = remote.vistos.filter(function (x) { return mine.indexOf(x) < 0; });
+      if (seen.length) r.vistos = seen;
+      // language and alert switches: the last change wins
+      var lAt = Number(local.idiomaAt) || 0, rAt = remote.idiomaAt || 0;
+      r.idiomaAt = 0;
+      if (rAt > lAt) { if (remote.idioma && remote.idioma !== local.idioma) r.idioma = remote.idioma; r.idiomaAt = rAt; }
+      else if (lAt > rAt && P.LANGS.indexOf(local.idioma) >= 0) { out.idioma = local.idioma; out.idiomaAt = lAt; }
+      var aAt = Number(local.alertesAt) || 0, raAt = remote.alertesAt || 0, la = local.alertes || {};
+      r.alertesAt = 0;
+      if (raAt > aAt) {
+        var diff = {}, any = false;
+        Object.keys(remote.alertes || {}).forEach(function (k) { if (k in la && la[k] !== remote.alertes[k]) { diff[k] = remote.alertes[k]; any = true; } });
+        if (any) r.alertes = diff;
+        r.alertesAt = raAt;
+      } else if (aAt > raAt && Object.keys(la).length) {
+        var m = {}; Object.keys(remote.alertes || {}).forEach(function (k) { m[k] = remote.alertes[k]; });
+        P.ALERTS.forEach(function (k) { if (typeof la[k] === "boolean") m[k] = la[k]; });
+        out.alertes = m; out.alertesAt = aAt;
+      }
       out = P.clean(out);
       if (JSON.stringify(out) !== JSON.stringify(remote)) r.upload = out;
       return r;
+    },
+    /** Devices that [uid] did not know yet (known = the ones seen before; null = never looked: none is new). */
+    newDevices: function (prof, uid, known) {
+      if (!Array.isArray(known)) return [];
+      return Object.keys(prof.disp).filter(function (u) { return u !== uid && prof.fora.indexOf(u) < 0 && known.indexOf(u) < 0; });
     },
     /** Linked device: main teams to join (not here, or asked with another role) and linked teams to leave. */
     teamChanges: function (main, requested, linked, roles) {
@@ -435,12 +476,19 @@
     return VSP.fs.set("perfils/" + key, { persona: persona, owner: VSP.uid(), updated: new Date().toISOString(), dades: JSON.stringify(prof) });
   }
   function localDay(d) { function z(n) { return (n < 10 ? "0" : "") + n; } return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()); }
+  function pushPrefs() {
+    var p = VSP.storeJson("push_prefs", undefined, null) || { avisos: true, convocatories: true };
+    return { avisos: p.avisos !== false, convocatories: p.convocatories !== false };
+  }
   function profileLocal(main) {
     var games = VSP.storeJson("jocs_code", undefined, null);
     var l = { uid: VSP.uid(), kind: "web", today: localDay(new Date()),
       favs: VSP.favs(), favsAt: Number(VSP.store("favs_at")) || 0,
       qui: (VSP.savedWho && VSP.savedWho()) || [], quiAt: Number(VSP.store("who_at")) || 0,
-      jocs: typeof games === "string" && GAMES_CODE.test(games) ? games : null };
+      jocs: typeof games === "string" && GAMES_CODE.test(games) ? games : null,
+      vistos: VSP.seenNotices ? VSP.seenNotices() : VSP.storeJson("notices_seen", undefined, []) || [],
+      idioma: P.LANGS.indexOf(VSP.store("lang")) >= 0 ? VSP.store("lang") : null, idiomaAt: Number(VSP.store("lang_at")) || 0,
+      alertes: pushPrefs(), alertesAt: Number(VSP.store("alerts_at")) || 0 };
     if (main) {
       var mine = M.mine, pl = M.players(), ap = M.approved();
       l.nom = M.name();
@@ -460,7 +508,10 @@
       VSP.store("favs_at", String(Math.max(Number(VSP.store("favs_at")) || 0, now)));
       VSP.store("who_at", String(Math.max(Number(VSP.store("who_at")) || 0, now)));
       var r = P.merge({}, profileLocal(true));
-      return profileUpload(key, VSP.uid(), r.upload || P.clean({})).then(function () { VSP.store("mem_perfil", key); return key; });
+      return profileUpload(key, VSP.uid(), r.upload || P.clean({})).then(function () {
+        VSP.store("mem_perfil", key); VSP.storeJson("mem_perfil_known", []);   // the first device linked to it is new
+        return key;
+      });
     });
   };
   /** Brings the other devices' changes and sends this browser's. Resolves true if something changed here. */
@@ -479,11 +530,24 @@
       if (r.qui) { VSP.storeJson("who", r.qui); changed = true; }
       if (r.quiAt) VSP.store("who_at", String(r.quiAt));
       if (r.jocs) VSP.storeJson("jocs_pending_code", r.jocs);
+      if (r.vistos) { if (VSP.addSeenNotices) VSP.addSeenNotices(r.vistos, true); else VSP.storeJson("notices_seen", (VSP.storeJson("notices_seen", undefined, []) || []).concat(r.vistos).slice(-300)); changed = true; }
+      if (r.idioma) VSP.store("lang", r.idioma);   // used from the next time the web opens
+      if (r.idiomaAt) VSP.store("lang_at", String(r.idiomaAt));
+      if (r.alertes) { if (VSP.applyPushPrefs) VSP.applyPushPrefs(r.alertes); else VSP.storeJson("push_prefs", Object.assign(pushPrefs(), r.alertes)); }
+      if (r.alertesAt) VSP.store("alerts_at", String(r.alertesAt));
+      if (main) newDevices(r.upload || remote);
       return (r.upload ? profileUpload(key, persona, r.upload).catch(function () {}) : Promise.resolve()).then(function () {
         return main ? changed : followTeams(key, persona, remote).then(function (t) { return changed || t; });
       }).then(function (any) { if (r.favs) VSP.emit("favs", "profile"); return any; });
     });
   };
+  /** 📱 Main browser: tells when a device it did not know joined the profile (someone used a link code). */
+  function newDevices(prof) {
+    var known = VSP.storeJson("mem_perfil_known", undefined, null);
+    var fresh = P.newDevices(prof, VSP.uid(), Array.isArray(known) ? known : null);
+    VSP.storeJson("mem_perfil_known", Object.keys(prof.disp).filter(function (u) { return u !== VSP.uid() && prof.fora.indexOf(u) < 0; }));
+    if (fresh.length) VSP.toast(VSP.t("dev.new"));
+  }
   /** Linked browser: the same teams as the main device. */
   function followTeams(key, persona, remote) {
     var linked = M.profileTeams(), ch = P.teamChanges(remote.equips, M.requested(), linked, M.roles());
@@ -553,6 +617,8 @@
   };
   VSP.on("favs", function (src) { if (src !== "profile") M.syncSoon(); });
   VSP.on("who", function () { M.syncSoon(); });
+  VSP.on("seen", function () { M.syncSoon(); });
+  VSP.on("alerts", function () { M.syncSoon(); });
 
   /** The invitation of a code (anyone with the code may read it); rejects with a message to show. */
   M.peekInvite = function (input) {

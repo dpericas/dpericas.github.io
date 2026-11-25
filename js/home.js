@@ -21,14 +21,63 @@
     if (s === "junta" || s === "entrenador" || s === "club") return VSP.t("sig." + s);
     return o.autorNom ? VSP.shortPerson(o.autorNom) : "";
   };
-  var publicNotices = [], privateNotices = [];
+  var publicNotices = [], privateNotices = [], open = false;
   VSP.renderNotices = function (list) { if (list) publicNotices = list; draw(); };
   VSP.setPrivateNotices = function (list) { privateNotices = list || []; draw(); };
-  function draw() {
+
+  /** A notice's id, the same as the app's (ClubContent.parseNotices): its "id", or "{data}_{titol}". Pure: tested. */
+  VSP.noticeId = function (o) {
+    if (o.id) return String(o.id);
+    var d = /^\d{4}-\d{2}-\d{2}$/.test(String(o.data || "")) ? o.data : "null";
+    return d + "_" + String(o.titol || "").trim();
+  };
+  /** Ids of the notices already seen here (or on a linked device: js/member.js shares them). */
+  VSP.seenNotices = function () { var a = VSP.storeJson("notices_seen", undefined, []); return Array.isArray(a) ? a.map(String) : []; };
+  /** Adds [ids] to the seen ones (the last 300 are kept); "seen" tells the shared profile. */
+  VSP.addSeenNotices = function (ids, fromProfile) {
+    var have = VSP.seenNotices(), add = (ids || []).map(String).filter(function (x) { return have.indexOf(x) < 0; });
+    if (!add.length) return false;
+    VSP.storeJson("notices_seen", have.concat(add).slice(-300));
+    if (!fromProfile) VSP.emit("seen");
+    draw();
+    return true;
+  };
+  /** ⚠️ Urgent notices stay visible while «Avisos» is folded (⚙️ Preferències; on by default). */
+  VSP.urgentAlways = function () { return VSP.store("notices_urgent") !== "0"; };
+  /** Pure: what the folded box shows. list = current notices; returns { unread, top } (top = urgent ones shown folded). Tested. */
+  VSP.foldedNotices = function (list, seen, urgentAlways) {
+    return { unread: list.filter(function (o) { return seen.indexOf(VSP.noticeId(o)) < 0; }).length,
+      top: urgentAlways ? list.filter(function (o) { return o.urgent; }) : [] };
+  };
+  function current() {
     var t = VSP.today();
-    var list = publicNotices.concat(privateNotices).filter(function (o) { return o.titol && (!o.fins || o.fins >= t); })
+    return publicNotices.concat(privateNotices).filter(function (o) { return o.titol && (!o.fins || o.fins >= t); })
       .sort(function (a, b) { return ((b.urgent ? 1 : 0) - (a.urgent ? 1 : 0)) || String(b.data || b.created || "").localeCompare(String(a.data || a.created || "")); });
-    $("avisos").innerHTML = list.length ? list.map(function (o) {
+  }
+  function draw() {
+    var list = current(), fold = $("avisos-fold");
+    if (fold && !fold.onclick) fold.onclick = function () {
+      open = !open;
+      // opening = all seen (like the app's Club tab)
+      if (open) VSP.addSeenNotices(current().map(VSP.noticeId));
+      draw();
+    };
+    var f = VSP.foldedNotices(list, VSP.seenNotices(), VSP.urgentAlways());
+    if (fold) {
+      fold.setAttribute("aria-expanded", String(open));
+      var badge = $("avisos-badge");
+      badge.hidden = open || !f.unread;
+      badge.textContent = f.unread;
+      fold.setAttribute("aria-label", VSP.t("idx.notices") + (f.unread && !open ? " · " + VSP.tn("home.notices_new", f.unread) : ""));
+      $("avisos").hidden = !open;
+      $("avisos-top").innerHTML = open ? "" : f.top.map(item).join("") +
+        (!f.top.length && !list.length ? '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>" : "") +
+        (list.length > f.top.length ? '<p class="muted fold-more">' + esc(VSP.tn("home.notices_more", list.length - f.top.length)) + "</p>" : "");
+    }
+    $("avisos").innerHTML = list.length ? list.map(item).join("") : '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>";
+    wire("#avisos-top"); wire("#avisos");
+  }
+  function item(o) {
       var link = VSP.safeUrl(o.enllac);
       return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
         '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (VSP.signedBy(o) ? " · " + esc(VSP.signedBy(o)) : "") + "</div>" +
@@ -37,9 +86,10 @@
         (o.imatge ? '<p><button class="btn ghost small" data-img="' + esc(o.imatge) + '">' + esc(VSP.t("home.see_image")) + "</button></p>" : "") +
         (o.adjunt ? '<p><button class="btn ghost small" data-doc="' + esc(o.adjunt) + '" data-name="' + esc(o.adjuntNom || "document.pdf") + '">📎 ' + esc(o.adjuntNom || VSP.t("home.document")) + "</button></p>" : "") +
         VSP.chips(VSP.teamsOf(o)) + "</div>";
-    }).join("") : '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>";
+  }
+  function wire(box) {
     // PDF documents attached from the app (fs://fitxers/{id}) or plain https ones
-    VSP.each("#avisos [data-doc]", function (b) {
+    VSP.each(box + " [data-doc]", function (b) {
       b.onclick = function () {
         var src = b.getAttribute("data-doc"), name = b.getAttribute("data-name");
         if (/^https:\/\//.test(src)) { window.open(src, "_blank", "noopener"); return; }
@@ -59,7 +109,7 @@
       };
     });
     // images attached from the app (fs://fotos/{id}) or plain https ones
-    VSP.each("#avisos [data-img]", function (b) {
+    VSP.each(box + " [data-img]", function (b) {
       b.onclick = function () {
         var src = b.getAttribute("data-img");
         var show = function (url) { var img = document.createElement("img"); img.src = url; img.alt = ""; img.className = "notice-img"; b.replaceWith(img); };

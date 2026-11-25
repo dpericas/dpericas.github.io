@@ -88,8 +88,9 @@
     </section>
 
     <section>
-      <h2 data-i18n="idx.notices">📢 Avisos</h2>
-      <div id="avisos"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
+      <h2><button type="button" class="fold-h" id="avisos-fold" aria-expanded="false" aria-controls="avisos"><span data-i18n="idx.notices">📢 Avisos</span><span class="badge" id="avisos-badge" hidden></span><span class="fold-arrow" aria-hidden="true">▾</span></button></h2>
+      <div id="avisos-top"></div>
+      <div id="avisos" hidden><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
 
     <section id="act-sec" hidden>

@@ -284,3 +284,12 @@ input.grow { display:inline-block; width:auto; margin-top:0; }
 .who .tick { color:var(--brand); font-weight:800; font-size:calc(20px * var(--fs)); }
 .calsub { border-top:1px solid var(--line); margin-top:12px; padding-top:10px; }
 .calsub .muted { margin:0 0 8px; }
+
+/* 📢 Avisos plegats (js/home.js) */
+.fold-h { all:unset; cursor:pointer; display:flex; align-items:center; gap:8px; width:100%; border-radius:8px; }
+.fold-h:focus-visible { outline:2px solid var(--brand); outline-offset:3px; }
+.fold-h .badge { background:#C8102E; color:#fff; font-size:13px; font-weight:800; min-width:22px; height:22px; padding:0 6px; border-radius:11px; display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; }
+.fold-h .fold-arrow { margin-left:auto; transition:transform .2s; }
+.fold-h[aria-expanded="true"] .fold-arrow { transform:rotate(180deg); }
+.fold-more { margin:6px 0 0; }
+.fold-h .badge[hidden] { display:none; }

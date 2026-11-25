@@ -35,6 +35,13 @@
   };
 
   function prefs() { return VSP.storeJson("push_prefs", undefined, { avisos: true, convocatories: true }); }
+  /** Switches changed on a linked device (js/member.js): kept here and sent with this browser's subscription. */
+  VSP.applyPushPrefs = function (a) {
+    var q = prefs();
+    Object.keys(a || {}).forEach(function (k) { if (k === "avisos" || k === "convocatories") q[k] = !!a[k]; });
+    VSP.storeJson("push_prefs", q);
+    current().then(function (s) { if (s) save(s); }).catch(function () {});
+  };
   function registration() { return navigator.serviceWorker.ready; }
 
   /** The Firestore document of this browser's subscription. Pure: tested. */
@@ -100,7 +107,11 @@
           ? "<span>" + esc(VSP.t("push.on_here")) + '</span><button class="btn small" type="button" id="push-off">' + esc(VSP.t("push.disable")) + "</button>"
           : '<button class="btn primary small" type="button" id="push-on">🔔 ' + esc(VSP.t("push.enable")) + "</button>") + "</div>" +
         '<div class="err" id="push-err" role="alert"></div>';
-      function setPref(k, v) { var q = prefs(); q[k] = v; VSP.storeJson("push_prefs", q); if (on) current().then(function (s2) { if (s2) save(s2); }); }
+      function setPref(k, v) {
+        var q = prefs(); q[k] = v; VSP.storeJson("push_prefs", q);
+        VSP.store("alerts_at", String(Date.now())); VSP.emit("alerts");   // the linked devices follow it
+        if (on) current().then(function (s2) { if (s2) save(s2); });
+      }
       var q = function (sel) { return box.querySelector(sel); };
       q("#push-avisos").onchange = function () { setPref("avisos", this.checked); };
       q("#push-conv").onchange = function () { setPref("convocatories", this.checked); };
