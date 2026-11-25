@@ -32,9 +32,35 @@
   VSP.pages.benvinguda = { tab: "inici", render: function (arg, el, title) {
     title(T("wel.title"));
     var sel = VSP.savedWho() || ["fan"], favs = VSP.favs(), done = false;
+    // «Ja faig servir l'app o el web en un altre dispositiu»: its link code brings everything and links both for good
+    var imp = { open: false, code: "", busy: false, error: "" };
+    function importHtml() {
+      if (!imp.open) {
+        return '<div class="row"><button type="button" class="btn ghost small" id="wel-imp">' + esc(T("wel.import")) + "</button></div>";
+      }
+      return '<div class="form" style="margin-top:8px"><p class="meta" style="margin-top:0">' + esc(T("wel.import_text")) + "</p>" +
+        "<label>" + esc(T("mem.link_code")) + '<input id="wel-code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(imp.code) + '"></label>' +
+        (imp.error ? '<p class="err" role="alert">' + esc(imp.error) + "</p>" : "") +
+        '<div class="row"><button type="button" class="btn primary small" id="wel-imp-go"' + (imp.busy ? " disabled" : "") + ">" + esc(T("mem.link_join")) + "</button>" +
+        '<button type="button" class="btn ghost small" id="wel-imp-x">' + esc(T("common.cancel")) + "</button></div></div>";
+    }
+    function bindImport() {
+      if ($("wel-imp")) $("wel-imp").onclick = function () { imp.open = true; draw(); if ($("wel-code")) $("wel-code").focus(); };
+      if ($("wel-imp-x")) $("wel-imp-x").onclick = function () { imp.open = false; imp.error = ""; draw(); };
+      if ($("wel-code")) $("wel-code").oninput = function () { imp.code = this.value; };
+      if ($("wel-imp-go")) $("wel-imp-go").onclick = function () {
+        if (imp.busy) return;
+        imp.busy = true; imp.error = ""; draw();
+        VSP.member.joinLink(imp.code).then(function () {
+          VSP.store("welcomed", "1");
+          VSP.toast && VSP.toast(T("wel.import_done"));
+          VSP.go(VSP.member.requested().length ? "#meu-equip" : "#inici");
+        }, function (e) { imp.busy = false; imp.error = (e && e.msg) || VSP.errText(e); draw(); });
+      };
+    }
     function draw() {
       if (done) return drawNext();
-      el.innerHTML = '<section><p style="margin-top:0">' + esc(T("wel.intro")) + "</p>" +
+      el.innerHTML = '<section><p style="margin-top:0">' + esc(T("wel.intro")) + "</p>" + importHtml() + "</section><section>" +
         "<h2>" + esc(T("wel.who")) + "</h2>" +
         '<p class="muted">' + esc(T("wel.several")) + "</p>" +
         '<div class="whos" role="group" aria-label="' + esc(T("wel.who")) + '">' + VSP.WHO.map(function (w) {
@@ -57,10 +83,13 @@
       }, el);
       $("wel-skip").onclick = function () { VSP.store("welcomed", "1"); location.hash = "inici"; };
       $("wel-go").onclick = finish;
+      bindImport();
     }
     function finish() {
       VSP.store("welcomed", "1");
+      var before = VSP.savedWho() || [];
       VSP.storeJson("who", sel);
+      if (before.slice().sort().join() !== sel.slice().sort().join()) { VSP.store("who_at", String(Date.now())); VSP.emit("who"); }   // linked devices follow
       VSP.TEAM_ORDER.forEach(function (id) { var on = favs.indexOf(id) >= 0; if (on !== VSP.isFav(id)) VSP.setFav(id, on); });
       var next = VSP.whoNext(sel);
       if (next === "member") VSP.go("#meu-equip");

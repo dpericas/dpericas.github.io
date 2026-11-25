@@ -92,7 +92,7 @@
      * device's "enllac" against it, so a team this device asked for on its own is left out when linked).
      */
     linkData: function (persona, name, teams, mine, uid) {
-      return { v: 1, persona: persona, nom: String(name || "").trim().slice(0, MAX_NAME),
+      return { v: 1, persona: persona, nom: String(name || "").trim().slice(0, MAX_NAME), favs: [], qui: [],
         equips: teams.filter(function (t) { return mine[t] && isRole(mine[t].rol) && (mine[t].enllac || uid) === persona; }).map(function (t) {
           var d = mine[t];
           return { t: Number(t), rol: d.rol, estat: d.estat === "aprovat" ? "aprovat" : "pendent",
@@ -104,7 +104,7 @@
       var o; try { o = JSON.parse(json); } catch (e) { return null; }
       if (!o || typeof o.persona !== "string" || !o.persona.trim() || !Array.isArray(o.equips)) return null;
       var nom = String(o.nom || "").trim().slice(0, MAX_NAME);
-      if (nom.length < 2) return null;
+      if (nom.length < 2 && o.equips.length) return null;   // a code without teams (only ★, «Qui ets?», games) may have no name
       var seen = {}, equips = [];
       o.equips.forEach(function (e) {
         if (!e || !isRole(e.rol)) return;
@@ -115,8 +115,11 @@
           jugadors: (Array.isArray(e.jugadors) ? e.jugadors : []).map(function (n) { return String(n).trim(); }).filter(Boolean).slice(0, MAX_PLAYERS) });
       });
       var jocs = typeof o.jocs === "string" && GAMES_CODE.test(o.jocs) ? o.jocs : null;
-      var out = { persona: o.persona, nom: nom, equips: equips };
+      var out = { persona: o.persona, nom: nom, equips: equips,
+        favs: (Array.isArray(o.favs) ? o.favs : []).map(Number).filter(function (t) { return VSP.team(t); }),
+        qui: (Array.isArray(o.qui) ? o.qui : []).filter(function (k) { return P.WHO.indexOf(k) >= 0; }) };
       if (jocs) out.jocs = jocs;
+      if (P.validKey(o.perfil)) out.perfil = o.perfil;
       return out;
     },
     /** Devices linked to this one: query rows [{t, doc}] → one entry per device uid with its teams. */
@@ -168,6 +171,78 @@
     }
   };
   var L = VSP.memberLogic;
+
+  /**
+   * 🔗 Devices linked for good (members/SharedProfile.kt ProfileLogic, same format): perfils/{KEY} (16
+   * random characters, only the linked devices know it). ★ teams and «Qui ets?»: the last change wins;
+   * teams: the main device's ones (a linked device joins / leaves them); games code; "disp" = devices
+   * and when last seen; "fora" = devices the main one disconnected. Pure: tested with node.
+   */
+  var P = VSP.profileLogic = {
+    KEY_LEN: 16, WHO: ["player", "family", "coach", "board", "fan"],
+    newKey: function (bytes) { var s = ""; for (var i = 0; i < 16; i++) s += CODE_ALPHABET.charAt(bytes[i] % CODE_ALPHABET.length); return s; },
+    validKey: function (k) {
+      if (typeof k !== "string" || k.length !== 16) return false;
+      for (var i = 0; i < k.length; i++) if (CODE_ALPHABET.indexOf(k.charAt(i)) < 0) return false;
+      return true;
+    },
+    /** The profile with its fields in a fixed order (two equal profiles give the same text). */
+    clean: function (o) {
+      o = o || {};
+      var seen = {}, equips = [];
+      (Array.isArray(o.equips) ? o.equips : []).forEach(function (e) {
+        if (!e || !isRole(e.rol)) return;
+        var t = Number(e.t); if (!VSP.team(t) || seen[t]) return; seen[t] = 1;
+        equips.push({ t: t, rol: e.rol, estat: e.estat === "aprovat" ? "aprovat" : "pendent",
+          jugadors: (Array.isArray(e.jugadors) ? e.jugadors : []).map(function (n) { return String(n).trim(); }).filter(Boolean).slice(0, MAX_PLAYERS) });
+      });
+      var favs = []; (Array.isArray(o.favs) ? o.favs : []).map(Number).forEach(function (t) { if (VSP.team(t) && favs.indexOf(t) < 0) favs.push(t); });
+      favs.sort(function (a, b) { return a - b; });
+      var qui = P.WHO.filter(function (k) { return Array.isArray(o.qui) && o.qui.indexOf(k) >= 0; });
+      var disp = {}, src = o.disp && typeof o.disp === "object" ? o.disp : {};
+      Object.keys(src).sort().forEach(function (k) { var d = src[k] || {}; disp[k] = { d: String(d.d || ""), vist: String(d.vist || "") }; });
+      var fora = (Array.isArray(o.fora) ? o.fora : []).map(String).filter(Boolean).sort();
+      var out = { v: 1, nom: String(o.nom || "").trim().slice(0, MAX_NAME), equips: equips, favs: favs, favsAt: Number(o.favsAt) || 0,
+        qui: qui, quiAt: Number(o.quiAt) || 0 };
+      if (typeof o.jocs === "string" && GAMES_CODE.test(o.jocs)) out.jocs = o.jocs;
+      out.disp = disp; out.fora = fora;
+      return out;
+    },
+    parse: function (json) { var o; try { o = JSON.parse(json); } catch (e) { return null; } return o && typeof o === "object" ? P.clean(o) : null; },
+    same: function (a, b) {
+      var x = a.slice().sort(), y = b.slice().sort();
+      return x.length === y.length && x.every(function (v, i) { return String(v) === String(y[i]); });
+    },
+    /**
+     * local = {uid, kind, today, favs, favsAt, qui, quiAt, jocs, nom?, equips? (main device only)} →
+     * {favs?, favsAt, qui?, quiAt, jocs?, upload (profile or null), removed}.
+     */
+    merge: function (remote, local) {
+      remote = P.clean(remote);
+      if (remote.fora.indexOf(local.uid) >= 0) return { removed: true, upload: null };
+      var out = P.clean(remote), r = { favsAt: 0, quiAt: 0, upload: null, removed: false };
+      if (remote.favsAt > local.favsAt) { if (!P.same(remote.favs, local.favs)) r.favs = remote.favs; r.favsAt = remote.favsAt; }
+      else if (local.favsAt > remote.favsAt) { out.favs = local.favs; out.favsAt = local.favsAt; }
+      if (remote.quiAt > local.quiAt) { if (!P.same(remote.qui, local.qui)) r.qui = remote.qui; r.quiAt = remote.quiAt; }
+      else if (local.quiAt > remote.quiAt) { out.qui = local.qui; out.quiAt = local.quiAt; }
+      if (local.equips) { out.equips = local.equips; if (String(local.nom || "").trim()) out.nom = local.nom; }
+      if (remote.jocs && !local.jocs) r.jocs = remote.jocs;
+      if (!remote.jocs && local.jocs) out.jocs = local.jocs;
+      out.fora.forEach(function (u) { delete out.disp[u]; });
+      out.disp[local.uid] = { d: local.kind, vist: local.today };
+      out = P.clean(out);
+      if (JSON.stringify(out) !== JSON.stringify(remote)) r.upload = out;
+      return r;
+    },
+    /** Linked device: main teams to join (not here, or asked with another role) and linked teams to leave. */
+    teamChanges: function (main, requested, linked, roles) {
+      var ids = main.map(function (e) { return e.t; });
+      return {
+        join: main.filter(function (e) { return requested.indexOf(e.t) < 0 || (linked.indexOf(e.t) >= 0 && roles[e.t] !== e.rol); }),
+        leave: linked.filter(function (t) { return ids.indexOf(t) < 0; })
+      };
+    }
+  };
 
   /** "✅ Dins" / "⏳ Pendent" / "❔ No aprovada" per requested team (from the last check). */
   VSP.memberStatus = function () {
@@ -231,14 +306,16 @@
       VSP.storeJson("mem_requested", teams);
       VSP.storeJson("mem_approved", M.approved().filter(function (t) { return teams.indexOf(t) >= 0; }));
       VSP.addFavs(teams);   // their teams go first, as in the app
+      M.syncSoon();   // the linked devices follow
       return M.check();
     });
   };
 
-  /** After leaving every team this browser is nobody's device any more. */
+  /** After leaving every team this browser is nobody's device any more (unless the shared profile links it). */
   function forgetLink() {
     var old = VSP.store("mem_link_code");
-    VSP.store("mem_persona", null); VSP.store("mem_link_code", null);
+    if (!M.profileKey()) VSP.store("mem_persona", null);
+    VSP.store("mem_link_code", null);
     if (old) VSP.fs.del("enllacos/" + old).catch(function () {});
   }
 
@@ -250,6 +327,7 @@
       VSP.storeJson("mem_roles", rj); VSP.store("mem_role", null);
       var pj = M.players(); delete pj[t]; VSP.storeJson("mem_players", pj);
       if (!M.requested().length) forgetLink();
+      M.syncSoon();   // the linked devices leave it too
       return M.check();
     });
   };
@@ -265,11 +343,15 @@
    * The previous code of this browser is deleted first. Resolves {code, until}.
    */
   M.createLink = function () {
-    return M.check().then(function (mine) {
+    return VSP.token().then(function () { return M.check(); }).then(function (mine) {
       var uid = VSP.uid(), req = M.requested();
       var first = req.map(function (t) { return mine[t]; }).filter(Boolean)[0];
       var dades = L.linkData(M.persona() || uid, M.name() || (first && first.nom) || "", req, mine, uid);
-      if (!dades.equips.length) throw userErr(VSP.t("mem.link_no_requests"));
+      // ★ teams and «Qui ets?» travel too, and the shared profile keeps both devices linked for good
+      dades.favs = VSP.favs(); dades.qui = (VSP.savedWho && VSP.savedWho()) || [];
+      return M.ensureProfile().then(function (key) { if (key) dades.perfil = key; return dades; }, function () { return dades; });
+    }).then(function (dades) {
+      var uid = VSP.uid();
       // the games progress code (jocs/: localStorage "jocs_code") travels too, so the other device gets the same unlocks
       var games = VSP.storeJson("jocs_code", undefined, null);
       if (typeof games === "string" && GAMES_CODE.test(games)) dades.jocs = games;
@@ -305,7 +387,7 @@
       if (!doc) throw userErr(VSP.t("mem.link_unknown"));
       if (!(Number(doc.expira) >= Date.now())) throw userErr(VSP.t("mem.link_expired"));
       data = L.parseLink(doc.dades);
-      if (!data || !data.equips.length) throw userErr(VSP.t("mem.link_invalid"));
+      if (!data) throw userErr(VSP.t("mem.link_invalid"));
       if (data.persona === uid) throw userErr(VSP.t("mem.link_same"));
       var done = [];   // memberships written: undone when another team fails (no half-linked device)
       return Promise.all(data.equips.map(function (e) {
@@ -325,7 +407,7 @@
       var keep = M.requested().filter(function (t) { return teams.indexOf(t) < 0; });
       var rj = M.roles(), pj = M.players();
       data.equips.forEach(function (e) { rj[e.t] = e.rol; pj[e.t] = e.jugadors; });
-      VSP.store("mem_name", data.nom);
+      if (data.nom) VSP.store("mem_name", data.nom);
       VSP.storeJson("mem_roles", rj); VSP.store("mem_role", null);
       VSP.storeJson("mem_players", pj);
       VSP.storeJson("mem_requested", keep.concat(teams));
@@ -334,10 +416,143 @@
       VSP.store("mem_persona", data.persona);
       // the games page (jocs/) restores this progress the next time it opens (merged with this browser's)
       if (data.jocs) VSP.storeJson("jocs_pending_code", data.jocs);
-      VSP.addFavs(teams);
+      // ★ teams and «Qui ets?» of the other device (joined with this one's); with a profile, linked for good
+      VSP.addFavs(teams.concat(data.favs || []));
+      if ((data.qui || []).length && !(VSP.savedWho && VSP.savedWho())) VSP.storeJson("who", data.qui);
+      if (data.perfil) {
+        VSP.store("mem_perfil", data.perfil);
+        VSP.storeJson("mem_perfil_teams", M.profileTeams().filter(function (t) { return teams.indexOf(t) < 0; }).concat(teams));
+      }
       return M.check();
-    }).then(function () { return M.loadPrivate(); });
+    }).then(function () { return M.syncProfile().catch(function () {}); }).then(function () { return M.loadPrivate(); });
   };
+
+  // ---------- the shared profile of linked devices (VSP.profileLogic)
+  M.profileKey = function () { var k = VSP.store("mem_perfil"); return P.validKey(k) ? k : null; };
+  /** Teams this browser joined because of the profile. */
+  M.profileTeams = function () { return ints("mem_perfil_teams"); };
+  function profileUpload(key, persona, prof) {
+    return VSP.fs.set("perfils/" + key, { persona: persona, owner: VSP.uid(), updated: new Date().toISOString(), dades: JSON.stringify(prof) });
+  }
+  function localDay(d) { function z(n) { return (n < 10 ? "0" : "") + n; } return d.getFullYear() + "-" + z(d.getMonth() + 1) + "-" + z(d.getDate()); }
+  function profileLocal(main) {
+    var games = VSP.storeJson("jocs_code", undefined, null);
+    var l = { uid: VSP.uid(), kind: "web", today: localDay(new Date()),
+      favs: VSP.favs(), favsAt: Number(VSP.store("favs_at")) || 0,
+      qui: (VSP.savedWho && VSP.savedWho()) || [], quiAt: Number(VSP.store("who_at")) || 0,
+      jocs: typeof games === "string" && GAMES_CODE.test(games) ? games : null };
+    if (main) {
+      var mine = M.mine, pl = M.players(), ap = M.approved();
+      l.nom = M.name();
+      l.equips = M.requested().filter(function (t) { return isRole(M.roleIn(t)) && (!mine[t] || !mine[t].enllac); }).map(function (t) {
+        return { t: t, rol: M.roleIn(t), estat: ap.indexOf(t) >= 0 ? "aprovat" : "pendent", jugadors: (pl[t] || []).slice(0, MAX_PLAYERS) };
+      });
+    }
+    return l;
+  }
+  /** Main browser: the profile key, created now if there is none (null on a browser linked before vsp-v25). */
+  M.ensureProfile = function () {
+    if (M.profileKey()) return Promise.resolve(M.profileKey());
+    if (M.persona()) return Promise.resolve(null);
+    return VSP.token().then(function () {
+      var b = new Uint8Array(16); window.crypto.getRandomValues(b);
+      var key = P.newKey(b), now = Date.now();
+      VSP.store("favs_at", String(Math.max(Number(VSP.store("favs_at")) || 0, now)));
+      VSP.store("who_at", String(Math.max(Number(VSP.store("who_at")) || 0, now)));
+      var r = P.merge({}, profileLocal(true));
+      return profileUpload(key, VSP.uid(), r.upload || P.clean({})).then(function () { VSP.store("mem_perfil", key); return key; });
+    });
+  };
+  /** Brings the other devices' changes and sends this browser's. Resolves true if something changed here. */
+  M.syncProfile = function () {
+    var key = M.profileKey();
+    if (!key) return Promise.resolve(false);
+    var main = !M.persona(), persona, remote;
+    return VSP.token().then(function () { return VSP.fs.get("perfils/" + key); }).then(function (doc) {
+      persona = (doc && doc.persona) || (main ? VSP.uid() : null);
+      if (!persona) return false;
+      remote = P.parse(doc && doc.dades) || P.clean({});
+      var r = P.merge(remote, profileLocal(main)), changed = false;
+      if (r.removed) return disconnectProfile().then(function () { return true; });
+      if (r.favs) { VSP.storeJson("favs", r.favs); changed = true; }
+      if (r.favsAt) VSP.store("favs_at", String(r.favsAt));
+      if (r.qui) { VSP.storeJson("who", r.qui); changed = true; }
+      if (r.quiAt) VSP.store("who_at", String(r.quiAt));
+      if (r.jocs) VSP.storeJson("jocs_pending_code", r.jocs);
+      return (r.upload ? profileUpload(key, persona, r.upload).catch(function () {}) : Promise.resolve()).then(function () {
+        return main ? changed : followTeams(key, persona, remote).then(function (t) { return changed || t; });
+      }).then(function (any) { if (r.favs) VSP.emit("favs", "profile"); return any; });
+    });
+  };
+  /** Linked browser: the same teams as the main device. */
+  function followTeams(key, persona, remote) {
+    var linked = M.profileTeams(), ch = P.teamChanges(remote.equips, M.requested(), linked, M.roles());
+    if (!ch.join.length && !ch.leave.length) return Promise.resolve(false);
+    var joined = [];
+    return ch.leave.reduce(function (p, t) { return p.then(function () { return M.leave(t).catch(function () {}); }); }, Promise.resolve()).then(function () {
+      return Promise.all(ch.join.map(function (e) {
+        return joinFromProfile(e, remote.nom, persona, key).then(function () { joined.push(e.t); }, function () {});
+      }));
+    }).then(function () {
+      VSP.storeJson("mem_perfil_teams", linked.filter(function (t) { return ch.leave.indexOf(t) < 0 && joined.indexOf(t) < 0; }).concat(joined));
+      if (joined.length) { VSP.addFavs(joined, true); return M.check().then(function () { return true; }); }
+      return true;
+    });
+  }
+  function joinFromProfile(e, personName, persona, key) {
+    var p = path(e.t, VSP.uid()), nom = (M.name() || personName || "?").slice(0, MAX_NAME);
+    return VSP.fs.get(p).then(function (cur) { return cur ? VSP.fs.del(p) : null; }).then(function () {
+      return VSP.fs.set(p, { nom: nom, rol: e.rol, estat: e.estat, created: new Date().toISOString(), jugadors: e.jugadors,
+        dispositiu: "web", enllac: persona, perfil: key });
+    }).then(function () {
+      var rj = M.roles(), pj = M.players();
+      rj[e.t] = e.rol; pj[e.t] = e.jugadors;
+      VSP.store("mem_name", nom); VSP.storeJson("mem_roles", rj); VSP.store("mem_role", null); VSP.storeJson("mem_players", pj);
+      if (M.requested().indexOf(e.t) < 0) VSP.storeJson("mem_requested", M.requested().concat([e.t]));
+      var ap = M.approved().filter(function (t) { return t !== e.t; });
+      VSP.storeJson("mem_approved", e.estat === "aprovat" ? ap.concat([e.t]) : ap);
+      VSP.store("mem_persona", persona);
+    });
+  }
+  /** The main device disconnected this browser: forget the profile and leave the teams that came with it. */
+  function disconnectProfile() {
+    var teams = M.profileTeams();
+    VSP.store("mem_perfil", null); VSP.store("mem_perfil_teams", null);
+    return teams.reduce(function (p, t) { return p.then(function () { return M.leave(t).catch(function () {}); }); }, Promise.resolve()).then(function () {
+      VSP.store("mem_persona", null);
+    });
+  }
+  /** Main browser: disconnects [uid] for good (it will not come back with the profile). */
+  M.removeFromProfile = function (uid) {
+    var key = M.profileKey();
+    if (!key) return Promise.resolve();
+    return VSP.token().then(function () { return VSP.fs.get("perfils/" + key); }).then(function (doc) {
+      if (!doc) return;
+      var prof = P.parse(doc.dades) || P.clean({});
+      if (prof.fora.indexOf(uid) < 0) prof.fora.push(uid);
+      delete prof.disp[uid];
+      return profileUpload(key, doc.persona || VSP.uid(), P.clean(prof));
+    });
+  };
+  /** Main browser: the other devices of the profile [{uid, d, vist}] (this one left out). */
+  M.profileDevices = function () {
+    var key = M.profileKey();
+    if (!key || M.persona()) return Promise.resolve([]);
+    return VSP.token().then(function () { return VSP.fs.get("perfils/" + key); }).then(function (doc) {
+      var prof = P.parse(doc && doc.dades); if (!prof) return [];
+      return Object.keys(prof.disp).filter(function (u) { return u !== VSP.uid() && prof.fora.indexOf(u) < 0; })
+        .map(function (u) { return { uid: u, d: prof.disp[u].d, vist: prof.disp[u].vist }; });
+    });
+  };
+  /** A change here (★, «Qui ets?», teams): synced a moment later (several changes, one write). */
+  var syncTimer = null;
+  M.syncSoon = function () {
+    if (!M.profileKey()) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(function () { M.syncProfile().catch(function () {}); }, 1500);
+  };
+  VSP.on("favs", function (src) { if (src !== "profile") M.syncSoon(); });
+  VSP.on("who", function () { M.syncSoon(); });
 
   /** The invitation of a code (anyone with the code may read it); rejects with a message to show. */
   M.peekInvite = function (input) {
@@ -405,7 +620,8 @@
 
   /** Disconnects a linked device: its memberships in every team are deleted. */
   M.unlinkDevice = function (dev) {
-    return VSP.token().then(function () { return Promise.all(dev.teams.map(function (t) { return VSP.fs.del(path(t, dev.uid)); })); });
+    return VSP.token().then(function () { return Promise.all((dev.teams || []).map(function (t) { return VSP.fs.del(path(t, dev.uid)); })); })
+      .then(function () { return M.removeFromProfile(dev.uid).catch(function () {}); });   // and it does not come back by itself
   };
 
   /** Team-only notices of the approved teams, in the avisos format, marked 🔒. */
@@ -486,32 +702,15 @@
       return '<button type="button" class="chip' + (on ? " on" : "") + '" aria-pressed="' + on + '" ' + attrs + ">" + label + "</button>";
     }
     function linkHtml(req) {
-      var persona = M.persona(), hasDocs = req.some(function (t) { return M.mine[t]; });
-      var h = "<section><h2>" + esc(VSP.t("mem.devices_title")) + "</h2>";
-      if (persona) h += '<p class="meta">' + esc(VSP.t("mem.linked_here")) + "</p>";
-      if (made && Date.now() > made.until) made = null;
-      if (made) {
-        h += '<p style="font-size:2em;font-weight:700;letter-spacing:.12em;text-align:center;margin:8px 0" aria-label="' + esc(VSP.t("mem.link_code")) + '">' + esc(L.formatCode(made.code)) + "</p>" +
-          '<p class="meta" style="text-align:center">' + esc(VSP.t("mem.link_expires")) + "</p>";
-      } else if (hasDocs) {
-        h += '<p class="meta">' + esc(VSP.t("mem.link_why")) + "</p>" +
-          '<div class="row"><button type="button" class="btn ghost small" id="link-make"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_make")) + "</button></div>";
-      }
-      if (!persona && devices && devices.length) {
-        h += "<h3>" + esc(VSP.t("mem.devices")) + "</h3>" + devices.map(function (d, i) {
-          return '<div class="row between"><span>' + esc(VSP.t(d.dispositiu === "web" ? "mem.dev_web" : "mem.dev_phone")) + " · " +
-            esc(sorted(d.teams).map(VSP.teamName).join(", ")) + '</span><button type="button" class="btn ghost small" data-unlink="' + i + '">' + esc(VSP.t("mem.unlink")) + "</button></div>";
-        }).join("");
-      }
+      // the devices have their own page now (#dispositius); here only the code box (board invitations)
       if (!joinOpen) {
-        h += '<div class="row" style="margin-top:8px"><button type="button" class="btn ghost small" id="link-open">' + esc(VSP.t("mem.link_open")) + "</button></div>";
-      } else {
-        h += '<div class="form" style="margin-top:8px"><label>' + esc(VSP.t("mem.link_code")) + '<input id="link-code" maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
-          '<p class="meta">' + esc(VSP.t("mem.link_join_help")) + " " + esc(VSP.t("inv.or_code")) + "</p>" +
-          '<div class="row"><button type="button" class="btn primary small" id="link-join"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_join")) + "</button>" +
-          '<button type="button" class="btn ghost small" id="link-cancel">' + esc(VSP.t("common.cancel")) + "</button></div></div>";
+        return '<section><div class="row"><button type="button" class="btn ghost small" id="link-open">' + esc(VSP.t("mem.link_open")) + "</button></div>" +
+          '<p class="meta">' + esc(VSP.t("dev.moved")) + ' <a href="#dispositius" data-href="#dispositius">' + esc(VSP.t("dev.title")) + "</a></p></section>";
       }
-      return h + "</section>";
+      return '<section><div class="form"><label>' + esc(VSP.t("mem.link_code")) + '<input id="link-code" maxlength="80" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
+        '<p class="meta">' + esc(VSP.t("mem.link_join_help")) + " " + esc(VSP.t("inv.or_code")) + "</p>" +
+        '<div class="row"><button type="button" class="btn primary small" id="link-join"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_join")) + "</button>" +
+        '<button type="button" class="btn ghost small" id="link-cancel">' + esc(VSP.t("common.cancel")) + "</button></div></div></section>";
     }
     function draw() {
       var status = VSP.memberStatus(), req = M.requested();
@@ -601,7 +800,7 @@
       VSP.each("[data-unlink]", function (b) {
         b.onclick = function () {
           var d = devices && devices[+b.getAttribute("data-unlink")]; if (!d) return;
-          if (!confirm(VSP.t("mem.unlink_q") + "\n" + VSP.t("mem.unlink_text", sorted(d.teams).map(VSP.teamName).join(", ")))) return;
+          if (!confirm(VSP.t("mem.unlink_q") + "\n" + (d.teams.length ? VSP.t("mem.unlink_text", sorted(d.teams).map(VSP.teamName).join(", ")) : VSP.t("prof.unlink_text")))) return;
           run(function () { return M.unlinkDevice(d).then(loadDevices); }, VSP.t("mem.unlinked"), true);
         };
       }, el);
@@ -633,8 +832,16 @@
         run(function () { return M.request(name, rl, teams, pl); }, VSP.t("mem.sent"));
       };
     }
+    /** Devices with teams (memberships) and the ones linked only by the shared profile. */
     function loadDevices() {
-      return M.linkedDevices().then(function (l) { devices = l; }, function () { devices = null; });
+      return Promise.all([M.linkedDevices().catch(function () { return []; }), M.profileDevices().catch(function () { return []; })]).then(function (r) {
+        var l = r[0], known = l.map(function (d) { return d.uid; });
+        r[1].forEach(function (p) {
+          if (known.indexOf(p.uid) < 0) l.push({ uid: p.uid, dispositiu: p.d, teams: [], vist: p.vist });
+          else l[known.indexOf(p.uid)].vist = p.vist;
+        });
+        devices = l;
+      }, function () { devices = null; });
     }
     /** Runs [fn] showing busy / [ok] / the error; then the private data (unless [skipPrivate]: fn already did it). */
     function run(fn, ok, skipPrivate) {
@@ -644,6 +851,75 @@
     }
     draw();
     if (M.requested().length) M.check().then(loadDevices).then(draw, function () {});
+    else if (M.profileKey()) loadDevices().then(draw);
+  } };
+
+  // ---------- page "Els meus dispositius" (members/DevicesScreen.kt): Club and Preferències, not inside El meu equip
+  VSP.pages.dispositius = { tab: "club", render: function (arg, el, title) {
+    title(VSP.t("dev.title"));
+    var busy = false, info = "", error = "", made = null, devices = null, joinOpen = false, joinCode = "";
+    function sorted(l) { return l.slice().sort(function (a, b) { return VSP.TEAM_ORDER.indexOf(a) - VSP.TEAM_ORDER.indexOf(b); }); }
+    function draw() {
+      var persona = M.persona();
+      if (made && Date.now() > made.until) made = null;
+      var h = "<section><p style=\"margin-top:0\">" + esc(VSP.t("dev.intro")) + "</p>" +
+        (info ? '<p class="ok" role="status"><b>' + esc(info) + "</b></p>" : "") + (error ? '<p class="err" role="alert">' + esc(error) + "</p>" : "") +
+        (persona ? '<p class="meta"><b>' + esc(VSP.t("mem.linked_here")) + "</b></p>" : "") + "</section>";
+      h += "<section><h2>📲 " + esc(VSP.t("dev.add_title")) + "</h2>";
+      if (made) {
+        h += '<p style="font-size:2em;font-weight:700;letter-spacing:.12em;text-align:center;margin:8px 0" aria-label="' + esc(VSP.t("mem.link_code")) + '">' + esc(L.formatCode(made.code)) + "</p>" +
+          '<p class="meta" style="text-align:center">' + esc(VSP.t("mem.link_expires")) + "</p>";
+      } else {
+        h += "<p>" + esc(VSP.t("dev.add_text")) + "</p>" +
+          '<div class="row"><button type="button" class="btn primary" id="dev-make"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_make")) + "</button></div>";
+      }
+      h += "</section><section><h2>⌨️ " + esc(VSP.t("dev.join_title")) + "</h2><p>" + esc(VSP.t("dev.join_text")) + "</p>";
+      if (!joinOpen) h += '<div class="row"><button type="button" class="btn ghost" id="dev-open">' + esc(VSP.t("dev.join_btn")) + "</button></div>";
+      else h += '<div class="form"><label>' + esc(VSP.t("mem.link_code")) + '<input id="dev-code" maxlength="20" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="ABCD-EFGH" value="' + esc(joinCode) + '"></label>' +
+        '<div class="row"><button type="button" class="btn primary small" id="dev-join"' + (busy ? " disabled" : "") + ">" + esc(VSP.t("mem.link_join")) + "</button>" +
+        '<button type="button" class="btn ghost small" id="dev-cancel">' + esc(VSP.t("common.cancel")) + "</button></div></div>";
+      h += "</section><section><h2>🔗 " + esc(VSP.t("mem.devices")) + "</h2>";
+      if (!devices || !devices.length) h += '<p class="meta">' + esc(VSP.t(persona ? "dev.none_linked" : "dev.none")) + "</p>";
+      else h += devices.map(function (d, i) {
+        return '<div class="row between"><span>' + esc(VSP.t(d.dispositiu === "web" ? "mem.dev_web" : "mem.dev_phone")) + " · " +
+          esc(d.teams.length ? sorted(d.teams).map(VSP.teamName).join(", ") : VSP.t("prof.seen", d.vist || "")) +
+          '</span><button type="button" class="btn ghost small" data-unlink="' + i + '">' + esc(VSP.t("mem.unlink")) + "</button></div>";
+      }).join("");
+      h += '<p class="meta">' + esc(VSP.t("dev.what")) + "</p></section>";
+      el.innerHTML = h;
+      if ($("dev-make")) $("dev-make").onclick = function () { run(function () { return M.createLink().then(function (r) { made = r; setTimeout(draw, L.LINK_MS + 1000); }); }, ""); };
+      if ($("dev-open")) $("dev-open").onclick = function () { joinOpen = true; info = error = ""; draw(); if ($("dev-code")) $("dev-code").focus(); };
+      if ($("dev-cancel")) $("dev-cancel").onclick = function () { joinOpen = false; joinCode = ""; draw(); };
+      if ($("dev-code")) $("dev-code").oninput = function () { joinCode = this.value; };
+      if ($("dev-join")) $("dev-join").onclick = function () {
+        if (M.requested().length && !confirm(VSP.t("mem.join_replace_q"))) return;
+        run(function () { return M.joinLink(joinCode).then(function () { joinOpen = false; joinCode = ""; }); }, VSP.t("mem.linked_done"));
+      };
+      VSP.each("[data-unlink]", function (b) {
+        b.onclick = function () {
+          var d = devices && devices[+b.getAttribute("data-unlink")]; if (!d) return;
+          if (!confirm(VSP.t("mem.unlink_q") + "\n" + (d.teams.length ? VSP.t("mem.unlink_text", sorted(d.teams).map(VSP.teamName).join(", ")) : VSP.t("prof.unlink_text")))) return;
+          run(function () { return M.unlinkDevice(d); }, VSP.t("mem.unlinked"));
+        };
+      }, el);
+    }
+    function load() {
+      return Promise.all([M.linkedDevices().catch(function () { return []; }), M.profileDevices().catch(function () { return []; })]).then(function (r) {
+        var l = r[0], known = l.map(function (d) { return d.uid; });
+        r[1].forEach(function (p) {
+          if (known.indexOf(p.uid) < 0) l.push({ uid: p.uid, dispositiu: p.d, teams: [], vist: p.vist });
+          else l[known.indexOf(p.uid)].vist = p.vist;
+        });
+        devices = l;
+      });
+    }
+    function run(fn, ok) {
+      if (busy) return; busy = true; info = ""; error = ""; draw();
+      fn().then(load).then(function () { busy = false; info = ok; draw(); },
+        function (e) { busy = false; error = (e && e.msg) || VSP.errText(e); draw(); });
+    }
+    draw();
+    (M.requested().length ? M.check() : Promise.resolve()).then(load).then(draw, function () {});
   } };
 
   // ---------- page "Invitació" (#invitacio/CODE): a board invitation opened from a QR / WhatsApp

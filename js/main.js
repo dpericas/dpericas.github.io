@@ -87,10 +87,17 @@
   // memberships: approved teams → team-only notices and full call-ups; then the status chips
   VSP.loaded.then(function () {
     VSP.member.loadPrivate();
-    if (VSP.member.requested().length) VSP.member.check().then(function () { VSP.member.loadPrivate(); }, function () {});
+    var mchk = VSP.member.requested().length ? VSP.member.check().then(function () { VSP.member.loadPrivate(); }, function () {}) : Promise.resolve();
+    // devices linked for good (shared profile): ★ teams, «Qui ets?» and teams changed on the others
+    mchk.then(function () { return VSP.member.syncProfile(); }).then(function (changed) {
+      if (changed) { VSP.renderTeams(); if (VSP.renderNext) VSP.renderNext(); }
+    }, function () {});
     VSP.carpoolCleanup();
   });
   VSP.on("member", function () { VSP.renderTeams(); });
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible" && VSP.member.profileKey()) VSP.member.syncProfile().then(function (c) { if (c) VSP.renderTeams(); }, function () {});
+  });
 
   // latest Android app version
   function code(tag) { var m = /^v?(\d+)\.(\d+)\.(\d+)$/.exec(tag); return m ? (+m[1]) * 10000 + (+m[2]) * 100 + (+m[3]) : -1; }

@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v24";
+  VSP.WEB_VERSION = "vsp-v25";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -184,9 +184,17 @@
     var f = VSP.favs().filter(function (x) { return x !== Number(id); });
     if (on) f.push(Number(id));
     VSP.storeJson("favs", f);
+    VSP.store("favs_at", String(Date.now()));   // changed here: linked devices follow it (js/member.js profile)
     VSP.emit("favs");
   };
-  VSP.addFavs = function (ids) { var f = VSP.favs(); ids.forEach(function (i) { if (f.indexOf(Number(i)) < 0) f.push(Number(i)); }); VSP.storeJson("favs", f); VSP.emit("favs"); };
+  /** Adds teams; [fromProfile] = they came from a linked device (not a change made here). */
+  VSP.addFavs = function (ids, fromProfile) {
+    var f = VSP.favs(), before = f.length;
+    ids.forEach(function (i) { if (VSP.team(Number(i)) && f.indexOf(Number(i)) < 0) f.push(Number(i)); });
+    VSP.storeJson("favs", f);
+    if (f.length !== before && !fromProfile) VSP.store("favs_at", String(Date.now()));
+    VSP.emit("favs", fromProfile ? "profile" : undefined);
+  };
 
   // ---------- tiny event bus
   var handlers = {};

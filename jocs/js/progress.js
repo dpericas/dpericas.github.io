@@ -443,12 +443,14 @@
     MILESTONES: [3, 5, 8, 10],
     level: function (xp) { return 1 + Math.floor(Math.sqrt(Math.max(0, xp || 0) / 50)); },
     xpFor: function (level) { return 50 * (level - 1) * (level - 1); },
-    fresh: function () { return { xp: 0, food: 1, joy: 1, updated: 0, lastFed: 0 }; },
+    fresh: function () { return copyPet(null); },
     decay: function (s, now) {
       s = copyPet(s);
       if (!s.updated) { s.updated = now; return s; }
       var h = Math.max(0, now - s.updated) / 3600;
       s.food = clamp01(s.food - h / 36); s.joy = clamp01(s.joy - h / 24); s.updated = now;
+      // the app's other indicators (extras/Progress.kt PetLogic): kept in step so a sync does not undo them
+      s.energy = clamp01(s.energy - h / 30); s.clean = clamp01(s.clean - h / 48); s.fit = clamp01(s.fit - h / 96);
       return s;
     },
     canFeed: function (s, now) { return now - (s.lastFed || 0) >= P.pet.FEED_EVERY; },
@@ -458,7 +460,10 @@
       d.food = 1; d.xp += 5; d.lastFed = now; return d;
     },
     tickle: function (s, now) { var d = P.pet.decay(s, now); d.joy = Math.min(1, d.joy + 0.15); d.xp += 1; return d; },
-    trained: function (s, now, newStars) { var d = P.pet.decay(s, now); d.xp += 5 + newStars * 20; d.joy = Math.min(1, d.joy + 0.1); return d; },
+    trained: function (s, now, newStars) {
+      var d = P.pet.decay(s, now); d.xp += 5 + newStars * 20; d.joy = Math.min(1, d.joy + 0.1);
+      d.fit = clamp01(d.fit + 0.08); d.energy = clamp01(d.energy - 0.05); return d;
+    },
     mood: function (s) {
       if (s.food < 0.25 || s.joy < 0.2) return "sad";
       if (s.joy > 0.75 && s.food > 0.5) return "cheer";
@@ -477,10 +482,16 @@
     }
   };
   function clamp01(v) { v = Number(v); if (!(v === v)) return 0; return Math.max(0, Math.min(1, v)); }
+  var PET_ITEMS = ["poma", "entrepa", "platan", "isotonic", "crispetes", "croissant", "batut", "pilota", "sabo", "llaminadura"];
   function copyPet(s) {
     s = s || {};
+    // energy, clean, fit, naps, showers and the inventory come from the app: kept as they are
+    var inv = {};
+    if (s.inv && typeof s.inv === "object") PET_ITEMS.forEach(function (k) { var n = Math.floor(Number(s.inv[k]) || 0); if (n > 0) inv[k] = Math.min(20, n); });
     return { xp: Math.max(0, Math.floor(Number(s.xp) || 0)), food: s.food == null ? 1 : clamp01(s.food), joy: s.joy == null ? 1 : clamp01(s.joy),
-      updated: Math.floor(Number(s.updated) || 0), lastFed: Math.floor(Number(s.lastFed) || 0) };
+      updated: Math.floor(Number(s.updated) || 0), lastFed: Math.floor(Number(s.lastFed) || 0),
+      energy: s.energy == null ? 1 : clamp01(s.energy), clean: s.clean == null ? 1 : clamp01(s.clean), fit: s.fit == null ? 0.5 : clamp01(s.fit),
+      lastNap: Math.floor(Number(s.lastNap) || 0), lastShower: Math.floor(Number(s.lastShower) || 0), inv: inv };
   }
 
   // ---------------------------------------------------------------- leaderboard and league (pure)

@@ -79,6 +79,9 @@
       var pushOk = !!VSP.renderPush, T = VSP.t;
       var teams = VSP.member.requested().map(VSP.teamName).join(", ");
       el.innerHTML =
+        // 🔗 the person's other devices, also from here (not only Club)
+        '<section><a class="linkrow" href="#dispositius" data-href="#dispositius"><span><b>' + esc(T("idx.c_devices")) + '</b><span class="meta">' +
+        esc(T("idx.c_devices_sub")) + '</span></span><span aria-hidden="true">›</span></a></section>' +
         "<section><h2>🌐 " + esc(T("pf.lang")) + '</h2><div class="chips" role="group" aria-label="' + esc(T("pf.lang")) + '" id="pf-lang">' + langChips() + "</div>" +
         '<p class="muted">' + esc(T("pf.lang_note")) + "</p></section>" +
 
