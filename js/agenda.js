@@ -119,7 +119,7 @@
       (m.time ? '<span class="t">' + esc(m.time) + "</span>" : '<span class="t tbc" title="' + esc(VSP.t("ag.tbc_long")) + '">' + esc(VSP.t("ag.tbc")) + "</span>") +
       '<span class="teams">' + teams + "</span>" + (res || '<span class="go" aria-hidden="true">›</span>') +
       '<span class="info">' + (VSP.isFav(m.team) ? "★ " : "") + esc(VSP.teamName(m.team)) + ' · <span class="where' + (m.homeIsClub ? " home" : "") + '">' + esc(VSP.t(m.homeIsClub ? "ag.home_l" : "ag.away_l")) + "</span>" +
-      (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") +
+      (m.venue ? " · " + esc(VSP.niceVenue(m.venue)) : "") +
       (m.round ? " · " + esc(VSP.t("ag.round_short", m.round)) : "") + (m.comp && !m.round ? " · " + esc(m.comp) : "") +
       (conv && !m.played ? ' · <b class="conv">' + esc(VSP.t("ag.conv")) + "</b>" : "") + "</span></a>";
   };
@@ -161,8 +161,11 @@
       VSP.agendaUpdated ? VSP.t("ag.updated", VSP.fmtDate(VSP.agendaUpdated.slice(0, 10)), VSP.fmtTime(new Date(VSP.agendaUpdated))) : "";
     var present = {};
     VSP.matches.forEach(function (m) { present[m.team] = 1; });
-    $("team-chips").innerHTML = '<button class="chip" data-team="all">' + esc(VSP.t("ag.all")) + "</button>" + VSP.TEAM_ORDER.filter(function (t) { return present[t]; })
-      .map(function (t) { return '<button class="chip" data-team="' + t + '">' + esc(VSP.teamName(t)) + "</button>"; }).join("");
+    // one row (it scrolls sideways on a phone): your ★ teams first
+    var favs = VSP.favs(), teams = VSP.TEAM_ORDER.filter(function (t) { return present[t]; });
+    teams = teams.filter(function (t) { return favs.indexOf(t) >= 0; }).concat(teams.filter(function (t) { return favs.indexOf(t) < 0; }));
+    $("team-chips").innerHTML = '<button class="chip" data-team="all">' + esc(VSP.t("ag.all")) + "</button>" + teams
+      .map(function (t) { return '<button class="chip" data-team="' + t + '">' + (favs.indexOf(t) >= 0 ? "★ " : "") + esc(VSP.teamName(t)) + "</button>"; }).join("");
     VSP.each("#team-chips button", function (b) {
       b.onclick = function () {
         var t = b.getAttribute("data-team");
@@ -212,7 +215,7 @@
     $("agenda").innerHTML = html;
     if ($("ag-more")) $("ag-more").onclick = function () { showAll = true; renderAgenda(); };
   }
-  VSP.on("favs", function () { if (VSP.matches) renderAgenda(); });
+  VSP.on("favs", function () { if (VSP.matches) VSP.renderAgendaTab(); });
 
   VSP.initAgenda = function () {
     VSP.each("[data-mode]", function (b) { b.onclick = function () { mode = b.getAttribute("data-mode"); showAll = false; renderAgenda(); }; });
@@ -236,7 +239,7 @@
       "<table><tr>" + VSP.t("ag.print_cols").split(",").map(function (h) { return "<th>" + esc(h) + "</th>"; }).join("") + "</tr>" +
       list.map(function (m) {
         return '<tr class="' + (m.homeIsClub ? "home" : "") + '"><td>' + (m.round || "") + "</td><td>" + esc(VSP.shortDate(m.date)) + "</td><td>" +
-          esc(m.time || VSP.t("ag.tbc")) + "</td><td>" + esc(m.home) + " – " + esc(m.away) + "</td><td>" + esc(VSP.pretty(m.venue)) + "</td><td>" +
+          esc(m.time || VSP.t("ag.tbc")) + "</td><td>" + esc(VSP.niceTeam(m.home)) + " – " + esc(VSP.niceTeam(m.away)) + "</td><td>" + esc(VSP.niceVenue(m.venue)) + "</td><td>" +
           (m.played ? esc(m.hs) + "-" + esc(m.as) : "") + "</td></tr>";
       }).join("") + "</table>";
     window.print();
@@ -286,9 +289,9 @@
     var carpool = !m.played && !m.homeIsClub && VSP.featureOn("cotxes");
     el.innerHTML =
       '<section><div class="meta">' + esc(VSP.pretty(VSP.fmtDate(m.date, true))) + " · " + esc(m.time || VSP.t("ag.time_tbc")) + "</div>" +
-      '<h3 class="vs">' + (m.homeIsClub ? "<b>" + esc(m.home) + "</b>" : esc(m.home)) + "<span>–</span>" + (m.homeIsClub ? esc(m.away) : "<b>" + esc(m.away) + "</b>") + "</h3>" + res +
+      '<h3 class="vs">' + (m.homeIsClub ? "<b>" + esc(VSP.niceTeam(m.home)) + "</b>" : esc(VSP.niceTeam(m.home))) + "<span>–</span>" + (m.homeIsClub ? esc(VSP.niceTeam(m.away)) : "<b>" + esc(VSP.niceTeam(m.away)) + "</b>") + "</h3>" + res +
       '<div class="meta">' + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.round ? " · " + esc(VSP.t("ag.round", m.round)) : "") + (m.comp ? " · " + esc(m.comp) : "") + "</div>" +
-      (m.venue ? '<p>📍 ' + esc(VSP.pretty(m.venue)) + (m.address ? '<br><span class="muted">' + esc(VSP.pretty(m.address)) + "</span>" : "") + "</p>" : "") +
+      (m.venue ? '<p>📍 ' + esc(VSP.niceVenue(m.venue)) + (m.address ? '<br><span class="muted">' + esc(VSP.niceVenue(m.address)) + "</span>" : "") + "</p>" : "") +
       '<div class="row">' +
       (!m.played ? '<button class="btn ghost small" id="m-ics">' + esc(VSP.t("ag.btn_calendar")) + "</button>" : "") +
       (maps ? '<a class="btn ghost small" href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") +

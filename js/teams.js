@@ -57,7 +57,7 @@
       return '<a class="teamcard" href="#equip/' + t.id + '" data-href="#equip/' + t.id + '">' +
         '<span class="tc-main"><b>' + esc(t.name) + "</b>" +
         '<span class="meta">' + esc(VSP.teamSub(t)) + (st ? " · " + esc(st) : "") + "</span>" +
-        (n ? '<span class="meta next">' + esc(VSP.t("teams.next", VSP.fmtDate(n.date) + (n.time ? " · " + n.time : ""), VSP.t(n.homeIsClub ? "teams.vs" : "teams.at", VSP.pretty(VSP.rival(n))))) + "</span>" : "") +
+        (n ? '<span class="meta next">' + esc(VSP.t("teams.next", VSP.fmtDate(n.date) + (n.time ? " · " + n.time : ""), VSP.t(n.homeIsClub ? "teams.vs" : "teams.at", VSP.niceTeam(VSP.rival(n))))) + "</span>" : "") +
         "</span>" + star(t.id) + "</a>";
     }).join("");
     $("teams-hint").hidden = favs.length > 0;

@@ -72,10 +72,20 @@
       $("avisos").hidden = !open;
       $("avisos-top").innerHTML = open ? "" : f.top.map(item).join("") +
         (!f.top.length && !list.length ? '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>" : "") +
-        (list.length > f.top.length ? '<p class="muted fold-more">' + esc(VSP.tn("home.notices_more", list.length - f.top.length)) + "</p>" : "");
+        peek(list.filter(function (o) { return f.top.indexOf(o) < 0; }));
+      var pk = $("avisos-peek");
+      if (pk) pk.onclick = fold.onclick;
     }
     $("avisos").innerHTML = list.length ? list.map(item).join("") : '<div class="empty">' + esc(VSP.t("home.no_notices")) + "</div>";
     wire("#avisos-top"); wire("#avisos");
+  }
+  /** Folded: the newest notice not already shown, in one line (tapping it opens them all), and how many more. */
+  function peek(rest) {
+    if (!rest.length) return "";
+    var o = rest[0], isNew = VSP.seenNotices().indexOf(VSP.noticeId(o)) < 0;
+    return '<button type="button" class="fold-more" id="avisos-peek"><span class="peek-t">' + (isNew ? "🆕 " : "") +
+      esc(String(o.titol || "").replace(/[*_~]/g, "")) + "</span>" +
+      (rest.length > 1 ? '<span class="muted">' + esc(VSP.tn("home.notices_more", rest.length - 1)) + "</span>" : "") + "</button>";
   }
   function item(o) {
       var link = VSP.safeUrl(o.enllac);
@@ -184,7 +194,7 @@
       return '<a class="nextm" href="#partit/' + esc(m.id) + '" data-href="#partit/' + esc(m.id) + '"><span class="when">' + esc(when) + "</span>" +
         '<span class="vs">' + esc(VSP.t(m.homeIsClub ? "home.next_vs" : "home.next_at", VSP.niceTeam(VSP.rival(m)))) + "</span>" +
         '<span class="btn primary small">' + esc(conv ? VSP.t("ag.conv") : VSP.t("home.see_match")) + "</span>" +
-        '<span class="info">★ ' + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.venue ? " · " + esc(VSP.pretty(m.venue)) : "") + "</span></a>";
+        '<span class="info">★ ' + esc(VSP.teamName(m.team)) + " · " + esc(VSP.t(m.homeIsClub ? "ag.home" : "ag.away")) + (m.venue ? " · " + esc(VSP.niceVenue(m.venue)) : "") + "</span></a>";
     }).join("") : '<div class="empty">' + esc(VSP.t("home.next_none")) + "</div>";
     // 📅 the whole season of each ★ team in the phone's calendar (files written by .github/workflows/calendaris.yml)
     var cal = favs.filter(function (id) { return VSP.calTeams.indexOf(id) >= 0; });

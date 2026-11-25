@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v26";
+  VSP.WEB_VERSION = "vsp-v27";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -105,7 +105,7 @@
   VSP.pretty = function (s) { s = String(s || "").toLowerCase(); return s.charAt(0).toUpperCase() + s.slice(1); };
   /** Team names as the federation writes them ("CLUB VOLEIBOL CUNIT") read better in title case; the club's own
    *  teams are shortened to "Santpedor N" (short enough for a phone's results row). Pure: tested. */
-  var SMALL = { de: 1, del: 1, dels: 1, la: 1, les: 1, el: 1, els: 1, i: 1, y: 1, en: 1, a: 1 };
+  var SMALL = { de: 1, del: 1, dels: 1, la: 1, les: 1, el: 1, els: 1, i: 1, y: 1, en: 1, a: 1, al: 1, als: 1, o: 1, per: 1, amb: 1 };
   VSP.titleCase = function (s) {
     return String(s || "").trim().toLowerCase().split(/\s+/).map(function (w, i) {
       if (!w) return w;
@@ -118,6 +118,13 @@
   VSP.niceTeam = function (s) {
     var m = /^(?:club\s+)?v[oò]lei\s+santpedor\b\s*(.*)$/i.exec(String(s || "").trim());
     return m ? ("Santpedor " + VSP.titleCase(m[1])).trim() : VSP.titleCase(s);
+  };
+  /** Venues and addresses come from the federation in any case ("Pavelló rafa martínez - pista 2"): same title case,
+   *  but a lone dash, "C/" and numbers are left as they are. Pure: tested. */
+  VSP.niceVenue = function (s) {
+    s = String(s || "").trim();
+    if (!s) return "";
+    return VSP.titleCase(s).replace(/\bC\//g, "C/").replace(/\bS\/N\b/g, "s/n");
   };
   /** WhatsApp-style formatting in texts written by the club, on text ALREADY escaped: *bold*, _italic_, ~struck~. Pure: tested. */
   VSP.waFormat = function (html) {

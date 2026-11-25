@@ -118,16 +118,16 @@
     var list = venues();
     el.innerHTML = '<section><p class="muted">' + esc(VSP.t("tips.intro")) + "</p>" +
       (list.length ? list.map(function (v) {
-        return '<a class="linkrow" href="#pavello/' + esc(v.key) + '" data-href="#pavello/' + esc(v.key) + '"><span><b>' + (v.home ? "🏠 " : "🏟️ ") + esc(VSP.pretty(v.name)) + "</b>" +
-          (v.address ? '<span class="meta">' + esc(VSP.pretty(v.address)) + "</span>" : "") + '</span><span aria-hidden="true">›</span></a>';
+        return '<a class="linkrow" href="#pavello/' + esc(v.key) + '" data-href="#pavello/' + esc(v.key) + '"><span><b>' + (v.home ? "🏠 " : "🏟️ ") + esc(VSP.niceVenue(v.name)) + "</b>" +
+          (v.address ? '<span class="meta">' + esc(VSP.niceVenue(v.address)) + "</span>" : "") + '</span><span aria-hidden="true">›</span></a>';
       }).join("") : '<div class="empty">' + esc(VSP.t("tips.no_halls")) + "</div>") + "</section>";
   } };
   VSP.pages.pavello = { tab: "club", render: function (key, el, title) {
     var v = venues().filter(function (x) { return x.key === key; })[0] || { key: key, name: key.replace(/-/g, " "), address: "" };
-    title(VSP.pretty(v.name));
+    title(VSP.niceVenue(v.name));
     var maps = VSP.directionsUrl(v.lat != null ? v.lat + "," + v.lon : (v.address || v.name));
     var tipsOn = VSP.featureOn("consells");
-    el.innerHTML = '<section>' + (v.address ? "<p>📍 " + esc(VSP.pretty(v.address)) + "</p>" : "") +
+    el.innerHTML = '<section>' + (v.address ? "<p>📍 " + esc(VSP.niceVenue(v.address)) + "</p>" : "") +
       '<a class="btn ghost small" href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a></section>" +
       (tipsOn ? "<section><h2>" + esc(VSP.t("tips.families")) + '</h2><div id="tips"><div class="empty">' + esc(VSP.t("common.loading")) + "</div></div>" +
         '<form class="form" id="tip-f"><h3 class="sub">' + esc(VSP.t("tips.add_title")) + '</h3><div class="chips" role="radiogroup" aria-label="' + esc(VSP.t("tips.kind")) + '">' +
