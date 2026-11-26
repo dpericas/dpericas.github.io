@@ -1042,13 +1042,12 @@
       if (!Object.keys(byDay).length && weekends.every(function (w) { return !rest[w].length; })) return WL.header + "\n" + WL.none;
       var sb = WL.header + "\n";
       function tkey(t) { return t || "99:99"; }
-      var blocks = 0;   // days (or empty weekends) written: each one opens with the separator
+      var blocks = 0;   // days (or empty weekends) written: the separator goes BETWEEN them, not before the first
       weekends.forEach(function (w) {
         var firstDay = true;
         wmap[w].forEach(function (d) {
           var list = byDay[d]; if (!list) return;
-          if (blocks++ > 0) sb += "\n";
-          sb += WL.separator + "\n";
+          if (blocks++ > 0) sb += "\n" + WL.separator + "\n";
           firstDay = false;
           sb += " *" + CA_DOW[parseDay(d).getDay()] + " " + parseDay(d).getDate() + "*\n";
           var home = list.filter(function (f) { return isClubHall(f.venue, f.address); }), away = list.filter(function (f) { return !isClubHall(f.venue, f.address); });
