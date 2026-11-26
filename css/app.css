@@ -280,12 +280,18 @@ input.grow { display:inline-block; width:auto; margin-top:0; }
   nav.tabs { z-index:10; height:60px; background:transparent; border-bottom:0; pointer-events:none; }
   nav.tabs button { pointer-events:auto; }
 }
-/* below 1100px the tabs need the room: only the crest (the name stays for screen readers) */
-@media (min-width:900px) and (max-width:1099px) {
+/* below 1180px the tabs need the room: only the crest (the name stays for screen readers) */
+@media (min-width:900px) and (max-width:1179px) {
   header.hero > div:not(.hbtns) { position:absolute; width:1px; height:1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
   header.hero .pili-link { margin-left:auto; }
 }
-@media (min-width:900px) and (max-width:1399px) { header.hero .fcv { display:none; } }
+/* on the top bar the name never reaches the centred tabs (about 540px wide): no federation line, and it ends in «…» if it must */
+@media (min-width:900px) {
+  header.hero .fcv { display:none; }
+  header.hero > div:not(.hbtns) { flex:0 1 auto; max-width:calc(50% - 330px); margin-right:auto; }
+  [data-text="large"] header.hero > div:not(.hbtns) { max-width:calc(50% - 360px); }
+  header.hero h1 { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+}
 /* wide screens: Inici and Club in two columns; Equips, Agenda and pages keep a readable width */
 @media (min-width:1100px) {
   main { max-width:1120px; }
