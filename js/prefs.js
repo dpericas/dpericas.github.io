@@ -104,6 +104,7 @@
         "<section><h2>🔠 " + esc(T("pf.text")) + "</h2>" + sw("pf-text", VSP.store("text_size") === "large", T("pf.text_sw")) + "</section>" +
 
         "<section><h2>🧹 " + esc(T("pf.privacy")) + "</h2>" +
+        sw("pf-stats", VSP.store("stats") === "1", T("st.switch")) + '<p class="muted">' + esc(T("st.ask_text")) + "</p>" +
         '<p class="muted">' + esc(T("pf.forget_note")) + "</p>" +
         '<div class="row"><button type="button" class="btn ghost small" id="pf-forget"' + (busy ? " disabled" : "") + ">🧹 " + esc(T("pf.forget")) + "</button></div>" +
         (confirmFor === "forget" ? '<div class="confirm" role="alertdialog" aria-label="' + esc(T("pf.forget")) + '"><p>' + esc(T("pf.forget_q")) + "</p>" +
@@ -137,6 +138,7 @@
       }, el);
       $("pf-agmine").onchange = function () { if (VSP.setAgendaMineDefault) VSP.setAgendaMineDefault(this.checked); else VSP.store("ag_mine_default", this.checked ? "1" : null); };
       $("pf-urgent").onchange = function () { VSP.store("notices_urgent", this.checked ? null : "0"); if (VSP.renderNotices) VSP.renderNotices(); };
+      $("pf-stats").onchange = function () { if (VSP.statsAnswer) VSP.statsAnswer(this.checked); if (VSP.renderStatsAsk) VSP.renderStatsAsk(); };
       $("pf-text").onchange = function () {
         VSP.store("text_size", this.checked ? "large" : null);
         if (this.checked) document.documentElement.setAttribute("data-text", "large"); else document.documentElement.removeAttribute("data-text");

@@ -38,6 +38,7 @@
 
   hub.route = function () {
     var q = parseHash();
+    if (window.VSP && VSP.statsTouch) VSP.statsTouch("pili" in q ? "pili" : "jocs");   // 📊 only if the statistics are on
     VSPG.stopGame();
     clearTimers();
     if (!("ranking" in q)) rankCache = null;

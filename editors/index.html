@@ -109,6 +109,11 @@
   .stat { background:var(--bg); border:1px solid var(--line); border-radius:12px; padding:10px; text-align:center; }
   .stat b { display:block; font-size:24px; }
   .bar { height:6px; background:var(--chip); border-radius:3px; overflow:hidden; margin-top:2px; }
+  /* 📊 month by month: one column per month */
+  .mchart { display:flex; align-items:flex-end; gap:4px; height:120px; }
+  .mcol { flex:1; min-width:0; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:2px; }
+  .mcol i { display:block; width:100%; background:var(--brand); border-radius:3px 3px 0 0; }
+  .mcol .small { white-space:nowrap; font-size:11px; }
   .bar span { display:block; height:100%; background:var(--brand); }
   .subnav { display:flex; gap:6px; flex-wrap:wrap; margin:4px 0 0; }
   details summary { cursor:pointer; font-weight:600; }
@@ -692,7 +697,7 @@
     }
     function editorName(me) { return String((me && (String(me.nom || "").trim() || me.email)) || "").slice(0, 60); }
     // ---- activity log entry (same as the app's AuditLog)
-    var SKIP_LOG = ["registre", "errors", "installs"];
+    var SKIP_LOG = ["registre", "errors", "installs", "estadistiques"];
     function titleOf(data) {
       if (!data) return "";
       var t = "";
@@ -980,7 +985,7 @@
     // ---- weekly "Propers partits" message (WeeklyMessage.kt)
     var WEEK_LABEL = { 3629: "senior F", 4578: "senior M", 3630: "juvenil V", 3631: "juvenil N", 3632: "cadet V", 3633: "cadet N",
       3634: "infantil V", 4916: "infantil N", 6731: "aleví", "-1": "escola aleví", "-2": "escola", "-3": "màsters" };
-    var WL = { header: "Propers partits:", home: "A Santpedor", away: "A fora", tbc: "hora per confirmar", separator: "🏐🖤💚🏐🖤💚🏐",
+    var WL = { header: "Propers partits:", home: "A Santpedor", away: "A fora", tbc: "hora per confirmar", separator: "🏐💚🖤🏐💚🖤🏐",
       none: "No hi ha partits programats.", restOne: "😴 Descansa aquest cap de setmana: ", restMany: "😴 Descansen aquest cap de setmana: " };
     function weekendDays(todayIso, weekends) {
       var dow = parseDay(todayIso).getDay();
@@ -1037,12 +1042,13 @@
       if (!Object.keys(byDay).length && weekends.every(function (w) { return !rest[w].length; })) return WL.header + "\n" + WL.none;
       var sb = WL.header + "\n";
       function tkey(t) { return t || "99:99"; }
-      weekends.forEach(function (w, wi) {
-        if (wi > 0) sb += WL.separator + "\n";
+      var blocks = 0;   // days (or empty weekends) written: each one opens with the separator
+      weekends.forEach(function (w) {
         var firstDay = true;
         wmap[w].forEach(function (d) {
           var list = byDay[d]; if (!list) return;
-          if (!firstDay) sb += "\n";
+          if (blocks++ > 0) sb += "\n";
+          sb += WL.separator + "\n";
           firstDay = false;
           sb += " *" + CA_DOW[parseDay(d).getDay()] + " " + parseDay(d).getDate() + "*\n";
           var home = list.filter(function (f) { return isClubHall(f.venue, f.address); }), away = list.filter(function (f) { return !isClubHall(f.venue, f.address); });
@@ -1062,7 +1068,7 @@
               });
           });
         });
-        if (firstDay) sb += WL.none + "\n";
+        if (firstDay) { if (blocks++ > 0) sb += "\n" + WL.separator + "\n"; sb += WL.none + "\n"; }
         if (rest[w].length) sb += "\n" + (rest[w].length === 1 ? WL.restOne : WL.restMany) + rest[w].join(", ") + "\n";
       });
       return sb.replace(/\s+$/, "");
@@ -1210,7 +1216,70 @@
         byAndroid: countBy(a30, function (o) { var s = Number(o.sdk) || 0; return s > 0 ? androidName(s) : null; }),
         favourites: countBy(favs, function (t) { return t; }).map(function (x) { return [Number(x[0]), x[1]]; }),
         notifications: a30.filter(function (o) { return o.notif === true; }).length, liveAlerts: a30.filter(function (o) { return o.live === true; }).length,
-        calendar: a30.filter(function (o) { return o.cal === true; }).length, widget: a30.filter(function (o) { return o.widget === true; }).length };
+        calendar: a30.filter(function (o) { return o.cal === true; }).length, widget: a30.filter(function (o) { return o.widget === true; }).length,
+        platforms: countBy(a30, platformOf), homeScreen: a30.filter(function (o) { return o.pwa === true; }).length,
+        sections: sectionCounts(a30, todayIso) };
+    }
+    // 📊 01.53: where it is used, which sections, call-up answers and the month by month (same as the app's stats/UsageExtras.kt)
+    var STATS_SECTIONS = ["inici", "equips", "agenda", "club", "avisos", "directe", "marcador", "jocs", "pili", "galeria", "cotxes", "editors"];
+    var SECTION_NAMES = { inici: "🏠 Inici", equips: "👥 Equips", agenda: "📅 Agenda", club: "🏐 Club", avisos: "📢 Avisos del club", directe: "📡 Directes",
+      marcador: "🔢 Marcador", jocs: "🎮 Jocs", pili: "🐣 La meva Pili", galeria: "🖼️ Galeria", cotxes: "🚗 Cotxes compartits", editors: "🔑 Zona d'editors" };
+    var PLATFORM_NAMES = { android: "📱 App d'Android", iphone: "🍏 Web a l'iPhone", web: "💻 Web (ordinador i altres)" };
+    /** Records from before 01.53 have no "pl": they are the app's. */
+    function platformOf(o) { return o.pl === "iphone" || o.pl === "web" ? o.pl : "android"; }
+    /** [section, phones in 7 days, in 30 days], empty ones left out. */
+    function sectionCounts(records, todayIso) {
+      var d7 = addDays(todayIso, -7), d30 = addDays(todayIso, -30);
+      return STATS_SECTIONS.map(function (k) {
+        var days = records.map(function (o) { return o.sec && validDay(o.sec[k]) ? o.sec[k] : null; }).filter(Boolean);
+        return [k, days.filter(function (d) { return d >= d7; }).length, days.filter(function (d) { return d >= d30; }).length];
+      }).filter(function (x) { return x[2] > 0; });
+    }
+    var PART_DAYS = 60;
+    function recentCalls(calls, todayIso) {
+      var limit = addDays(todayIso, -PART_DAYS);
+      return calls.filter(function (c) { var d = String(c.created || "").slice(0, 10); return Array.isArray(c.convocades) && validDay(d) && d >= limit; });
+    }
+    /** One team: call-ups, players called, players with an answer, cars offered (offers: fixture id -> n). */
+    function participationTeam(team, calls, answers, offers) {
+      var called = 0, answered = 0, cars = 0;
+      calls.forEach(function (c) {
+        var id = String(c.partit || c.id || ""), players = (c.convocades || []).map(String).filter(function (x) { return x.trim(); });
+        var sm = rsvpSummary(players, rsvpOfFixture(answers, id));
+        called += players.length; answered += sm.yes.length + sm.no.length; cars += offers[id] || 0;
+      });
+      return { team: team, calls: calls.length, called: called, answered: answered, offers: cars, percent: called ? Math.round(answered * 100 / called) : 0 };
+    }
+    function clubPercent(list) {
+      var c = 0, a = 0; list.forEach(function (t) { c += t.called; a += t.answered; });
+      return c ? Math.round(a * 100 / c) : -1;
+    }
+    function monthSnapshot(u, part, todayIso) {
+      var sec = {}; u.sections.forEach(function (x) { sec[x[0]] = x[2]; });
+      function pl(k) { var r = u.platforms.filter(function (x) { return x[0] === k; })[0]; return r ? r[1] : 0; }
+      return { mes: todayIso.slice(0, 7), actualitzat: todayIso, mobils: u.installs, actius7: u.active7, actius30: u.active30, nous30: u.newLast30,
+        android: pl("android"), iphone: pl("iphone"), web: pl("web"), notif: u.notifications, resposta: Math.max(-1, Math.min(100, part)), seccions: sec };
+    }
+    function monthsOf(docs, max) {
+      return docs.filter(function (m) { return /^\d{4}-\d{2}$/.test(m.mes || ""); }).sort(function (a, b) { return a.mes < b.mes ? -1 : a.mes > b.mes ? 1 : 0; }).slice(-(max || 12));
+    }
+    function newPerMonth(records, todayIso, max) {
+      max = max || 12;
+      var c = {}; records.forEach(function (o) { var m = String(o.first || "").slice(0, 7); if (/^\d{4}-\d{2}$/.test(m)) c[m] = (c[m] || 0) + 1; });
+      var y = +todayIso.slice(0, 4), mo = +todayIso.slice(5, 7), out = [];
+      for (var i = max - 1; i >= 0; i--) {
+        var t = y * 12 + (mo - 1) - i, k = Math.floor(t / 12) + "-" + ("0" + (t % 12 + 1)).slice(-2);
+        out.push([k, c[k] || 0]);
+      }
+      return out;
+    }
+    function statsCsv(months) {
+      var keys = ["mobils", "actius7", "actius30", "nous30", "android", "iphone", "web", "notif", "resposta"];
+      var head = ["mes"].concat(keys, STATS_SECTIONS);
+      return [head].concat(months.map(function (m) {
+        return [m.mes].concat(keys.map(function (k) { return m[k] == null ? "" : String(m[k]); }),
+          STATS_SECTIONS.map(function (k) { return String((m.seccions && m.seccions[k]) || 0); }));
+      })).map(function (r) { return r.join(";"); }).join("\n") + "\n";
     }
 
     // ---- crash reports (ErrorReports.kt) and data browser (AdminLogic)
@@ -1490,7 +1559,9 @@
              SQUAD: SQUAD, cleanSquad: cleanSquad, isStaff: isStaff, ORD: ORD, parseSizes: parseSizes, parsePrice: parsePrice, priceText: priceText,
              euro: euro, campaignOf: campaignOf, requestOf: requestOf, ordTotal: ordTotal, grandTotal: grandTotal, tally: tally, hasPrices: hasPrices,
              ordSummary: ordSummary, csvField: csvField, ordCsv: ordCsv, csvFileName: csvFileName, checkCampaign: checkCampaign,
-             campaignState: campaignState, lineText: lineText, androidName: androidName, usageSummary: usageSummary, errSignature: errSignature,
+             campaignState: campaignState, lineText: lineText, androidName: androidName, usageSummary: usageSummary, STATS_SECTIONS: STATS_SECTIONS, SECTION_NAMES: SECTION_NAMES,
+             PLATFORM_NAMES: PLATFORM_NAMES, platformOf: platformOf, sectionCounts: sectionCounts, recentCalls: recentCalls, participationTeam: participationTeam,
+             clubPercent: clubPercent, monthSnapshot: monthSnapshot, monthsOf: monthsOf, newPerMonth: newPerMonth, statsCsv: statsCsv, errSignature: errSignature,
              groupErrors: groupErrors, COLLECTIONS: COLLECTIONS, docSummary: docSummary, countQuery: countQuery, proposalsQuery: proposalsQuery,
              proposalVisible: proposalVisible, albumsFor: albumsFor, defaultAlbumTitle: defaultAlbumTitle, albumDoc: albumDoc, checkAlbum: checkAlbum,
              waPost: waPost, INV: INV, invCode: invCode, invCodeOk: invCodeOk, invFormat: invFormat, invUrl: invUrl, invRolesFor: invRolesFor,
@@ -1691,6 +1762,8 @@
       var me = p.d; me.uid = S.uid;
       if (["admin", "junta", "entrenador"].indexOf(me.role) < 0) throw failure("NOT_FOUND");
       S.me = me; loaded = {}; members = {}; pending = {}; curTeam = null; notices = []; editing = null;
+      // 📊 anonymous statistics of the club web (js/stats.js): the last day the Editors' area was used, only if they are on
+      try { if (localStorage.getItem("stats") === "1") { var sm = JSON.parse(localStorage.getItem("stats_sec") || "{}") || {}; sm.editors = todayIso(); localStorage.setItem("stats_sec", JSON.stringify(sm)); } } catch (e) {}
       // display-only hint for the public web's "El meu equip" (role and teams, nothing secret)
       ls("vsp_editor_hint", JSON.stringify({ role: me.role, teams: (me.teams || []).map(Number) }));
       $("n-form-sec").hidden = true; $("pend-total").innerHTML = ""; $("prop-total").innerHTML = "";
@@ -3234,24 +3307,77 @@
   $("o-sum-close").onclick = function () { $("o-sum-sec").hidden = true; oSum = null; };
 
   // ---- anonymous usage statistics
+  var usageMonths = [];
+  function bars(title, rows, total) {
+    return "<h3>" + esc(title) + "</h3>" + (rows.length ? rows.map(function (r) {
+      return '<div style="margin:4px 0"><div class="row"><span class="small">' + esc(r[0]) + '</span><span class="spacer"></span><b>' + esc(r[1]) + "</b></div>" +
+        '<div class="bar" role="presentation"><span style="width:' + Math.min(100, Math.round((r[2] == null ? r[1] : r[2]) * 100 / Math.max(1, total))) + '%"></span></div></div>';
+    }).join("") : "<p>—</p>");
+  }
+  /** Columns, one per month ("2026-11" -> "11/26"). */
+  function monthChart(title, rows) {
+    var max = Math.max(1, Math.max.apply(null, rows.map(function (r) { return r[1]; }).concat([0])));
+    return '<p class="small" style="margin:12px 0 4px"><b>' + esc(title) + '</b></p><div class="mchart" role="img" aria-label="' + esc(title + ": " + rows.map(function (r) { return r[0] + " " + r[1]; }).join(", ")) + '">' +
+      rows.map(function (r) {
+        return '<div class="mcol"><span class="small">' + r[1] + '</span><i style="height:' + Math.round(80 * r[1] / max) + 'px"></i><span class="small">' + esc(r[0].slice(5) + "/" + r[0].slice(2, 4)) + "</span></div>";
+      }).join("") + "</div>";
+  }
+  function participation(today) {
+    return Promise.all(H.INV.TEAMS.map(function (t) {
+      return fsList("equips/" + t + "/convocatories").then(function (l) {
+        var calls = H.recentCalls(l.map(function (x) { var o = x.d; o.id = x.id; return o; }), today);
+        if (!calls.length) return null;
+        return Promise.all([fsList("equips/" + t + "/respostes").catch(function () { return []; })].concat(calls.map(function (c) {
+          var id = String(c.partit || c.id);
+          return fsList("cotxes/" + id + "/entrades").then(function (e) { return [id, e.filter(function (x) { return x.d.kind === "offer"; }).length]; }, function () { return [id, 0]; });
+        }))).then(function (r) {
+          var answers = r[0].map(function (x) { var o = x.d; o.id = x.id; return o; }), offers = {};
+          r.slice(1).forEach(function (x) { offers[x[0]] = x[1]; });
+          return H.participationTeam(t, calls, answers, offers);
+        });
+      }, function () { return null; });
+    })).then(function (l) { return l.filter(Boolean); });
+  }
   function loadUsage() {
     var box = $("u-box"); box.innerHTML = loadingHtml();
+    var today = todayIso();
     fsList("installs").then(function (l) {
-      var u = H.usageSummary(l.map(function (x) { return x.d; }), todayIso()), total = Math.max(1, u.active30);
-      function block(title, rows) {
-        return "<h3>" + esc(title) + "</h3>" + (rows.length ? rows.map(function (r) {
-          return '<div style="margin:4px 0"><div class="row"><span class="small">' + esc(r[0]) + '</span><span class="spacer"></span><b>' + r[1] + "</b></div>" +
-            '<div class="bar" role="presentation"><span style="width:' + Math.min(100, Math.round(r[1] * 100 / total)) + '%"></span></div></div>';
-        }).join("") : "<p>—</p>");
-      }
-      box.innerHTML = '<div class="stats"><div class="stat"><b>' + u.installs + '</b><span class="small">Mòbils</span></div>' +
+      var records = l.map(function (x) { return x.d; });
+      var u = H.usageSummary(records, today), total = Math.max(1, u.active30);
+      function block(title, rows) { return bars(title, rows, total); }
+      box.innerHTML = '<div class="stats"><div class="stat"><b>' + u.installs + '</b><span class="small">Aparells</span></div>' +
         '<div class="stat"><b>' + u.active7 + '</b><span class="small">Actius 7 dies</span></div><div class="stat"><b>' + u.active30 + '</b><span class="small">Actius 30 dies</span></div></div>' +
-        '<p class="small">' + u.newLast30 + " instal·lacions noves els últims 30 dies.</p>" +
-        block("Versió de l'app (actius 30 dies)", u.byVersion) +
+        '<p class="small">' + u.newLast30 + " aparells nous els últims 30 dies.</p>" +
+        block("On es fa servir (actius 30 dies)", u.platforms.map(function (x) { return [H.PLATFORM_NAMES[x[0]] || x[0], x[1]]; })) +
+        (u.homeScreen ? '<p class="small">' + u.homeScreen + " tenen el web a la pantalla d'inici.</p>" : "") +
+        bars("Seccions que es fan servir (aparells, 30 dies)", u.sections.map(function (x) { return [(H.SECTION_NAMES[x[0]] || x[0]) + " · " + x[1] + " aquesta setmana", x[2]]; }), total) +
+        (u.sections.length ? "" : '<p class="small">Encara no hi ha dades: arriben amb l\'app 01.53 i el web nou.</p>') +
+        '<h3>Respostes a les convocatòries (últims 60 dies)</h3><div id="u-part">' + loadingHtml() + "</div>" +
+        '<h3>Mes a mes</h3><div id="u-months">' + loadingHtml() + "</div>" +
+        block("Versió de l'app o del web (actius 30 dies)", u.byVersion) +
         block("Equips marcats amb ★", u.favourites.map(function (x) { return [teamName(x[0]), x[1]]; })) +
         block("Opcions activades", [["Notificacions (avisos/recordatoris)", u.notifications], ["Avisos de partits en directe", u.liveAlerts],
           ["Partits al calendari", u.calendar], ["Widget a la pantalla d'inici", u.widget]]) +
         block("Android", u.byAndroid);
+      participation(today).then(function (part) {
+        $("u-part").innerHTML = part.length ? part.map(function (p) {
+          return '<div style="margin:6px 0"><div class="row"><b>' + esc(teamName(p.team)) + '</b><span class="spacer"></span><b>' + p.percent + "%</b></div>" +
+            '<div class="small">' + p.calls + (p.calls === 1 ? " convocatòria · " : " convocatòries · ") + p.answered + " de " + p.called + " han respost «vinc / no vinc» · 🚗 " + p.offers + " cotxes oferts</div>" +
+            '<div class="bar" role="presentation"><span style="width:' + p.percent + '%"></span></div></div>';
+        }).join("") : "<p>Cap convocatòria els últims 60 dies.</p>";
+        // this month's line of the history, refreshed each time the board looks (no entry in the activity log)
+        var snap = H.monthSnapshot(u, H.clubPercent(part), today);
+        return api("PATCH", "estadistiques/" + snap.mes, { fields: H.encFields(snap) }).catch(function () {}).then(function () {
+          return fsList("estadistiques").catch(function () { return []; });
+        });
+      }).then(function (docs) {
+        usageMonths = H.monthsOf(docs.map(function (x) { return x.d; }));
+        $("u-months").innerHTML = (usageMonths.length ? monthChart("Aparells actius (30 dies) a final de cada mes", usageMonths.map(function (m) { return [m.mes, Number(m.actius30) || 0]; }))
+            : '<p class="small">L\'historial comença aquest mes: cada cop que la junta obre aquesta pàgina es desa la foto del mes (cal haver publicat les regles de la 01.53).</p>') +
+          monthChart("Aparells nous cada mes", H.newPerMonth(records, today)) +
+          (usageMonths.length ? '<div class="row" style="margin-top:8px"><button class="btn ghost small" type="button" id="u-csv">⬇️ Baixa el resum mensual (CSV)</button></div>' : "");
+        if ($("u-csv")) $("u-csv").onclick = function () { download("estadistiques-us.csv", "\uFEFF" + H.statsCsv(usageMonths), "text/csv;charset=utf-8"); };
+      }).catch(function (e) { if ($("u-part")) $("u-part").innerHTML = errHtml(e); });
     }).catch(function (e) { box.innerHTML = errHtml(e); });
   }
   $("u-reload").onclick = loadUsage;

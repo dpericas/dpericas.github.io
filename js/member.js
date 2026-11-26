@@ -763,6 +763,8 @@
     var busy = false, info = "", error = "";
     // link codes: the join form (open), the code made here and the linked devices (null = not loaded)
     var joinOpen = false, joinCode = "", made = null, devices = null;
+    // folded parts: the team list open only while nothing is chosen; one team open at a time
+    var teamsOpen = !teams.length, openTeam = null;
     function sorted(l) { return l.slice().sort(function (a, b) { return VSP.TEAM_ORDER.indexOf(a) - VSP.TEAM_ORDER.indexOf(b); }); }
     function chip(on, attrs, label) {
       return '<button type="button" class="chip' + (on ? " on" : "") + '" aria-pressed="' + on + '" ' + attrs + ">" + label + "</button>";
@@ -801,21 +803,35 @@
       html += '<section><form id="mem-f" class="form">' +
         "<label>" + esc(VSP.t("mem.name")) + '<input id="mem-name" maxlength="60" autocomplete="name" value="' + esc(name) + '" placeholder="' +
         esc(VSP.t(anyFamily ? "mem.name_hint_family" : "mem.name_hint_player")) + '"></label>' +
-        "<fieldset><legend>" + esc(VSP.t("mem.teams_legend")) + '</legend><div class="chips">' +
-        VSP.TEAMS.map(function (t) { return chip(teams.indexOf(t.id) >= 0, 'data-mteam="' + t.id + '"', esc(t.name)); }).join("") +
-        '</div><div class="meta">' + esc(VSP.t("mem.teams_hint")) + "</div></fieldset>";
+        // 👥 the teams, folded: the summary says which ones; open it to add or remove (state kept across redraws)
+        '<details class="fold" id="mem-teams"' + (teamsOpen ? " open" : "") + "><summary><b>👥 " + esc(VSP.t("mem.teams_title")) + '</b><span class="meta">' +
+        esc(teams.length ? VSP.tn("mem.teams_sum", teams.length, sorted(teams).map(VSP.teamName).join(", ")) : VSP.t("mem.teams_none")) + "</span></summary>" +
+        '<p class="meta">' + esc(VSP.t("mem.teams_tap")) + '</p><div class="chips">' +
+        VSP.TEAMS.map(function (t) { var on = teams.indexOf(t.id) >= 0; return chip(on, 'data-mteam="' + t.id + '"', (on ? "✓ " : "") + esc(t.name)); }).join("") +
+        '</div><div class="meta">' + esc(VSP.t("mem.teams_hint")) + "</div></details>";
       sorted(teams).forEach(function (t) {
         var role = roles[t], roster = VSP.roster(t), cur = players[t] || [];
         cur.forEach(function (p) { if (!roster.some(function (r) { return VSP.sameName(r, p); })) roster.push(p); });
-        html += '<fieldset><legend>' + esc(VSP.teamName(t)) + '</legend><div class="chips" role="group" aria-label="' + esc(VSP.t("mem.who_in", VSP.teamName(t))) + '">' +
-          [["jugador", "mem.role_player"], ["familia", "mem.role_family"]].map(function (r) { return chip(role === r[0], 'data-rteam="' + t + '" data-role="' + r[0] + '"', esc(VSP.t(r[1]))); }).join("") +
-          '</div><div class="meta">' + esc(role === "familia" ? VSP.t("mem.kids_in", VSP.teamName(t)) : VSP.t("mem.who_in_q", VSP.teamName(t))) + '</div><div class="chips">' +
+        // per team, folded too: team · role · who · approved or waiting
+        var sum = [(role === "jugador" ? "🏐 " + VSP.t("mem.role_player") : "👨‍👩‍👧 " + VSP.t("mem.role_family")),
+          cur.length ? cur.join(", ") : "⚠️ " + VSP.t(role === "jugador" ? "mem.who_missing" : "mem.kids_missing"),
+          req.indexOf(t) >= 0 ? status[t] : ""].filter(Boolean).join(" · ");
+        html += '<details class="fold" data-tfold="' + t + '"' + (openTeam === t ? " open" : "") + "><summary><b>" + esc(VSP.teamName(t)) + '</b><span class="meta">' + esc(sum) + "</span></summary>" +
+          '<p class="step">' + esc(VSP.t("mem.step_role")) + '</p><div class="whos two" role="group" aria-label="' + esc(VSP.t("mem.who_in", VSP.teamName(t))) + '">' +
+          [["jugador", "mem.role_player", "🏐", "mem.role_player_d"], ["familia", "mem.role_family", "👨‍👩‍👧", "mem.role_family_d"]].map(function (r) {
+            var on = role === r[0];
+            return '<button type="button" class="who' + (on ? " on" : "") + '" aria-pressed="' + on + '" data-rteam="' + t + '" data-role="' + r[0] + '"><span class="wi" aria-hidden="true">' + r[2] + "</span>" +
+              "<span><b>" + esc(VSP.t(r[1])) + '</b><span class="meta">' + esc(VSP.t(r[3])) + "</span></span>" + (on ? '<span class="tick" aria-hidden="true">✓</span>' : "") + "</button>";
+          }).join("") + "</div>" +
+          '<p class="step">' + esc(VSP.t(role === "familia" ? "mem.step_kids" : "mem.step_me")) + '</p><div class="meta">' +
+          esc(VSP.t(role === "familia" ? "mem.step_kids_d" : "mem.step_me_d")) + '</div><div class="chips">' +
           roster.map(function (p) {
             var on = cur.some(function (c) { return VSP.sameName(c, p); });
-            return chip(on, 'data-pteam="' + t + '" data-pname="' + esc(p) + '"', esc(p));
+            return chip(on, 'data-pteam="' + t + '" data-pname="' + esc(p) + '"', (on ? "✓ " : "") + esc(p));
           }).join("") + "</div>" +
           '<div class="row"><input class="grow" data-addname="' + t + '" maxlength="50" placeholder="' + esc(VSP.t("mem.add_name_ph")) + '" aria-label="' + esc(VSP.t("mem.add_name_to", VSP.teamName(t))) + '"><button type="button" class="btn ghost small" data-addbtn="' + t + '">' + esc(VSP.t("common.add")) + "</button></div>" +
-          '<div class="meta">' + esc(VSP.t("mem.link_hint")) + "</div></fieldset>";
+          '<div class="meta">' + esc(VSP.t("mem.link_hint")) + "</div>" +
+          '<div class="row"><button type="button" class="btn ghost small" data-tremove="' + t + '">' + esc(VSP.t("mem.team_remove")) + "</button></div></details>";
       });
       html += '<button class="btn primary" type="submit"' + (busy ? " disabled" : "") + ">" + esc(VSP.t(req.length ? "mem.update" : "mem.send")) + "</button>" +
         '<p class="meta">' + esc(VSP.t("mem.privacy")) + "</p></form></section>";
@@ -825,6 +841,13 @@
     function keepOne(t) { if (roles[t] === "jugador" && (players[t] || []).length > 1) players[t] = players[t].slice(0, 1); }
     function bind() {
       $("mem-name").oninput = function () { name = this.value; };
+      if ($("mem-teams")) $("mem-teams").ontoggle = function () { teamsOpen = this.open; };
+      VSP.each("[data-tfold]", function (d) {
+        d.ontoggle = function () { var t = Number(d.getAttribute("data-tfold")); if (d.open) openTeam = t; else if (openTeam === t) openTeam = null; };
+      }, el);
+      VSP.each("[data-tremove]", function (b) {
+        b.onclick = function () { var t = Number(b.getAttribute("data-tremove")); teams = teams.filter(function (x) { return x !== t; }); delete players[t]; if (openTeam === t) openTeam = null; draw(); };
+      }, el);
       VSP.each("[data-rteam]", function (b) {
         b.onclick = function () {
           var t = Number(b.getAttribute("data-rteam"));
@@ -835,7 +858,7 @@
         b.onclick = function () {
           var t = Number(b.getAttribute("data-mteam"));
           if (teams.indexOf(t) >= 0) teams = teams.filter(function (x) { return x !== t; });
-          else { roles[t] = L.defaultRole(roles, teams, last); keepOne(t); teams = teams.concat([t]); }
+          else { roles[t] = L.defaultRole(roles, teams, last); keepOne(t); teams = teams.concat([t]); openTeam = t; }
           draw();
         };
       }, el);

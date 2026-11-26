@@ -15,7 +15,7 @@
   VSP.CLUB_ID = 206572812;
   VSP.SEASON = "2627";
   /** Web version = the service worker cache name: keep it in sync by hand with CACHE in sw.js. */
-  VSP.WEB_VERSION = "vsp-v28";
+  VSP.WEB_VERSION = "vsp-v29";
 
   // ---------- teams (ClubConfig.ALL_TEAMS, same order and names as the app)
   function sq(list) { return list.map(function (x) { return { nom: x[0], rol: x[1], dorsal: "" }; }); }
@@ -359,6 +359,22 @@
     };
   };
 
+  // ---------- 📊 anonymous statistics (js/stats.js): the last day each part of the web was used, only if they are on.
+  // Same section ids as the app (stats/UsageExtras.kt). Kept in this browser; sent at most once a day.
+  VSP.STATS_SECTIONS = ["inici", "equips", "agenda", "club", "avisos", "directe", "marcador", "jocs", "pili", "galeria", "cotxes", "editors"];
+  VSP.statsTouch = function (sec) {
+    if (VSP.store("stats") !== "1" || VSP.STATS_SECTIONS.indexOf(sec) < 0) return;
+    var m = {}; try { m = JSON.parse(VSP.store("stats_sec") || "{}") || {}; } catch (e) { m = {}; }
+    var d = VSP.isoDay(new Date());
+    if (m[sec] !== d) { m[sec] = d; VSP.store("stats_sec", JSON.stringify(m)); }
+  };
+  /** Page of the web -> section. Pure. */
+  VSP.statsSectionOf = function (name) {
+    if (VSP.STATS_SECTIONS.indexOf(name) >= 0) return name;
+    return { equip: "equips", partit: "agenda", galeria: "galeria", album: "galeria", proposa: "galeria", benvinguda: "inici" }[name] ||
+      (VSP.pages[name] ? "club" : null);
+  };
+
   // ---------- tabs and pages (hash router: #equips, #inici, #agenda, #club, #<page>/<arg>)
   VSP.TABS = ["inici", "equips", "agenda", "club"];
   VSP.pages = {};
@@ -376,6 +392,7 @@
     var page = $("page");
     var name = h.split("/")[0], arg = h.slice(name.length + 1);
     if (VSP.pages[name]) {
+      VSP.statsTouch(VSP.statsSectionOf(name));
       VSP.each("[data-tab]", function (el) { el.hidden = true; });
       page.hidden = false;
       page.innerHTML = '<div class="page-head"><button class="back" id="page-back" aria-label="' + esc(VSP.t("common.back")) + '">←</button><h2 id="page-title"></h2></div><div id="page-body"><div class="empty">' + esc(VSP.t("common.loading")) + "</div></div>";
@@ -397,6 +414,7 @@
     if (VSP.TABS.indexOf(tab) < 0) tab = "inici";
     var changed = tab !== VSP.currentTab;
     showTab(tab);
+    VSP.statsTouch(tab);
     if (changed) window.scrollTo(0, 0);
   };
   var inAppNav = 0;

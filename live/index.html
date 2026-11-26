@@ -192,6 +192,7 @@
   var PKG = "cat.voleisantpedor.app";
   var m = /vsp-[a-z0-9]{6,32}/.exec((location.hash + " " + location.search + " " + location.pathname).toLowerCase());
   var topic = m && m[0];
+  if (topic && window.VSP && VSP.statsTouch) VSP.statsTouch("directe");   // 📊 only if the statistics are on
   var $ = function (id) { return document.getElementById(id); };
   var reduce = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 

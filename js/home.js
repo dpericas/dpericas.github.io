@@ -59,7 +59,7 @@
     if (fold && !fold.onclick) fold.onclick = function () {
       open = !open;
       // opening = all seen (like the app's Club tab)
-      if (open) VSP.addSeenNotices(current().map(VSP.noticeId));
+      if (open) { VSP.addSeenNotices(current().map(VSP.noticeId)); VSP.statsTouch("avisos"); }
       draw();
     };
     var f = VSP.foldedNotices(list, VSP.seenNotices(), VSP.urgentAlways());

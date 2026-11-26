@@ -31,7 +31,7 @@
 
   VSP.pages.benvinguda = { tab: "inici", render: function (arg, el, title) {
     title(T("wel.title"));
-    var sel = VSP.savedWho() || ["fan"], favs = VSP.favs(), done = false;
+    var sel = VSP.savedWho() || ["fan"], favs = VSP.favs(), done = false, statsOn = VSP.store("stats") === "1";
     // «Ja faig servir l'app o el web en un altre dispositiu»: its link code brings everything and links both for good
     var imp = { open: false, code: "", busy: false, error: "" };
     function importHtml() {
@@ -75,6 +75,8 @@
           var on = favs.indexOf(id) >= 0;
           return '<button type="button" class="chip' + (on ? " on" : "") + '" data-fav="' + id + '" aria-pressed="' + on + '">' + (on ? "★ " : "☆ ") + esc(VSP.teamName(id)) + "</button>";
         }).join("") + "</div></section>" +
+        "<section><h2>" + esc(T("st.ask_title")) + '</h2><p class="muted">' + esc(T("st.ask_text")) + "</p>" +
+        '<label class="sw" for="wel-stats"><span>' + esc(T("st.switch")) + '</span><input type="checkbox" class="switch" role="switch" id="wel-stats"' + (statsOn ? " checked" : "") + "></label></section>" +
         '<div class="row" style="margin-top:14px"><button type="button" class="btn primary" id="wel-go">' + esc(T("wel.go")) + "</button>" +
         '<button type="button" class="btn ghost" id="wel-skip">' + esc(T("wel.skip")) + "</button></div>";
       VSP.each("[data-who]", function (b) { b.onclick = function () { sel = VSP.whoToggle(sel, b.getAttribute("data-who")); draw(); }; }, el);
@@ -83,10 +85,12 @@
       }, el);
       $("wel-skip").onclick = function () { VSP.store("welcomed", "1"); location.hash = "inici"; };
       $("wel-go").onclick = finish;
+      $("wel-stats").onchange = function () { statsOn = this.checked; };
       bindImport();
     }
     function finish() {
       VSP.store("welcomed", "1");
+      if (VSP.statsAnswer && (statsOn || VSP.store("stats") !== "0")) VSP.statsAnswer(statsOn);   // 📊 js/stats.js (seen here: not asked again on Inici)
       var before = VSP.savedWho() || [];
       VSP.storeJson("who", sel);
       if (before.slice().sort().join() !== sel.slice().sort().join()) { VSP.store("who_at", String(Date.now())); VSP.emit("who"); }   // linked devices follow

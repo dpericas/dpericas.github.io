@@ -327,3 +327,19 @@ input.grow { display:inline-block; width:auto; margin-top:0; }
 .fold-more .peek-t { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-weight:600; }
 .fold-more .muted { flex:none; }
 .fold-h .badge[hidden] { display:none; }
+/* 👤 El meu equip: the teams and each team fold (js/member.js) */
+details.fold { border:1px solid var(--line); border-radius:14px; margin-top:10px; background:var(--card); }
+details.fold > summary { list-style:none; cursor:pointer; padding:12px 40px 12px 14px; position:relative; border-radius:14px; }
+details.fold > summary::-webkit-details-marker { display:none; }
+details.fold > summary::after { content:"▾"; position:absolute; right:14px; top:14px; color:var(--muted); transition:transform .2s; }
+details.fold[open] > summary::after { transform:rotate(180deg); }
+details.fold > summary b, details.fold > summary .meta { display:block; }
+details.fold > summary:focus-visible { outline:3px solid var(--brand); outline-offset:2px; }
+details.fold[open] > summary { border-bottom:1px solid var(--line); border-radius:14px 14px 0 0; }
+details.fold > :not(summary) { margin-left:14px; margin-right:14px; }
+details.fold > :last-child { margin-bottom:14px; }
+details.fold .step { font-weight:700; margin:12px 14px 4px; }
+.whos.two { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+.whos.two .who { min-width:0; padding:10px; gap:8px; }
+.whos.two .who .wi { font-size:calc(22px * var(--fs)); }
+@media (max-width:359px) { .whos.two { grid-template-columns:1fr; } }

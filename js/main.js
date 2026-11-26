@@ -93,6 +93,9 @@
       if (changed) { VSP.renderTeams(); if (VSP.renderNext) VSP.renderNext(); }
     }, function () {});
     VSP.carpoolCleanup();
+    // 📊 anonymous statistics (js/stats.js): the one-time question, and today's record if they are on
+    if (VSP.renderStatsAsk) VSP.renderStatsAsk();
+    if (VSP.statsPing) VSP.statsPing();
   });
   VSP.on("member", function () { VSP.renderTeams(); });
   document.addEventListener("visibilitychange", function () {
