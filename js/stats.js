@@ -19,8 +19,18 @@
       var d = o.sec && o.sec[k];
       if (/^\d{4}-\d{2}-\d{2}$/.test(d || "") && d >= limit && d <= o.today) sec[k] = d;
     });
+    // 🎮 games of the last 7 days (jocs/js/progress.js counts them per day)
+    var jp = 0, week = VSP.addDays(o.today, -6);
+    Object.keys(o.games || {}).forEach(function (d) { if (/^\d{4}-\d{2}-\d{2}$/.test(d) && d >= week && d <= o.today) jp += Math.max(0, Number(o.games[d]) || 0); });
     return { v: String(o.version || "web").slice(0, 20), first: o.first || o.today, last: o.today,
-      favs: (o.favs || []).slice(0, 20), notif: !!o.notif, pl: o.ios ? "iphone" : "web", pwa: !!o.standalone, sec: sec };
+      favs: (o.favs || []).slice(0, 20), notif: !!o.notif, pl: o.ios ? "iphone" : "web", pwa: !!o.standalone, sec: sec,
+      jp: Math.min(1000, jp), cals: (o.cals || []).map(Number).filter(function (x) { return x; }).slice(0, 20) };
+  };
+  /** 📅 A team calendar subscribed here (8.7). */
+  VSP.statsCal = function (id) {
+    if (!VSP.statsOn() || !id) return;
+    var l = VSP.storeJson("stats_cals", undefined, []) || [];
+    if (l.indexOf(id) < 0) { l.push(id); VSP.storeJson("stats_cals", l.slice(-20)); VSP.store("stats_last", null); }
   };
 
   function standalone() { return window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches); }
@@ -32,13 +42,20 @@
     var today = VSP.isoDay(new Date());
     if (!force && VSP.store("stats_last") === today) return Promise.resolve();
     var sec = {}; try { sec = JSON.parse(VSP.store("stats_sec") || "{}") || {}; } catch (e) { sec = {}; }
+    var games = {}; try { games = JSON.parse(VSP.store("stats_games") || "{}") || {}; } catch (e) { games = {}; }
     var first = VSP.store("stats_first") || today;
     var push = VSP.pushCurrent ? VSP.pushCurrent().then(function (s) { return !!s; }, function () { return false; }) : Promise.resolve(false);
     return push.then(function (notif) {
       return VSP.token().then(function () {
         var uid = VSP.uid(); if (!uid) return;
-        var rec = VSP.statsRecord({ today: today, first: first, version: VSP.WEB_VERSION, favs: VSP.favs(), notif: notif, ios: ios(), standalone: standalone(), sec: sec });
-        return VSP.fs.set("installs/" + uid, rec).then(function () { VSP.store("stats_last", today); VSP.store("stats_first", first); });
+        var rec = VSP.statsRecord({ today: today, first: first, version: VSP.WEB_VERSION, favs: VSP.favs(), notif: notif, ios: ios(), standalone: standalone(), sec: sec,
+          games: games, cals: VSP.storeJson("stats_cals", undefined, []) });
+        function done() { VSP.store("stats_last", today); VSP.store("stats_first", first); }
+        // rules of 01.53 without the 01.54 keys: then the record without them
+        return VSP.fs.set("installs/" + uid, rec).then(done, function () {
+          delete rec.jp; delete rec.cals;
+          return VSP.fs.set("installs/" + uid, rec).then(done);
+        });
       });
     }).catch(function () {});
   };
@@ -47,7 +64,7 @@
   VSP.statsAnswer = function (yes) {
     VSP.store("stats", yes ? "1" : "0");
     if (yes) { VSP.statsTouch(VSP.currentTab || "inici"); return VSP.statsPing(true); }
-    VSP.store("stats_sec", null); VSP.store("stats_last", null);
+    VSP.store("stats_sec", null); VSP.store("stats_last", null); VSP.store("stats_games", null); VSP.store("stats_cals", null);
     var uid = VSP.uid();
     return uid ? VSP.fs.del("installs/" + uid).catch(function () {}) : Promise.resolve();
   };

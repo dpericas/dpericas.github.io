@@ -32,6 +32,9 @@
   VSP.pages.benvinguda = { tab: "inici", render: function (arg, el, title) {
     title(T("wel.title"));
     var sel = VSP.savedWho() || ["fan"], favs = VSP.favs(), done = false, statsOn = VSP.store("stats") === "1";
+    // 🔔 6.7: the chosen teams' notices in this browser, asked right here (needs the tap of «Comença»)
+    var pushSup = VSP.pushSupport ? VSP.pushSupport() : "no";
+    var pushOn = pushSup === "ok" && window.Notification && Notification.permission !== "denied";
     // «Ja faig servir l'app o el web en un altre dispositiu»: its link code brings everything and links both for good
     var imp = { open: false, code: "", busy: false, error: "" };
     function importHtml() {
@@ -75,6 +78,10 @@
           var on = favs.indexOf(id) >= 0;
           return '<button type="button" class="chip' + (on ? " on" : "") + '" data-fav="' + id + '" aria-pressed="' + on + '">' + (on ? "★ " : "☆ ") + esc(VSP.teamName(id)) + "</button>";
         }).join("") + "</div></section>" +
+        (pushSup === "ok" && window.Notification && Notification.permission !== "denied"
+          ? "<section><h2>" + esc(T("wel.push_title")) + '</h2><label class="sw" for="wel-push"><span>' + esc(T("wel.push_sw")) + '</span><input type="checkbox" class="switch" role="switch" id="wel-push"' + (pushOn ? " checked" : "") + "></label>" +
+            '<p class="muted">' + esc(T("wel.push_note")) + "</p></section>"
+          : pushSup === "ios-install" ? "<section><h2>" + esc(T("wel.push_title")) + '</h2><p class="muted">' + esc(T("wel.push_ios")) + "</p></section>" : "") +
         "<section><h2>" + esc(T("st.ask_title")) + '</h2><p class="muted">' + esc(T("st.ask_text")) + "</p>" +
         '<label class="sw" for="wel-stats"><span>' + esc(T("st.switch")) + '</span><input type="checkbox" class="switch" role="switch" id="wel-stats"' + (statsOn ? " checked" : "") + "></label></section>" +
         '<div class="row" style="margin-top:14px"><button type="button" class="btn primary" id="wel-go">' + esc(T("wel.go")) + "</button>" +
@@ -86,6 +93,7 @@
       $("wel-skip").onclick = function () { VSP.store("welcomed", "1"); location.hash = "inici"; };
       $("wel-go").onclick = finish;
       $("wel-stats").onchange = function () { statsOn = this.checked; };
+      if ($("wel-push")) $("wel-push").onchange = function () { pushOn = this.checked; };
       bindImport();
     }
     function finish() {
@@ -95,6 +103,8 @@
       VSP.storeJson("who", sel);
       if (before.slice().sort().join() !== sel.slice().sort().join()) { VSP.store("who_at", String(Date.now())); VSP.emit("who"); }   // linked devices follow
       VSP.TEAM_ORDER.forEach(function (id) { var on = favs.indexOf(id) >= 0; if (on !== VSP.isFav(id)) VSP.setFav(id, on); });
+      // 🔔 the notices of the ★ teams just chosen (the permission prompt comes from this tap)
+      if (pushOn && favs.length && VSP.pushEnable) VSP.pushEnable().then(function () { VSP.toast && VSP.toast(T("wel.push_done")); }, function () {});
       var next = VSP.whoNext(sel);
       if (next === "member") VSP.go("#meu-equip");
       else if (next === "editor") location.href = "editors/";

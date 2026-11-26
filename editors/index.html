@@ -380,6 +380,7 @@
       <section id="w-sec" hidden>
         <h2>📣 Missatge de propers partits</h2>
         <p class="muted small">Es fa amb els partits de l'Agenda (federats i amistosos). Pots retocar el text abans d'enviar-lo.</p>
+        <div class="chips" role="group" aria-label="De quin equip" id="w-teams"></div>
         <div class="chips" role="group" aria-label="Quants caps de setmana">
           <button type="button" class="chip" data-wk="1" aria-pressed="true">Aquest cap de setmana</button>
           <button type="button" class="chip" data-wk="2" aria-pressed="false">Dos caps de setmana</button>
@@ -1029,7 +1030,7 @@
       fixtures.forEach(function (f) { known[f.teamId] = 1; if (days.indexOf(f.date) >= 0) playing[f.teamId] = 1; });
       return order.filter(function (t) { return t > 0 && known[t] && !playing[t]; });
     }
-    function weeklyMessage(fixtures, days, links, order) {
+    function weeklyMessage(fixtures, days, links, order, header) {
       var byDay = {}, seen = {};
       fixtures.forEach(function (f) {
         if (f.played || days.indexOf(f.date) < 0 || seen[f.id]) return;
@@ -1039,8 +1040,8 @@
       days.slice().sort().forEach(function (d) { var w = weekendOf(d); if (!wmap[w]) { wmap[w] = []; weekends.push(w); } wmap[w].push(d); });
       var rest = {};
       weekends.forEach(function (w) { rest[w] = resting(fixtures, wmap[w], order).map(function (t) { return WEEK_LABEL[t]; }); });
-      if (!Object.keys(byDay).length && weekends.every(function (w) { return !rest[w].length; })) return WL.header + "\n" + WL.none;
-      var sb = WL.header + "\n";
+      if (!Object.keys(byDay).length && weekends.every(function (w) { return !rest[w].length; })) return (header || WL.header) + "\n" + WL.none;
+      var sb = (header || WL.header) + "\n";
       function tkey(t) { return t || "99:99"; }
       var blocks = 0;   // days (or empty weekends) written: the separator goes BETWEEN them, not before the first
       weekends.forEach(function (w) {
@@ -1206,7 +1207,7 @@
     }
     function usageSummary(records, todayIso) {
       function since(o, k, n) { return validDay(o[k]) && o[k] >= addDays(todayIso, -n); }
-      var a30 = records.filter(function (o) { return since(o, "last", 30); });
+      var a30 = records.filter(function (o) { return since(o, "last", 30); }), a7 = records.filter(function (o) { return since(o, "last", 7); });
       var favs = [];
       a30.forEach(function (o) { (o.favs || []).forEach(function (t) { t = Number(t); if (t) favs.push(t); }); });
       return { installs: records.length, active7: records.filter(function (o) { return since(o, "last", 7); }).length, active30: a30.length,
@@ -1217,7 +1218,23 @@
         notifications: a30.filter(function (o) { return o.notif === true; }).length, liveAlerts: a30.filter(function (o) { return o.live === true; }).length,
         calendar: a30.filter(function (o) { return o.cal === true; }).length, widget: a30.filter(function (o) { return o.widget === true; }).length,
         platforms: countBy(a30, platformOf), homeScreen: a30.filter(function (o) { return o.pwa === true; }).length,
-        sections: sectionCounts(a30, todayIso) };
+        sections: sectionCounts(a30, todayIso),
+        // 🎮 6.16, 📅 8.7, 📡 6.15 (01.54)
+        gamesWeek: a7.reduce(function (n, o) { return n + Math.max(0, Math.min(1000, Number(o.jp) || 0)); }, 0),
+        gamePlayers: a7.filter(function (o) { return Number(o.jp) > 0; }).length,
+        calendars: countBy([].concat.apply([], a30.map(function (o) { return (Array.isArray(o.cals) ? o.cals : []).map(Number).filter(function (x, i, l) { return x && l.indexOf(x) === i; }); })), function (t) { return t; })
+          .map(function (x) { return [Number(x[0]), x[1]]; }),
+        lives: livesOf(records).slice(0, 20) };
+    }
+    /** Every broadcast of the records ([day, match, most at once]; same day + match once, the highest), newest first. */
+    function livesOf(records) {
+      var m = {};
+      records.forEach(function (o) { (Array.isArray(o.lv) ? o.lv : []).forEach(function (x) {
+        if (!x || !validDay(x.d)) return;
+        var k = x.d + "|" + String(x.e || ""); m[k] = Math.max(m[k] || 0, Number(x.m) || 0);
+      }); });
+      return Object.keys(m).map(function (k) { var i = k.indexOf("|"); return [k.slice(0, i), k.slice(i + 1), m[k]]; })
+        .filter(function (x) { return x[2] > 0; }).sort(function (a, b) { return a[0] < b[0] ? 1 : a[0] > b[0] ? -1 : 0; });
     }
     // 📊 01.53: where it is used, which sections, call-up answers and the month by month (same as the app's stats/UsageExtras.kt)
     var STATS_SECTIONS = ["inici", "equips", "agenda", "club", "avisos", "directe", "marcador", "jocs", "pili", "galeria", "cotxes", "editors"];
@@ -2869,8 +2886,20 @@
   };
 
   // ---- board: weekly "Propers partits" WhatsApp message (WeeklyMessage.kt)
+  // 8.6: the whole club, or one team (for that team's WhatsApp group)
+  var wTeam = null;
+  function drawWeeklyTeams() {
+    $("w-teams").innerHTML = '<button type="button" class="chip" data-wt="" aria-pressed="' + (wTeam === null) + '">🏐 Tot el club</button>' +
+      TEAM_ORDER.map(function (t) { return '<button type="button" class="chip" data-wt="' + t + '" aria-pressed="' + (wTeam === t) + '">' + esc(teamName(t)) + "</button>"; }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll("[data-wt]"), function (b) {
+      b.onclick = function () { var v = b.getAttribute("data-wt"); wTeam = v === "" ? null : Number(v); drawWeeklyTeams(); regenWeekly(); };
+    });
+  }
+  drawWeeklyTeams();
   function regenWeekly() {
-    var text = H.weeklyMessage(matches || [], H.weekendDays(todayIso(), wWeekends), $("w-links").checked, TEAM_ORDER);
+    var all = matches || [], days = H.weekendDays(todayIso(), wWeekends);
+    var text = wTeam === null ? H.weeklyMessage(all, days, $("w-links").checked, TEAM_ORDER)
+      : H.weeklyMessage(all.filter(function (f) { return f.teamId === wTeam; }), days, $("w-links").checked, [wTeam], "Propers partits · " + (H.APP_NAME[wTeam] || teamName(wTeam)) + ":");
     $("w-text").value = text; $("w-wa").href = waHref(text); wEdited = false;
   }
   Array.prototype.forEach.call(document.querySelectorAll("[data-wk]"), function (b) {
@@ -3351,6 +3380,11 @@
         (u.homeScreen ? '<p class="small">' + u.homeScreen + " tenen el web a la pantalla d'inici.</p>" : "") +
         bars("Seccions que es fan servir (aparells, 30 dies)", u.sections.map(function (x) { return [(H.SECTION_NAMES[x[0]] || x[0]) + " · " + x[1] + " aquesta setmana", x[2]]; }), total) +
         (u.sections.length ? "" : '<p class="small">Encara no hi ha dades: arriben amb l\'app 01.53 i el web nou.</p>') +
+        "<h3>Jocs (últims 7 dies)</h3><p>" + u.gamesWeek + " partides · " + u.gamePlayers + " aparells hi han jugat</p>" +
+        block("Calendaris d'equip subscrits des del web", u.calendars.map(function (x) { return [teamName(x[0]), x[1]]; })) +
+        "<h3>Directes: màxim de gent mirant alhora</h3>" + (u.lives.length ? u.lives.map(function (x) {
+          return '<div class="row"><span class="small">' + esc(x[0].slice(8) + "/" + x[0].slice(5, 7) + "  " + x[1]) + '</span><span class="spacer"></span><b>👀 ' + x[2] + "</b></div>";
+        }).join("") : '<p class="small">Encara cap directe amb dades (arriben amb la 01.54).</p>') +
         '<h3>Respostes a les convocatòries (últims 60 dies)</h3><div id="u-part">' + loadingHtml() + "</div>" +
         '<h3>Mes a mes</h3><div id="u-months">' + loadingHtml() + "</div>" +
         block("Versió de l'app o del web (actius 30 dies)", u.byVersion) +

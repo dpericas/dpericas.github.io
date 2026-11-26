@@ -89,7 +89,10 @@
   }
   function item(o) {
       var link = VSP.safeUrl(o.enllac);
-      return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '"><h3>' + (o.urgent ? "⚠️ " : "") + esc(o.titol) + "</h3>" +
+      return '<div class="item' + (o.urgent ? " urgent" : "") + (o.priv ? " priv" : "") + '">' +
+        (o.urgent || o.priv ? '<div class="tags">' + (o.urgent ? '<span class="tag urgent">' + esc(VSP.t("home.tag_urgent")) + "</span>" : "") +
+          (o.priv ? '<span class="tag priv">' + esc(VSP.t("home.tag_team")) + "</span>" : "") + "</div>" : "") +
+        "<h3>" + esc(o.titol) + "</h3>" +
         '<div class="meta">' + esc(VSP.fmtDate(o.data || String(o.created || "").slice(0, 10))) + (VSP.signedBy(o) ? " · " + esc(VSP.signedBy(o)) : "") + "</div>" +
         (o.text ? "<p>" + VSP.waFormat(esc(o.text)) + "</p>" : "") +
         (link ? '<p><a href="' + esc(link) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.more_info")) + "</a></p>" : "") +
@@ -199,8 +202,10 @@
     // 📅 the whole season of each ★ team in the phone's calendar (files written by .github/workflows/calendaris.yml)
     var cal = favs.filter(function (id) { return VSP.calTeams.indexOf(id) >= 0; });
     if (cal.length) $("next").innerHTML += '<div class="calsub"><p class="muted">' + esc(VSP.t("cal.text")) + '</p><div class="row">' + cal.map(function (id) {
-      return '<a class="btn ghost small" href="' + esc(VSP.calUrl(id)) + '" target="_blank" rel="noopener">📅 ' + esc(VSP.teamName(id)) + "</a>";
+      return '<a class="btn ghost small" data-calsub="' + id + '" href="' + esc(VSP.calUrl(id)) + '" target="_blank" rel="noopener">📅 ' + esc(VSP.teamName(id)) + "</a>";
     }).join("") + "</div></div>";
+    // 📊 8.7: which team calendars this browser subscribed to (anonymous statistics, only if they are on)
+    VSP.each("[data-calsub]", function (a) { a.addEventListener("click", function () { if (VSP.statsCal) VSP.statsCal(Number(a.getAttribute("data-calsub"))); }); }, $("next"));
   };
   /** Teams with a subscribable calendar (cal/index.json) and its address: webcal:// on Apple devices, Google Calendar elsewhere. */
   VSP.calTeams = [];

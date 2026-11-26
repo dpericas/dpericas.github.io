@@ -5,7 +5,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://ntfy.sh https://api.github.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Club Vòlei Santpedor</title>
-<meta name="description" content="Club Vòlei Santpedor: equips, agenda i resultats, convocatòries, cotxes compartits, avisos, horaris d'entrenament i partits en directe.">
+<meta name="description" content="Club Vòlei Santpedor: equips, agenda i resultats, convocatòries, cotxes compartits, avisos, horaris d’entrenament i partits en directe.">
 <link rel="icon" href="icons/icon-192.png">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
@@ -51,19 +51,19 @@
 
   <div class="install" id="ios-install" hidden>
     <button id="ios-close" aria-label="Tancar" data-i18n-attr="aria-label:common.close">×</button>
-    <b data-i18n="idx.ios_title">📲 Posa-la a la pantalla d'inici</b>
-    <span data-i18n-html="idx.ios_text">A l'iPhone toca <b class="inl">Compartir</b> <span aria-hidden="true">⬆️</span> (a baix, a Safari) i després <b class="inl">«Afegeix a la pantalla d'inici»</b>. S'obrirà com una app.</span>
+    <b data-i18n="idx.ios_title">📲 Posa-la a la pantalla d’inici</b>
+    <span data-i18n-html="idx.ios_text">A l’iPhone toca <b class="inl">Compartir</b> <span aria-hidden="true">⬆️</span> (a baix, a Safari) i després <b class="inl">«Afegeix a la pantalla d’inici»</b>. S’obrirà com una app.</span>
   </div>
 
   <!-- ====================== EQUIPS ====================== -->
   <div data-tab="equips" hidden>
     <section>
       <h2 data-i18n="idx.teams_h">👥 Equips</h2>
-      <p class="muted" id="teams-hint" data-i18n="idx.teams_hint">Toca ☆ per marcar els teus equips: sortiran primer i a «★ Els meus» de l'Agenda.</p>
+      <p class="muted" id="teams-hint" data-i18n="idx.teams_hint">Toca ☆ per marcar els teus equips: sortiran primer i a «★ Els meus» de l’Agenda.</p>
       <div id="teams"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
     <section>
-      <h2 data-i18n="idx.trainings">🕒 Horaris d'entrenament</h2>
+      <h2 data-i18n="idx.trainings">🕒 Horaris d’entrenament</h2>
       <div id="horaris"><div class="empty" data-i18n="common.loading">Carregant…</div></div>
     </section>
   </div>
@@ -88,7 +88,6 @@
     <section id="res-sec" hidden>
       <h2 data-i18n="idx.results">🏆 Últims resultats</h2>
       <div id="resultats"></div>
-      <p class="muted" data-i18n="idx.results_note">Partits retransmesos en directe amb l'app.</p>
     </section>
 
     <section>
@@ -106,7 +105,7 @@
       <h2 data-i18n="idx.follow">📡 Seguir un partit</h2>
       <div id="follow-live"><div class="empty" data-i18n="idx.follow_searching">Buscant partits en directe…</div></div>
       <form class="form" id="code-f">
-        <label for="code-in" class="muted" style="font-weight:400;margin-top:0" data-i18n="idx.code_label">Si t'han passat un enllaç o un codi, enganxa'l aquí.</label>
+        <label for="code-in" class="muted" style="font-weight:400;margin-top:0" data-i18n="idx.code_label">Si t’han passat un enllaç o un codi, enganxa’l aquí.</label>
         <div class="row" style="margin-top:6px"><input class="grow" id="code-in" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vsp-…"><button class="btn primary small" type="submit" data-i18n="idx.code_btn">Segueix</button></div>
         <div class="err" id="code-err" role="alert"></div>
       </form>
@@ -116,27 +115,27 @@
 
     <section id="try-sec">
       <h2 data-i18n="idx.try_h">🏐 Vols jugar a vòlei?</h2>
-      <div class="muted" data-i18n="idx.try_text">Vine a fer un entrenament de prova gratuït. Deixa'ns les dades i et truquem per quedar.</div>
+      <div class="muted" data-i18n="idx.try_text">Vine a fer un entrenament de prova gratuït. Deixa’ns les dades i et truquem per quedar.</div>
       <div class="row" style="margin-top:10px"><a class="btn primary" href="provar/" data-i18n="idx.try_btn">🏐 Vull provar el vòlei</a></div>
     </section>
 
     <section id="android-app">
-      <h2 data-i18n="idx.android_h">📲 L'app per a Android</h2>
+      <h2 data-i18n="idx.android_h">📲 L’app per a Android</h2>
       <div class="muted" data-i18n="idx.android_text">Amb marcador i retransmissió en directe, avisos al mòbil, cotxes compartits i molt més.</div>
       <div class="row" style="margin-top:10px">
         <a class="btn primary" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk" data-i18n="idx.android_dl">⬇️ Descarrega per a Android</a>
         <small class="muted" id="ver"></small>
       </div>
       <details class="how">
-        <summary data-i18n="idx.howto">Com s'instal·la?</summary>
+        <summary data-i18n="idx.howto">Com s’instal·la?</summary>
         <ol>
           <li data-i18n-html="idx.howto_1">Obre aquesta pàgina des del mòbil Android i toca <b>Descarrega</b>.</li>
           <li data-i18n-html="idx.howto_2">Obre el fitxer <i>VoleiSantpedor.apk</i> descarregat.</li>
-          <li data-i18n-html="idx.howto_3">Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i>.</li>
-          <li data-i18n="idx.howto_4">L'app avisa sola quan hi ha versions noves.</li>
+          <li data-i18n-html="idx.howto_3">Si el mòbil ho demana, permet <i>instal·lar aplicacions d’aquest origen</i>.</li>
+          <li data-i18n="idx.howto_4">L’app avisa sola quan hi ha versions noves.</li>
         </ol>
       </details>
-      <div class="muted" style="margin-top:8px" data-i18n="idx.iphone">Tens iPhone o ordinador? Aquesta mateixa web fa gairebé tot el que fa l'app: posa-la a la pantalla d'inici.</div>
+      <div class="muted" style="margin-top:8px" data-i18n="idx.iphone">Tens iPhone o ordinador? Aquesta mateixa web fa gairebé tot el que fa l’app: posa-la a la pantalla d’inici.</div>
     </section>
   </div>
 
@@ -165,8 +164,8 @@
   <div data-tab="club" hidden>
     <section id="push-sec">
       <h2 data-i18n="idx.s_account">🙋 El teu compte</h2>
-      <a class="linkrow" href="#meu-equip" data-href="#meu-equip"><span><b data-i18n="idx.c_team">👤 El meu equip</b><span class="meta" data-i18n="idx.c_team_sub">Jugadors/es i famílies: avisos de l'equip i «vinc / no vinc»</span></span><span aria-hidden="true">›</span></a>
-      <a class="linkrow" href="#dispositius" data-href="#dispositius"><span><b data-i18n="idx.c_devices">🔗 Els meus dispositius</b><span class="meta" data-i18n="idx.c_devices_sub">El mateix compte al web i a l'app, en tots els teus dispositius</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#meu-equip" data-href="#meu-equip"><span><b data-i18n="idx.c_team">👤 El meu equip</b><span class="meta" data-i18n="idx.c_team_sub">Jugadors/es i famílies: avisos de l’equip i «vinc / no vinc»</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="#dispositius" data-href="#dispositius"><span><b data-i18n="idx.c_devices">🔗 Els meus dispositius</b><span class="meta" data-i18n="idx.c_devices_sub">El mateix compte al web i a l’app, en tots els teus dispositius</span></span><span aria-hidden="true">›</span></a>
       <a class="linkrow" href="#preferencies" data-href="#preferencies"><span><b data-i18n="idx.c_push">🔔 Avisos en aquest dispositiu</b><span class="meta" id="push-state"></span></span><span aria-hidden="true">›</span></a>
     </section>
     <section>
@@ -187,16 +186,16 @@
     </section>
     <section>
       <h2 data-i18n="idx.s_help">❓ Ajuda</h2>
-      <a class="linkrow" href="manual/"><span><b data-i18n="pf.manual">📖 Manual de l'app</b><span class="meta" data-i18n="pf.manual_sub">Com funciona cada cosa</span></span><span aria-hidden="true">›</span></a>
+      <a class="linkrow" href="manual/"><span><b data-i18n="pf.manual">📖 Manual de l’app</b><span class="meta" data-i18n="pf.manual_sub">Com funciona cada cosa</span></span><span aria-hidden="true">›</span></a>
       <a class="linkrow" href="#preferencies" data-href="#preferencies"><span><b data-i18n="idx.c_prefs">⚙️ Preferències</b><span class="meta" data-i18n="idx.c_prefs_sub">Idioma, tema, avisos, privacitat…</span></span><span aria-hidden="true">›</span></a>
     </section>
     <section id="orders-sec" hidden>
-      <h2 data-i18n="idx.orders">🛍️ Comandes d'equipació</h2>
+      <h2 data-i18n="idx.orders">🛍️ Comandes d’equipació</h2>
       <div id="orders"></div>
     </section>
     <section>
       <h2 data-i18n="idx.contact">📍 Contacte i xarxes</h2>
-      <div class="row">
+      <div class="grid2">
         <a class="btn ghost" href="https://www.instagram.com/voleisantpedor/" target="_blank" rel="noopener">📸 Instagram</a>
         <a class="btn ghost" href="tel:+34649992552">📞 649 99 25 52</a>
         <a class="btn ghost" href="mailto:voleisantpedor@hotmail.com" data-i18n="idx.email">✉️ Correu</a>
@@ -208,10 +207,10 @@
       <div id="friendlies"></div>
     </section>
     <section>
-      <h2 data-i18n="idx.posters">📄 Per als pavellons i l'escola</h2>
-      <div class="muted" data-i18n-html="idx.posters_text">📄 <a href="app/cartell.pdf">Cartell amb el codi QR de l'app (A4)</a> · <a href="app/">Pàgina de descàrrega</a></div>
+      <h2 data-i18n="idx.posters">📄 Per als pavellons i l’escola</h2>
+      <div class="muted" data-i18n-html="idx.posters_text">📄 <a href="app/cartell.pdf">Cartell amb el codi QR de l’app (A4)</a> · <a href="app/">Pàgina de descàrrega</a> · <a href="app/#video">🎬 Coneix l’app (vídeo)</a></div>
     </section>
-    <footer>Club Vòlei Santpedor · <span id="year"></span> · <a href="manual/" style="color:var(--muted)" data-i18n="idx.f_manual">Manual</a> · <a href="privacitat/" style="color:var(--muted)" data-i18n="idx.f_privacy">Privacitat</a> · <a href="editors/" rel="nofollow" style="color:var(--muted)" data-i18n="idx.f_editors">Zona d'editors</a></footer>
+    <footer>Club Vòlei Santpedor · <span id="year"></span> · <a href="manual/" style="color:var(--muted)" data-i18n="idx.f_manual">Manual</a> · <a href="privacitat/" style="color:var(--muted)" data-i18n="idx.f_privacy">Privacitat</a> · <a href="editors/" rel="nofollow" style="color:var(--muted)" data-i18n="idx.f_editors">Zona d’editors</a></footer>
   </div>
 
   <div id="page" hidden></div>
@@ -239,6 +238,7 @@
 <script src="js/perduts.js"></script>
 <script src="js/push.js"></script>
 <script src="js/stats.js"></script>
+<script src="js/poster.js"></script>
 <script src="js/prefs.js"></script>
 <script src="js/welcome.js"></script>
 <script src="js/main.js"></script>

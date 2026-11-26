@@ -59,6 +59,8 @@
 
   /** This browser's subscription, or null (also when the service worker is not registered: no waiting for it). */
   VSP.pushCurrent = function () { return current(); };
+  /** Asks for permission and subscribes this browser (must run from a tap: the welcome's «Comença»). */
+  VSP.pushEnable = function () { return enable(); };
   function current() {
     if (VSP.pushSupport() !== "ok") return Promise.resolve(null);
     return navigator.serviceWorker.getRegistration().then(function (r) { return r ? r.pushManager.getSubscription() : null; });

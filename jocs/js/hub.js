@@ -471,9 +471,24 @@
   // ---------------------------------------------------------------- La meva Pili
 
   var MILESTONE_TEXT = { 3: t("pet.lv3"), 5: t("pet.lv5"), 8: t("pet.lv8"), 10: t("pet.lv10") };
+  /** 🎉 6.14: today's festivity and when the next festive item comes. */
+  function festHtml() {
+    var today = P.today(), u = P.upcomingFestivity(today);
+    function emo(f) { var it = P.pet.item(P.pet.festive(f)); return it ? it.emoji : "🎉"; }
+    var out = '<p class="jg-acc"><b>' + esc(t("pet.fest_title")) + "</b></p>";
+    if (u.now) out += '<p class="jg-small">' + esc(t("pet.fest_now", emo(u.now), P.FESTIVITIES[u.now].title)) + "</p>";
+    if (u.next) {
+      var days = P.epochDay(u.next[1]) - P.epochDay(today);
+      var when = new Date(u.next[1] + "T12:00:00").toLocaleDateString(VSP.locale ? VSP.locale() : "ca", { weekday: "long", day: "numeric", month: "long" });
+      out += '<p class="jg-small">' + esc(t("pet.fest_next", emo(u.next[0]), P.FESTIVITIES[u.next[0]].title, when, t(days === 1 ? "pet.fest_day" : "pet.fest_days", days))) + "</p>";
+    }
+    return out;
+  }
   function renderPet() {
     // 🍎 the daily item and the festivity special (once a day, like opening the app)
     P.earnPet("DAILY"); P.earnPet("FESTIVE");
+    // 🏆 a ★ team won (6.11): a trophy per match, never twice with the app
+    var trophies = P.claimWins ? P.claimWins() : 0;
     function bar(key, cls) { return '<div class="jg-stat"><b>' + esc(t("pet." + key)) + '</b><div class="jg-bar ' + cls + '"><i id="jg-pet-' + key + '"></i></div></div>'; }
     var body = page(t("hub.pet"),
       '<div class="jg-center"><p class="jg-big" id="jg-pet-level"></p><div class="jg-bar xp"><i id="jg-pet-xpbar"></i></div><p class="jg-small" id="jg-pet-xp"></p>' +
@@ -486,12 +501,14 @@
       '<button type="button" class="jg-btn" id="jg-shower">' + esc(t("pet.shower")) + "</button></div>" +
       '<p class="jg-small jg-center" id="jg-care-wait"></p>' +
       '<div class="jg-inv"><h3>' + esc(t("pet.inventory")) + '</h3><div id="jg-inv"></div>' +
+      festHtml() +
       '<p class="jg-acc"><b>' + esc(t("pet.earn_title")) + '</b></p><p class="jg-small jg-pre">' + esc(t("pet.earn_list")) + "</p></div>" +
       '<div id="jg-milestone"></div>' +
       '<p class="jg-small jg-center">' + esc(t("pet.train")) + "</p>");
     var petBtn = VSP.$("jg-pet");
     var widget = VSPG.piliWidget(petBtn, 240, { mood: "happy", style: "green", shadow: true });
     var message = null, msgTimer = 0, cheerTimer = 0, cheer = false, lastTickle = 0, invKey = null;
+    if (trophies) { message = t("pet.trophy_won"); cheer = true; }
     function update() {
       if (!document.body.contains(petBtn)) return;
       var now = P.nowSec(), pet = P.petState(now), level = P.pet.level(pet.xp);

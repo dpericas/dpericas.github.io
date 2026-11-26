@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://api.github.com; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Descarrega l'app</title>
-<meta name="description" content="Descarrega l'última versió de l'app del Club Vòlei Santpedor per a Android.">
+<title>Descarrega l’app</title>
+<meta name="description" content="Descarrega l’última versió de l’app del Club Vòlei Santpedor per a Android.">
 <link rel="icon" href="../live/logo.jpg">
 <meta property="og:title" content="App del Club Vòlei Santpedor">
 <meta property="og:description" content="Calendari, resultats, partits en directe i avisos del club. Per a Android.">
@@ -26,6 +26,8 @@
   .card { background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px; margin-top:18px; text-align:left; font-size:15px; }
   .card h2 { font-size:16px; margin:0 0 8px; }
   ol { margin:0; padding-left:20px; } li { margin:4px 0; }
+  /* 🎬 Coneix l’app (6.9): the club film, vertical on a phone held upright */
+  .video video { display:block; width:100%; max-height:70vh; border-radius:12px; background:#000; }
   #qr { display:none; margin-top:18px; }
   #qrbox { display:inline-block; margin-top:6px; }
   #qr img, #qr canvas { background:#fff; padding:10px; border-radius:12px; }
@@ -41,24 +43,42 @@
   <div class="muted">Calendari i resultats de tots els equips, partits en directe, avisos, horaris i cotxes compartits.</div>
 
   <a class="btn" id="dl" href="https://github.com/dpericas/voleimanagerV/raw/main/VoleiSantpedor.apk">⬇️ Descarrega per a Android</a>
-  <div class="muted" id="ver">Sempre l'última versió</div>
+  <div class="muted" id="ver">Sempre l’última versió</div>
   <div class="muted" id="auto" hidden>La descàrrega comença sola…</div>
+
+  <div class="card video" id="video">
+    <h2>🎬 Coneix l’app</h2>
+    <video id="film" controls playsinline preload="none" poster="video/coneix-app.jpg">
+      <source src="video/coneix-app.mp4" type="video/mp4">
+      <track kind="subtitles" srclang="ca" label="Català" src="video/coneix-app.ca.vtt">
+    </video>
+    <p class="muted">La Pili t’ensenya en un minut i mig què fa l’app: equips, agenda, directes, avisos i molt més.</p>
+  </div>
+  <script>
+    // a phone held upright gets the vertical cut of the film
+    (function () {
+      var v = document.getElementById("film");
+      if (v && window.matchMedia && matchMedia("(max-width: 600px) and (orientation: portrait)").matches) {
+        v.querySelector("source").src = "video/coneix-app-vertical.mp4"; v.load();
+      }
+    })();
+  </script>
 
   <div class="card" id="ios" hidden>
     <h2>Tens iPhone?</h2>
-    L'app d'Android no s'hi pot instal·lar, però el web del club funciona com una app: agenda, resultats, avisos,
-    horaris i directes. <a href="../">Obre'l</a>, toca <b>Compartir</b> ⬆️ i <b>«Afegeix a la pantalla d'inici»</b>.
+    L’app d’Android no s’hi pot instal·lar, però el web del club funciona com una app: agenda, resultats, avisos,
+    horaris i directes. <a href="../">Obre’l</a>, toca <b>Compartir</b> ⬆️ i <b>«Afegeix a la pantalla d’inici»</b>.
   </div>
 
-  <div id="qr"><div class="muted">Des de l'ordinador? Escaneja-ho amb el mòbil:</div><div id="qrbox"></div></div>
+  <div id="qr"><div class="muted">Des de l’ordinador? Escaneja-ho amb el mòbil:</div><div id="qrbox"></div></div>
 
   <div class="card">
-    <h2>Com s'instal·la?</h2>
+    <h2>Com s’instal·la?</h2>
     <ol>
       <li>Toca <b>Descarrega</b> des del mòbil Android.</li>
       <li>Obre el fitxer <i>VoleiSantpedor.apk</i> (a les notificacions o a Baixades).</li>
-      <li>Si el mòbil ho demana, permet <i>instal·lar aplicacions d'aquest origen</i>.</li>
-      <li>Ja està! L'app avisa sola quan hi ha versions noves.</li>
+      <li>Si el mòbil ho demana, permet <i>instal·lar aplicacions d’aquest origen</i>.</li>
+      <li>Ja està! L’app avisa sola quan hi ha versions noves.</li>
     </ol>
   </div>
   <p class="muted">De moment només per a Android. <a href="../">Web del club</a></p>
@@ -79,7 +99,7 @@
   var ios = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   if (ios) { document.getElementById("ios").hidden = false; document.getElementById("dl").href = "../"; document.getElementById("dl").textContent = "📱 Obre la versió per a iPhone"; }
   // Android phone (e.g. arrived from the poster QR): start the download directly
-  if (/Android/i.test(navigator.userAgent) && location.hash !== "#no") {
+  if (/Android/i.test(navigator.userAgent) && location.hash !== "#no" && location.hash !== "#video") {   // #video: came to watch the film
     document.getElementById("auto").hidden = false;
     setTimeout(function () { location.href = APK; }, 1200);
   }

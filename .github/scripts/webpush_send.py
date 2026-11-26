@@ -125,6 +125,44 @@ def time_payload(m):
             "url": "/#partit/" + m["id"], "tag": "hora-" + m["id"]}
 
 
+def moved_payload(m, old):
+    """6.2: a ★ team's match moved to another day or time (old = "YYYY-MM-DD|HH:MM" of the last look)."""
+    y, mo, dd = (int(x) for x in m["date"].split("-"))
+    day = WEEKDAYS[datetime.date(y, mo, dd).weekday()]
+    team = TEAMS.get(m["team"], "Vòlei Santpedor")
+    where = ("vs " if m["home"] else "a ") + nice_team(m["rival"])
+    od, _, ot = old.partition("|")
+    before = []
+    if od != m["date"]:
+        oy, om, odd = (int(x) for x in od.split("-"))
+        before.append("%s %d/%d" % (WEEKDAYS[datetime.date(oy, om, odd).weekday()], odd, om))
+    if ot:
+        before.append(ot)
+    body = "%s %d/%d%s · %s" % (day, dd, mo, (" · " + m["time"]) if m["time"] else "", where)
+    if before:
+        body += " (abans: " + " · ".join(before) + ")"
+    return {"title": "🕒 Canvi d'hora o de dia · " + team, "body": body, "url": "/#partit/" + m["id"],
+            "tag": "canvi-" + m["id"] + "-" + m["date"] + (m["time"] or "")}
+
+
+def moved(matches, known):
+    """[(match, old)] of the matches whose day changed, or whose time changed from one set time to another."""
+    before = {}
+    for k in known or []:
+        i = k.find("=")
+        if i > 0:
+            before[k[:i]] = k[i + 1:]
+    out = []
+    for m in matches:
+        old = before.get(m["id"])
+        if old is None:
+            continue
+        od, _, ot = old.partition("|")
+        if od != m["date"] or (ot and m["time"] and ot != m["time"]):
+            out.append((m, old))
+    return out
+
+
 def still_valid(a, today):
     """Notices whose "fins" (visible until) has passed are not sent."""
     fins = a.get("fins") or ""
@@ -137,6 +175,7 @@ def plan(state, avisos, convs, subs, today, matches=None):
     first = not state.get("inicialitzat")
     matches = matches or []
     tbc_known = "sense_hora" in state
+    moved_known = "horaris" in state
     seen_tbc = set(state.get("sense_hora") or [])
     seen_a, seen_c = set(state.get("avisos") or []), set(state.get("convocatories") or [])
     out = []
@@ -162,10 +201,17 @@ def plan(state, avisos, convs, subs, today, matches=None):
                     for s in subs:
                         if s.get("convocatories", True) and m["team"] in (s.get("equips") or []):
                             out.append((s, p))
+        if moved_known:
+            for m, old in moved(matches, state.get("horaris")):
+                p = moved_payload(m, old)
+                for s in subs:
+                    if s.get("convocatories", True) and m["team"] in (s.get("equips") or []):
+                        out.append((s, p))
     new_state = {"inicialitzat": True,
                  "avisos": [a["id"] for a in avisos][-KEEP:],
                  "convocatories": [c["id"] for c in convs][-KEEP:],
-                 "sense_hora": [m["id"] for m in matches if not m["time"]][-1500:]}
+                 "sense_hora": [m["id"] for m in matches if not m["time"]][-1500:],
+                 "horaris": [m["id"] + "=" + m["date"] + "|" + (m["time"] or "") for m in matches][-1500:]}
     return out, new_state
 
 
@@ -256,12 +302,17 @@ def main():
     if matches is None:
         state = dict(state)
         prev_tbc = state.get("sense_hora")
+        prev_hours = state.get("horaris")
     messages, new_state = plan(state, avisos, convs, subs, today, matches or [])
     if matches is None:   # keep what was remembered about the matches for the next run
         if prev_tbc is not None:
             new_state["sense_hora"] = prev_tbc
         else:
             new_state.pop("sense_hora", None)
+        if prev_hours is not None:
+            new_state["horaris"] = prev_hours
+        else:
+            new_state.pop("horaris", None)
     print("subscriptions: %d · new messages: %d" % (len(subs), len(messages)))
     # remember what is being sent BEFORE sending: if anything fails half way, nothing is sent twice
     http("PATCH", BASE + "/config/webpush", {"fields": {k: to_value(v) for k, v in new_state.items()}}, token=token)
@@ -333,6 +384,15 @@ def selftest():
     assert [(s["id"], p["tag"]) for s, p in msgs] == [("a", "hora-7")], msgs
     assert msgs[0][1]["body"] == "dissabte 28/11 · 18:00 · vs CV Encamp" and msgs[0][1]["url"] == "/#partit/7"
     assert plan(st4, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))[0] == []
+    # 6.2 «Canvi d'hora o de dia»: a set time that changes, or another day; never the first time a time is set
+    ag[0]["partits"][0]["f"] = "2026-11-28 19:30:00"
+    msgs, st5 = plan(st4, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))
+    assert [(s["id"], p["tag"]) for s, p in msgs] == [("a", "canvi-7-2026-11-2819:30")], msgs
+    assert msgs[0][1]["body"] == "dissabte 28/11 · 19:30 · vs CV Encamp (abans: 18:00)", msgs[0][1]["body"]
+    ag[0]["partits"][1]["f"] = "2026-11-30 10:00:00"
+    msgs, st6 = plan(st5, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))
+    assert len(msgs) == 1 and "(abans: diumenge 29/11 · 10:00)" in msgs[0][1]["body"], msgs
+    assert plan(st6, [], [], subs, "2026-11-24", agenda_matches(ag, "2026-11-24"))[0] == [], "never twice"
     print("selftest OK")
     return 0
 

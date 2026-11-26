@@ -37,6 +37,23 @@
   VSP.rival = function (m) { return m.homeIsClub ? m.away : m.home; };
 
   /** Called once the data is loaded. */
+  /** 🏆 6.11: ★ teams' wins of the last 3 days (same rule as the app's PetLogic.newWins). Pure: tested. */
+  VSP.recentWins = function (matches, favs, today) {
+    var from = VSP.addDays(today, -3);
+    return matches.filter(function (m) {
+      return favs.indexOf(m.team) >= 0 && m.played && m.date <= today && m.date >= from &&
+        (m.homeIsClub ? m.hs > m.as : m.as > m.hs);
+    }).map(function (m) { return String(m.id); }).filter(function (x, i, l) { return l.indexOf(x) === i; });
+  };
+  /** Leaves them for jocs/ (P.claimWins gives one 🏆 per match, never twice). */
+  VSP.leaveWins = function () {
+    if (!VSP.matches) return;
+    var ids = VSP.recentWins(VSP.matches, VSP.favs(), VSP.today());
+    if (!ids.length) return;
+    var cur = VSP.storeJson("jocs_wins_pending", undefined, []) || [];
+    var next = cur.concat(ids.filter(function (x) { return cur.indexOf(x) < 0; })).slice(-20);
+    if (next.length !== cur.length) VSP.storeJson("jocs_wins_pending", next);
+  };
   VSP.setupMatches = function (agendaDocs, friendlies, convs) {
     var list = [], latest = "";
     agendaDocs.forEach(function (d) {
@@ -297,12 +314,18 @@
       (maps ? '<a class="btn ghost small" href="' + esc(maps) + '" target="_blank" rel="noopener">' + esc(VSP.t("common.directions")) + "</a>" : "") +
       (m.venue && VSP.featureOn("consells") ? '<a class="btn ghost small" href="#pavello/' + esc(VSP.venueKey(m.venue)) + '" data-href="#pavello/' + esc(VSP.venueKey(m.venue)) + '">' + esc(VSP.t("ag.btn_hall")) + "</a>" : "") +
       '<a class="btn ghost small" href="#equip/' + m.team + '" data-href="#equip/' + m.team + '">' + esc(VSP.t("ag.btn_team")) + "</a>" +
+      (VSP.sharePoster ? '<button class="btn ghost small" id="m-poster">' + esc(VSP.t("poster.btn")) + '</button><button class="btn ghost small" id="m-story">' + esc(VSP.t("poster.story")) + "</button>" : "") +
       "</div></section>" +
       (conv ? '<section id="conv-sec"></section>' : "") +
       (carpool ? '<section id="cp-sec"><h2>' + esc(VSP.t("cp.title")) + '</h2><div id="cp"><div class="empty">' + esc(VSP.t("common.loading")) + "</div></div></section>" : "");
     if ($("m-ics")) $("m-ics").onclick = function () {
       VSP.download("partit-" + m.date + ".ics", "text/calendar;charset=utf-8", VSP.ics(m));
     };
+    // 🖼️ the match poster (js/poster.js): post or story
+    [["m-poster", false], ["m-story", true]].forEach(function (b) {
+      var btn = $(b[0]); if (!btn) return;
+      btn.onclick = function () { btn.disabled = true; VSP.sharePoster(m, b[1]).catch(function () { VSP.toast(VSP.t("poster.error")); }).then(function () { btn.disabled = false; }); };
+    });
     if (conv) renderConvocation(m, conv, $("conv-sec"));
     if (carpool) VSP.carpool(m, $("cp"));
   } };

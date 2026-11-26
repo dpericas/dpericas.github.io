@@ -217,6 +217,12 @@
       var al = {}, has = false, a = o.alertes && typeof o.alertes === "object" ? o.alertes : {};
       P.ALERTS.forEach(function (k) { if (typeof a[k] === "boolean") { al[k] = a[k]; has = true; } });
       if (has) { out.alertes = al; out.alertesAt = Number(o.alertesAt) || 0; }
+      // 6.13: the app's scoreboard formats travel through the profile; the web has no scoreboard, so it keeps them as they are
+      var mk = o.marcador && typeof o.marcador === "object" ? o.marcador : {}, mo = {}, mn = 0;
+      Object.keys(mk).sort().forEach(function (k) {
+        if (mn < 16 && /^(last|team_-?\d{1,6})$/.test(k) && typeof mk[k] === "string" && mk[k].trim() && mk[k].length <= 200) { mo[k] = mk[k]; mn++; }
+      });
+      if (mn) { out.marcador = mo; out.marcadorAt = Number(o.marcadorAt) || 0; }
       return out;
     },
     parse: function (json) { var o; try { o = JSON.parse(json); } catch (e) { return null; } return o && typeof o === "object" ? P.clean(o) : null; },
@@ -276,10 +282,13 @@
       return Object.keys(prof.disp).filter(function (u) { return u !== uid && prof.fora.indexOf(u) < 0 && known.indexOf(u) < 0; });
     },
     /** Linked device: main teams to join (not here, or asked with another role) and linked teams to leave. */
-    teamChanges: function (main, requested, linked, roles) {
+    teamChanges: function (main, requested, linked, roles, players) {
       var ids = main.map(function (e) { return e.t; });
+      // 8.3: also when the main device changed who they are in the squad (or the children)
+      function key(l) { return (l || []).map(function (x) { return String(x).trim().toLowerCase(); }).sort().filter(function (x, i, a) { return a.indexOf(x) === i; }).join("|"); }
+      function playersDiffer(e) { var p = e.jugadors || []; return p.length > 0 && key(p) !== key((players || {})[e.t]); }
       return {
-        join: main.filter(function (e) { return requested.indexOf(e.t) < 0 || (linked.indexOf(e.t) >= 0 && roles[e.t] !== e.rol); }),
+        join: main.filter(function (e) { return requested.indexOf(e.t) < 0 || (linked.indexOf(e.t) >= 0 && (roles[e.t] !== e.rol || playersDiffer(e))); }),
         leave: linked.filter(function (t) { return ids.indexOf(t) < 0; })
       };
     }
@@ -550,7 +559,7 @@
   }
   /** Linked browser: the same teams as the main device. */
   function followTeams(key, persona, remote) {
-    var linked = M.profileTeams(), ch = P.teamChanges(remote.equips, M.requested(), linked, M.roles());
+    var linked = M.profileTeams(), ch = P.teamChanges(remote.equips, M.requested(), linked, M.roles(), M.players());
     if (!ch.join.length && !ch.leave.length) return Promise.resolve(false);
     var joined = [];
     return ch.leave.reduce(function (p, t) { return p.then(function () { return M.leave(t).catch(function () {}); }); }, Promise.resolve()).then(function () {

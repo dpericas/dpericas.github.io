@@ -57,6 +57,54 @@
   $("ios-close").onclick = function () { $("ios-install").hidden = true; VSP.store("ios-install-closed", "1"); };
   if ("serviceWorker" in navigator) { try { navigator.serviceWorker.register("sw.js").catch(function () {}); } catch (e) {} }
 
+  // ---------- wide screens: Inici and Club in two columns of about the same height (6.19). Each card
+  // goes, in its order, to the shorter column; only on load, on resize and when a card appears or goes,
+  // never while reading (a card that grows does not jump to the other side).
+  var BAL_TABS = ["inici", "club"], wideMq = window.matchMedia ? matchMedia("(min-width:1100px)") : null;
+  VSP.balance = function () {
+    BAL_TABS.forEach(function (tab) {
+      var box = document.querySelector('[data-tab="' + tab + '"]'); if (!box) return;
+      var cols = box.querySelectorAll(":scope > .bal-col");
+      var secs = Array.prototype.slice.call(box.querySelectorAll(":scope > section, :scope > .bal-col > section"));
+      secs.forEach(function (s, i) { if (!s.hasAttribute("data-ord")) s.setAttribute("data-ord", String(i)); });
+      secs.sort(function (a, b) { return a.getAttribute("data-ord") - b.getAttribute("data-ord"); });
+      var first = box.firstElementChild;
+      if (!wideMq || !wideMq.matches) {
+        if (!cols.length) return;
+        secs.forEach(function (s) { box.insertBefore(s, cols[0]); });
+        Array.prototype.forEach.call(cols, function (c) { c.remove(); });
+        box.classList.remove("bal");
+        return;
+      }
+      if (cols.length !== 2) {
+        cols = [document.createElement("div"), document.createElement("div")];
+        cols.forEach(function (c) { c.className = "bal-col"; box.insertBefore(c, first); });
+      }
+      box.classList.add("bal");
+      if (box.hidden) return;   // measured when the tab is shown
+      secs.forEach(function (s) { cols[0].appendChild(s); });
+      var h = [0, 0];
+      secs.forEach(function (s) {
+        var sh = s.hidden ? 0 : s.offsetHeight + 14;
+        var c = h[1] < h[0] ? 1 : 0;
+        cols[c].appendChild(s); h[c] += sh;
+      });
+    });
+  };
+  var balTimer = null;
+  function balanceSoon() { clearTimeout(balTimer); balTimer = setTimeout(VSP.balance, 120); }
+  window.addEventListener("resize", balanceSoon);
+  window.addEventListener("hashchange", balanceSoon);
+  if (window.MutationObserver) {
+    var mo = new MutationObserver(function (list) {
+      if (list.some(function (m) { return m.target.tagName === "SECTION" || m.target.hasAttribute("data-tab"); })) balanceSoon();
+    });
+    BAL_TABS.forEach(function (tab) {
+      var box = document.querySelector('[data-tab="' + tab + '"]');
+      if (box) mo.observe(box, { attributes: true, attributeFilter: ["hidden"], subtree: true });
+    });
+  }
+
   VSP.initAgenda();
   VSP.initLive();
   if (VSP.initPush) VSP.initPush();
@@ -71,6 +119,7 @@
     VSP.renderTrainings();
     VSP.renderTeams();
     VSP.renderAgendaTab();
+    if (VSP.leaveWins) VSP.leaveWins();   // 🏆 for «La meva Pili» in the games
     VSP.renderToday();
     VSP.renderNext();
     VSP.loadCalendars();
@@ -79,6 +128,7 @@
     $("tips-link").hidden = !VSP.featureOn("consells");
     $("propose-link").hidden = !VSP.featureOn("fotos");
     if (VSP.offline) VSP.toast(VSP.t("main.offline"));
+    balanceSoon();
     return d;
   }).catch(function (e) { if (window.console) console.error(e); });
   VSP.route();

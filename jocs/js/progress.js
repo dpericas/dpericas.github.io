@@ -212,6 +212,15 @@
   };
   P.newlyOpened = function (before, after) { return P.IDS.filter(function (g) { return !P.unlocked(g, before) && P.unlocked(g, after); }); };
   /** The seasonal game can only be played during a festivity. */
+  /** 🎉 6.14: the festivity of [today] (or null) and the next different one with its first day ([name, "YYYY-MM-DD"]). Pure: tested. */
+  P.upcomingFestivity = function (today) {
+    var now = P.festivityOn(today), next = null;
+    for (var i = 1; i < 400 && !next; i++) {
+      var d = P.addDays(today, i), f = P.festivityOn(d);
+      if (f && f !== now) next = [f, d];
+    }
+    return { now: now, next: next };
+  };
   P.seasonOpen = function (date) { return P.festivityOn(date) !== null; };
 
   // ---------------------------------------------------------------- daily challenge (pure)
@@ -556,7 +565,8 @@
   P.PET_SOURCES = {
     GAME: { pool: ["platan", "isotonic", "pilota", "sabo"], cap: 5 },
     DAILY: { pool: ["poma"], cap: 1 },
-    FESTIVE: { pool: [], cap: 1 }
+    FESTIVE: { pool: [], cap: 1 },
+    WIN: { pool: ["trofeu"], cap: 2 }
   };
   function copyPet(s) {
     s = s || {};
@@ -770,6 +780,23 @@
     return id;
   };
 
+  /**
+   * 🏆 6.11: a ★ team won (the club web leaves the matches in localStorage "jocs_wins_pending", js/home.js):
+   * one trophy per match, never one the app or another device already gave ("trofeus", synced). Returns how many.
+   */
+  P.claimWins = function (opts) {
+    opts = opts || {};
+    var pending = strList(get("wins_pending", [])), given = strList(get("trofeus", [])), n = 0;
+    pending.forEach(function (id) {
+      if (given.indexOf(id) >= 0) return;
+      given.push(id);   // remembered even past the daily cap: a match gives its trophy only once
+      if (P.earnPet("WIN", opts)) n++;
+    });
+    set("trofeus", given.sort().slice(-200));
+    set("wins_pending", []);
+    return n;
+  };
+
   /** Teams where this browser is an approved member (localStorage "mem_approved", written by js/member.js). */
   P.approvedTeams = function () {
     var a = VSP.storeJson("mem_approved", undefined, []);
@@ -868,6 +895,15 @@
     var after = P.bests();
     var newStars = Math.max(0, P.stars(g, after) - P.stars(g, before));
     P.inc(C.GAMES);
+    // 📊 6.16: games per day for the club web's anonymous statistics (js/stats.js), only if they are on
+    try {
+      if (localStorage.getItem("stats") === "1") {
+        var sg = JSON.parse(localStorage.getItem("stats_games") || "{}") || {}, dk = String(today);
+        sg[dk] = (Number(sg[dk]) || 0) + 1;
+        Object.keys(sg).forEach(function (k) { if (k < P.addDays(dk, -14)) delete sg[k]; });
+        localStorage.setItem("stats_games", JSON.stringify(sg));
+      }
+    } catch (e) {}
     if (mode.variant === "NIT") P.inc(C.VARIANT_NIT);
     else if (mode.variant === "TURBO") P.inc(C.VARIANT_TURBO);
     else if (mode.variant === "MIRALL") P.inc(C.VARIANT_MIRALL);
@@ -1073,6 +1109,8 @@
       s.daily.best = d.best;
       s.referee = referee;
       s.festes = strList(get("festes", [])).sort();
+      var tr = strList(get("trofeus", [])).sort().slice(-200);
+      if (tr.length) s.trofeus = tr;
       return s;
     },
     /** Parses the JSON text of "dades" (v must be 1); null if it is not valid. */
@@ -1099,6 +1137,8 @@
       s.daily.best = Math.max(0, Math.floor(Number(d.best) || 0));
       s.referee = referee;
       s.festes = strList(o.festes);
+      var tr = strList(o.trofeus).sort().slice(-200);
+      if (tr.length) s.trofeus = tr;
       return s;
     },
     /** Never loses anything (docs/jocs_progres.md); [local] wins for nickname and team. */
@@ -1139,6 +1179,9 @@
       m.daily.best = dBest;
       m.referee = referee;
       m.festes = union(local.festes, saved.festes);
+      // 🏆 matches whose trophy was already given (app or web): never twice (6.11)
+      var tr = union(local.trofeus || [], saved.trofeus || []).sort().slice(-200);
+      if (tr.length) m.trofeus = tr;
       return m;
     },
     /** Canonical text (sorted keys) to compare two snapshots. */
@@ -1168,6 +1211,7 @@
       if (s.daily.date) { d.date = s.daily.date; d.best = s.daily.best || 0; }
       set("daily", d);
       set("festes", s.festes.slice());
+      if (s.trofeus) set("trofeus", strList(get("trofeus", [])).concat(s.trofeus).filter(function (x, i, l) { return l.indexOf(x) === i; }).sort().slice(-200));
       if (!P.nickname() && s.nom != null && P.nickError(s.nom) === null) set("nick", P.cleanNick(s.nom));
       if (P.team() === null && s.equip != null && P.approvedTeams().indexOf(s.equip) >= 0) set("team", s.equip);
       var r = get("referee", {}) || {};
