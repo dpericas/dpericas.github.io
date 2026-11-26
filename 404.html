@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ca">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ens hem mudat · Club Vòlei Santpedor</title>
+<link rel="canonical" href="https://clubvoleisantpedor.github.io/">
+<style>
+  :root { --bg:#0f5132; --card:#ffffff; --ink:#15191c; --muted:#5f6b73; --accent:#b9f6c0; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; overflow-x:clip; }
+  body { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px 16px;
+         background:var(--bg); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; line-height:1.45; }
+  main { background:var(--card); border-radius:20px; max-width:440px; width:100%; padding:28px 22px; text-align:center; }
+  h1 { font-size:22px; margin:12px 0 6px; }
+  p { margin:8px 0; }
+  .muted { color:var(--muted); font-size:14px; }
+  a.btn { display:inline-block; margin-top:14px; padding:14px 20px; border-radius:14px; background:var(--accent); color:#1a1a1a; font-weight:800; text-decoration:none; }
+  a.btn:focus-visible { outline:3px solid var(--bg); outline-offset:3px; }
+  .big { font-size:48px; }
+</style>
+</head>
+<body>
+<main>
+  <div class="big" aria-hidden="true">🏐🏠</div>
+  <h1>Ens hem mudat!</h1>
+  <p>El web del Club Vòlei Santpedor ara és a<br><b>clubvoleisantpedor.github.io</b></p>
+  <p class="muted" id="msg">T’hi portem ara mateix, amb els teus equips ★ i les teves preferències.</p>
+  <a class="btn" id="go" href="https://clubvoleisantpedor.github.io/">Vés al web nou</a>
+  <p class="muted" id="ios" hidden>Si l’havies afegit a la pantalla d’inici, obre el web nou i torna’l a afegir: Compartir ⬆️ › «Afegeix a la pantalla d’inici».</p>
+</main>
+<script>
+/* Bridge of the old address (2026-11): every page of dpericas.github.io comes here (index.html and
+ * 404.html are this same page) and goes to the same page of clubvoleisantpedor.github.io, carrying what
+ * this browser had saved here in the address fragment ("#mudanca=…", read by js/mudanca.js there). A
+ * fragment never reaches any server. An editor's session is not carried (they sign in again). */
+(function () {
+  "use strict";
+  var NEW = "https://clubvoleisantpedor.github.io";
+  var hash = (location.hash || "").replace(/^#/, "");
+  var keys = {}, n = 0;
+  try {
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k === "cache_data" || k.indexOf("vspe_") === 0) continue;
+      keys[k] = localStorage.getItem(k); n++;
+    }
+  } catch (e) {}
+  function pack(o) {
+    var s = btoa(unescape(encodeURIComponent(JSON.stringify(o))));
+    return s.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  var data = pack({ h: hash, k: keys });
+  // very big (the games' album…): the games travel with their progress code instead
+  if (data.length > 60000) {
+    Object.keys(keys).forEach(function (k) { if (k.indexOf("jocs_") === 0 && k !== "jocs_code") delete keys[k]; });
+    data = pack({ h: hash, k: keys });
+  }
+  var url = NEW + location.pathname + location.search + (n ? "#mudanca=" + data : (hash ? "#" + hash : ""));
+  document.getElementById("go").href = url;
+  var standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
+  if (standalone) document.getElementById("ios").hidden = false;
+  setTimeout(function () { location.replace(url); }, standalone ? 4000 : 1200);
+})();
+</script>
+</body>
+</html>
